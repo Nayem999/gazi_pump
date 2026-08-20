@@ -1,0 +1,18 @@
+@extends('layouts.admin')
+
+@section('title', 'Add Promotion')
+
+@section('breadcrumb')
+    <li class="breadcrumb-item"><a href="{{ route('promotions.index') }}">Promotions</a></li>
+    <li class="breadcrumb-item active">Add New</li>
+@endsection
+
+@section('content')
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" action="{{ route('promotions.store') }}" enctype="multipart/form-data">
+                @include('promotions._form')
+            </form>
+        </div>
+    </div>
+@endsection

@@ -1,0 +1,48 @@
+// Design-system tokens: radius/shadow/glass/gradient/surface scales for both
+// themes. Imported AFTER Bootstrap so this file's `[data-bs-theme="dark"]`
+// block can layer on top of (and where needed, override) Bootstrap's own
+// dark-mode variable remapping. Components should consume these custom
+// properties rather than hardcoding colors, so both themes stay in sync.
+
+:root {
+    color-scheme: light;
+
+    // Rounded corners
+    --radius-sm: #{$border-radius-sm};
+    --radius: #{$border-radius};
+    --radius-lg: #{$border-radius-lg};
+    --radius-xl: 1.25rem;
+
+    // Soft, layered shadow scale (light theme)
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);
+    --shadow: 0 4px 16px -4px rgba(15, 23, 42, .1), 0 2px 4px -2px rgba(15, 23, 42, .06);
+    --shadow-lg: 0 16px 40px -8px rgba(15, 23, 42, .16), 0 4px 8px -2px rgba(15, 23, 42, .08);
+
+    // Glassmorphism surface (light theme)
+    --glass-bg: rgba(255, 255, 255, .75);
+    --glass-border: rgba(15, 23, 42, .06);
+    --glass-blur: 14px;
+
+    // Brand gradients
+    --gradient-brand: linear-gradient(135deg, #{$brand-gradient-start} 0%, #{$brand-gradient-end} 100%);
+    --gradient-sidebar: linear-gradient(180deg, #{$dark} 0%, #060b16 100%);
+
+    // Elevated surfaces (cards, dropdowns, modals) — separate from
+    // Bootstrap's --bs-body-bg so components can sit visibly "above" the page.
+    --surface-bg: #ffffff;
+    --surface-border: #{rgba($dark, .08)};
+}
+
+[data-bs-theme="dark"] {
+    color-scheme: dark;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
+    --shadow: 0 4px 16px -4px rgba(0, 0, 0, .45), 0 2px 4px -2px rgba(0, 0, 0, .3);
+    --shadow-lg: 0 16px 40px -8px rgba(0, 0, 0, .55), 0 4px 8px -2px rgba(0, 0, 0, .35);
+
+    --glass-bg: rgba(15, 23, 42, .65);
+    --glass-border: rgba(255, 255, 255, .08);
+
+    --surface-bg: #111827;
+    --surface-border: rgba(255, 255, 255, .08);
+}

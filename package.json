@@ -1,0 +1,29 @@
+{
+    "$schema": "https://www.schemastore.org/package.json",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite"
+    },
+    "devDependencies": {
+        "axios": "^1.11.0",
+        "concurrently": "^9.0.1",
+        "laravel-vite-plugin": "^0.8.1",
+        "sass": "^1.77.8",
+        "vite": "^4.5.5"
+    },
+    "dependencies": {
+        "@popperjs/core": "^2.11.8",
+        "@tabler/icons-webfont": "^3.46.0",
+        "apexcharts": "^3.54.0",
+        "bootstrap": "^5.3.3",
+        "datatables.net": "^2.1.8",
+        "datatables.net-bs5": "^2.1.8",
+        "jquery": "^3.7.1",
+        "leaflet": "^1.9.4",
+        "leaflet-draw": "^1.0.4",
+        "leaflet.markercluster": "^1.5.3",
+        "sweetalert2": "^11.14.5"
+    }
+}

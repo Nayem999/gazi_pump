@@ -1,0 +1,323 @@
+// Enterprise admin shell layout: fixed sidebar + topbar, responsive collapse.
+// Tokens consumed here (--radius-*, --shadow-*, --glass-*, --gradient-*,
+// --surface-*) are defined in _theme.scss for both light and dark themes.
+
+:root {
+    --sidebar-width: 260px;
+    --topbar-height: 64px;
+}
+
+body.admin-body {
+    background: var(--bs-body-bg);
+}
+
+.app-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    background: var(--gradient-sidebar);
+    color: #cbd5e1;
+    overflow-y: auto;
+    z-index: 1030;
+    transition: transform .2s ease-in-out;
+
+    .sidebar-brand {
+        height: var(--topbar-height);
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        padding: 0 1rem;
+        color: #fff;
+        font-weight: 600;
+        border-bottom: 1px solid rgba(255, 255, 255, .08);
+    }
+
+    .nav-link {
+        color: #cbd5e1;
+        border-radius: var(--radius);
+        margin: .125rem .75rem;
+        padding: .6rem .85rem;
+        transition: background-color .15s ease, color .15s ease, transform .15s ease;
+
+        &:hover,
+        &:focus {
+            color: #fff;
+            background: rgba(255, 255, 255, .08);
+            transform: translateX(2px);
+        }
+
+        &.active {
+            color: #fff;
+            background: var(--gradient-brand);
+            box-shadow: var(--shadow-sm);
+        }
+
+        i {
+            width: 1.25rem;
+            display: inline-block;
+            text-align: center;
+        }
+    }
+
+    .nav-section-title {
+        font-size: .68rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: #64748b;
+        padding: 1rem 1.25rem .35rem;
+    }
+
+    // Each nav-link's icon gets its own accent color (the label text stays
+    // neutral gray/white) so the menu reads as colorful at a glance instead
+    // of one flat monochrome glyph per row. Tuned bright/light since this
+    // sidebar's background is a fixed dark gradient regardless of
+    // [data-bs-theme] — a mid-tone color calibrated for light surfaces
+    // would look washed out here.
+    .nav-link i {
+        &.icon-blue { color: #60a5fa; }
+        &.icon-green { color: #4ade80; }
+        &.icon-cyan { color: #22d3ee; }
+        &.icon-amber { color: #fbbf24; }
+        &.icon-orange { color: #fb923c; }
+        &.icon-red { color: #f87171; }
+        &.icon-purple { color: #a78bfa; }
+        &.icon-indigo { color: #818cf8; }
+        &.icon-pink { color: #f472b6; }
+        &.icon-teal { color: #2dd4bf; }
+    }
+}
+
+// A sixth accent hue alongside Bootstrap's default semantic set (primary/
+// success/info/warning/danger) — used where five colors aren't enough to
+// keep adjacent items visually distinct, e.g. the customer portal's account
+// sidebar. Mid-toned (unlike the bright .icon-* set above) so it stays
+// legible on the light-or-dark surfaces those utility classes render on.
+.text-purple {
+    color: #7c3aed !important;
+}
+
+.app-topbar {
+    position: sticky;
+    top: 0;
+    height: var(--topbar-height);
+    z-index: 1020;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border-bottom: 1px solid var(--glass-border);
+    transition: box-shadow .2s ease;
+
+    // Toggled by a small scroll listener in admin.js so the glass topbar
+    // gains depth once the page content scrolls underneath it.
+    &.scrolled {
+        box-shadow: var(--shadow);
+    }
+}
+
+.app-content {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (max-width: 991.98px) {
+    .app-sidebar {
+        transform: translateX(-100%);
+
+        &.show {
+            transform: translateX(0);
+        }
+    }
+
+    .app-content {
+        margin-left: 0;
+    }
+}
+
+// Elevated surfaces: every module reuses either a generic Bootstrap `.card`
+// or the `.stat-card` component below, so restyling these two cascades the
+// new look everywhere with no per-module Blade changes.
+.card {
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-xl);
+    background: var(--surface-bg);
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-card {
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-xl);
+    background: var(--surface-bg);
+    box-shadow: var(--shadow-sm);
+    transition: transform .2s ease, box-shadow .2s ease;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .stat-card-icon {
+        position: relative;
+        width: 3rem;
+        height: 3rem;
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        overflow: hidden;
+
+        // A soft glossy sheen layered over whichever bg-{color}-subtle
+        // Bootstrap utility the caller passed in, so every stat card keeps
+        // its own semantic color (primary/success/info/...) for fast visual
+        // scanning, while still picking up a gradient-y "premium" finish.
+        &::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, .45), rgba(255, 255, 255, 0) 65%);
+            pointer-events: none;
+        }
+
+        i {
+            position: relative;
+            z-index: 1;
+        }
+    }
+
+    .stat-card-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+}
+
+// Primary call-to-action buttons get the brand gradient; outline/secondary
+// buttons (used for row-level edit/delete/restore actions everywhere) are
+// left alone so the gradient reads as an accent, not visual noise.
+.btn-primary {
+    background: var(--gradient-brand);
+    border-color: transparent;
+    transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+
+    &:hover,
+    &:focus {
+        filter: brightness(1.06);
+        box-shadow: var(--shadow);
+        transform: translateY(-1px);
+    }
+
+    &:active {
+        transform: scale(.97);
+    }
+}
+
+// Row/card action groups (View/Edit/Delete/Restore/...) share one .btn-group
+// so they render as a single merged pill. Delete/Restore/Force-delete must
+// submit through their own <form> for CSRF + @method spoofing, but
+// Bootstrap's .btn-group corner-merging and .btn-group-sm sizing selectors
+// only match a .btn that is a DIRECT child of the group — nested inside a
+// form, the button falls back to full size with all four corners rounded,
+// reading as a disconnected island next to its siblings. `display: contents`
+// drops the form's own box so flex layout treats the button as if it sat
+// directly in the group, and the rules below reapply Bootstrap's own
+// size/corner/margin merge logic through that wrapper.
+.btn-group > form {
+    display: contents;
+}
+
+.btn-group > form > .btn {
+    border-radius: 0;
+    margin-left: calc(-1 * var(--bs-border-width, 1px));
+}
+
+.btn-group > form:first-child > .btn {
+    margin-left: 0;
+    border-top-left-radius: var(--bs-btn-border-radius);
+    border-bottom-left-radius: var(--bs-btn-border-radius);
+}
+
+.btn-group > form:last-child > .btn {
+    border-top-right-radius: var(--bs-btn-border-radius);
+    border-bottom-right-radius: var(--bs-btn-border-radius);
+}
+
+.btn-group-sm > form > .btn {
+    --bs-btn-padding-y: #{$btn-padding-y-sm};
+    --bs-btn-padding-x: #{$btn-padding-x-sm};
+    --bs-btn-font-size: #{$btn-font-size-sm};
+    --bs-btn-border-radius: #{$btn-border-radius-sm};
+}
+
+.badge {
+    border-radius: 50rem;
+    font-weight: 600;
+    letter-spacing: .01em;
+}
+
+// Data tables: smooth row-hover highlight + a subtle scale on the small
+// icon-only action buttons every module's index view uses (Edit/Delete/...).
+.table-hover > tbody > tr {
+    transition: background-color .12s ease;
+}
+
+.btn-group-sm > .btn {
+    transition: transform .12s ease, box-shadow .12s ease;
+
+    &:hover {
+        transform: translateY(-1px) scale(1.04);
+        box-shadow: var(--shadow-sm);
+    }
+}
+
+// Gradient-tinted focus ring on inputs/selects (filter bars, forms).
+.form-control:focus,
+.form-select:focus {
+    border-color: $primary;
+    box-shadow: 0 0 0 .2rem rgba($primary, .18);
+}
+
+// Modal: scale + fade entrance instead of Bootstrap's default slide-down,
+// plus a touch of blur on the backdrop for a glass feel.
+.modal.fade .modal-dialog {
+    transition: transform .25s cubic-bezier(.34, 1.56, .64, 1), opacity .2s ease;
+    transform: translateY(-16px) scale(.96);
+    opacity: 0;
+}
+
+.modal.show .modal-dialog {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
+
+.modal-content {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--surface-border);
+    box-shadow: var(--shadow-lg);
+    background: var(--surface-bg);
+}
+
+.modal-backdrop.show {
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+}
+
+.skeleton {
+    background: linear-gradient(90deg, #eef1f4 25%, #e4e8ed 37%, #eef1f4 63%);
+    background-size: 400% 100%;
+    animation: skeleton-loading 1.4s ease infinite;
+    border-radius: var(--radius-sm);
+}
+
+[data-bs-theme="dark"] .skeleton {
+    background: linear-gradient(90deg, #1e293b 25%, #263449 37%, #1e293b 63%);
+    background-size: 400% 100%;
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+}

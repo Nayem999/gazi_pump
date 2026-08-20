@@ -1,0 +1,28 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Block direct access to everything except the public/ folder and this
+    # front-controller shim — .env, composer.json, vendor/, app/, storage/,
+    # etc. all live here and must never be served as raw files or listings.
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^(?!public/)(?!index\.php$)(?!$).+ - [F]
+
+    # Serve a real, physical file that already lives in public/ (build
+    # assets, the storage symlink, favicon, etc.) directly from there.
+    # %{REQUEST_FILENAME} already resolves to this directory + the request
+    # path, so it can't be reused to probe public/ — capture the path
+    # relative to this directory from REQUEST_URI instead.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_URI} ^/gazi_pump/(.*)$
+    RewriteCond %{DOCUMENT_ROOT}/gazi_pump/public/%1 -f
+    RewriteRule ^ public/%1 [L]
+
+    # Everything else is an application route — hand it to the front
+    # controller in this same directory (see index.php) so SCRIPT_NAME
+    # stays aligned with REQUEST_URI and Laravel's router resolves paths
+    # correctly (routing straight into public/index.php here breaks that).
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>

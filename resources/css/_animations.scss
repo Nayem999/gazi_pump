@@ -1,0 +1,61 @@
+// Micro-animations and hover utilities. Wrapped in a `prefers-reduced-motion`
+// guard so motion-sensitive users get instant state changes instead of
+// animated ones — this is an accessibility requirement, not optional polish.
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp .4s ease both;
+}
+
+// Reusable lift-on-hover for elements that don't already have a bespoke
+// hover treatment (stat-card and the row action buttons get their own tuned
+// rules in _layout.scss; this covers everything else, e.g. plain content
+// cards like the dashboard's chart card).
+.hover-lift {
+    transition: transform .2s ease, box-shadow .2s ease;
+
+    &:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-fade-in-up {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+
+    .hover-lift,
+    .stat-card,
+    .btn-group-sm > .btn,
+    .btn-primary,
+    .app-topbar,
+    .app-sidebar .nav-link,
+    .modal.fade .modal-dialog {
+        transition: none !important;
+    }
+
+    .hover-lift:hover,
+    .stat-card:hover,
+    .btn-group-sm > .btn:hover,
+    .btn-primary:hover {
+        transform: none !important;
+    }
+
+    .modal.fade .modal-dialog {
+        transform: none !important;
+        opacity: 1 !important;
+    }
+}

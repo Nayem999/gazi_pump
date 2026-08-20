@@ -1,0 +1,36 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # If the CLIENT'S ORIGINAL request explicitly included "/public" in the
+    # path (typed directly, or an old bookmark), redirect to the clean URL
+    # one level up — the project root serves this same front controller via
+    # the root .htaccess + index.php shim. Must check THE_REQUEST (the raw
+    # request line) rather than REQUEST_URI: static assets that legitimately
+    # live under public/ arrive here via an internal rewrite from the root
+    # .htaccess, and by that point REQUEST_URI has already been updated to
+    # include "/public/" too, which would otherwise self-redirect forever.
+    RewriteCond %{THE_REQUEST} "^[A-Z]{3,9} (/.*)/public(/[^ ]*)? HTTP"
+    RewriteRule ^ %1%2 [R=301,L]
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Handle X-XSRF-Token Header
+    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+    # Redirect Trailing Slashes If Not A Folder...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Send Requests To Front Controller...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>

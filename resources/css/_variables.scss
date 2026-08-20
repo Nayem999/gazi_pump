@@ -1,0 +1,26 @@
+// Bootstrap variable overrides for the Gazi Pump SFA enterprise theme.
+// Must be imported BEFORE "bootstrap/scss/bootstrap".
+
+$primary: #0d5aa7;
+$secondary: #64748b;
+$success: #16a34a;
+$info: #0ea5e9;
+$warning: #f59e0b;
+$danger: #dc2626;
+$light: #f8fafc;
+$dark: #0f172a;
+
+$font-family-sans-serif: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+$body-bg: #f4f6f9;
+$border-radius: .5rem;
+$border-radius-sm: .375rem;
+$border-radius-lg: .75rem;
+
+$enable-shadows: true;
+$box-shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);
+$box-shadow: 0 1px 3px rgba(15, 23, 42, .1), 0 1px 2px rgba(15, 23, 42, .06);
+
+// Anchors for the design-system gradients in _theme.scss — no new brand
+// colors, just named references to the two that already exist above.
+$brand-gradient-start: $primary;
+$brand-gradient-end: $info;

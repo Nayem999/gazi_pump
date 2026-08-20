@@ -1,0 +1,1161 @@
+{
+    "info": {
+        "name": "Gazi Pump SFA API",
+        "description": "Mobile REST API for the Gazi Pump Sales Force Automation system. Import this collection together with the companion environment file.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000/api/v1",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "notification_id",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const body = pm.response.json();",
+                                    "if (body.success && body.data && body.data.token) {",
+                                    "    pm.collectionVariables.set(\"token\", body.data.token);",
+                                    "    pm.environment.set(\"token\", body.data.token);",
+                                    "}",
+                                    "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                                    "pm.test(\"response has token\", () => pm.expect(body.data.token).to.be.a(\"string\"));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"admin@gazipump.com\",\n  \"password\": \"password\",\n  \"device_name\": \"Postman\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "description": "Authenticate and receive a Sanctum API token."
+                    }
+                },
+                {
+                    "name": "Me",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/me",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "me"
+                            ]
+                        },
+                        "description": "Get the authenticated user's profile."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Health",
+            "item": [
+                {
+                    "name": "Ping",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/ping",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "ping"
+                            ]
+                        },
+                        "description": "Unauthenticated health check — confirms the API is reachable."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Org Structure",
+            "item": [
+                {
+                    "name": "Sales Teams",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/sales-teams",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "sales-teams"
+                            ]
+                        },
+                        "description": "List active sales teams."
+                    }
+                },
+                {
+                    "name": "Territories",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/territories",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "territories"
+                            ]
+                        },
+                        "description": "List active territories."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Customers",
+            "item": [
+                {
+                    "name": "List Customers",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/customers?search=&type=&territory_id=&per_page=20",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "customers"
+                            ],
+                            "query": [
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "description": "Optional: name/code/phone"
+                                },
+                                {
+                                    "key": "type",
+                                    "value": "",
+                                    "description": "Optional: dealer|retailer|distributor"
+                                },
+                                {
+                                    "key": "territory_id",
+                                    "value": "",
+                                    "description": "Optional: defaults to the logged-in user's own territory"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                }
+                            ]
+                        },
+                        "description": "List customers (defaults to the authenticated user's own territory)."
+                    }
+                },
+                {
+                    "name": "Get Customer",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/customers/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "customers",
+                                "1"
+                            ]
+                        },
+                        "description": "Get a single customer."
+                    }
+                },
+                {
+                    "name": "Register Customer",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"customer_code\": \"CUST-{{$timestamp}}\",\n    \"name\": \"Karim Traders\",\n    \"type\": \"retailer\",\n    \"phone\": \"01712345678\",\n    \"email\": null,\n    \"address\": null,\n    \"gps_lat\": 23.8103,\n    \"gps_lng\": 90.4125,\n    \"territory_id\": null\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/customers",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "customers"
+                            ]
+                        },
+                        "description": "Register a new customer (dealer/retailer/distributor) from the field."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Products",
+            "item": [
+                {
+                    "name": "List Products",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/products?search=&category_id=&per_page=20",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "products"
+                            ],
+                            "query": [
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "description": "Optional: name/SKU"
+                                },
+                                {
+                                    "key": "category_id",
+                                    "value": "",
+                                    "description": "Optional: filter by category"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                }
+                            ]
+                        },
+                        "description": "List active products."
+                    }
+                },
+                {
+                    "name": "Get Product",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/products/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "products",
+                                "1"
+                            ]
+                        },
+                        "description": "Get a single product."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Attendance",
+            "item": [
+                {
+                    "name": "Check In",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "lat",
+                                    "value": "23.8103",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "lng",
+                                    "value": "90.4125",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "photo",
+                                    "type": "file",
+                                    "src": "fixtures/sample-photo.jpg"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/attendance/check-in",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "attendance",
+                                "check-in"
+                            ]
+                        },
+                        "description": "Check in for today with GPS + photo."
+                    }
+                },
+                {
+                    "name": "Check Out",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "lat",
+                                    "value": "23.8110",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "lng",
+                                    "value": "90.4130",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "photo",
+                                    "type": "file",
+                                    "src": "fixtures/sample-photo.jpg"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/attendance/check-out",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "attendance",
+                                "check-out"
+                            ]
+                        },
+                        "description": "Check out for today with GPS + photo."
+                    }
+                },
+                {
+                    "name": "Today's Attendance",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/attendance/today",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "attendance",
+                                "today"
+                            ]
+                        },
+                        "description": "Get the authenticated user's attendance status for today."
+                    }
+                },
+                {
+                    "name": "My Attendance History",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/attendance/history?date_from=&date_to=&per_page=20",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "attendance",
+                                "history"
+                            ],
+                            "query": [
+                                {
+                                    "key": "date_from",
+                                    "value": "",
+                                    "description": "Optional: YYYY-MM-DD"
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "",
+                                    "description": "Optional: YYYY-MM-DD"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                }
+                            ]
+                        },
+                        "description": "List the authenticated user's own attendance history."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "GPS Tracking",
+            "item": [
+                {
+                    "name": "Ingest GPS Pings",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"logs\": [\n    { \"lat\": 23.8103, \"lng\": 90.4125, \"recorded_at\": \"2026-08-03T09:20:00+06:00\", \"accuracy\": 12.5, \"speed\": 8.2, \"battery_level\": 87 },\n    { \"lat\": 23.8110, \"lng\": 90.4130, \"recorded_at\": \"2026-08-03T09:40:00+06:00\", \"accuracy\": 10.0, \"speed\": 5.0, \"battery_level\": 85 }\n  ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/gps-logs",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "gps-logs"
+                            ]
+                        },
+                        "description": "Ingest a batch of GPS pings (1 or more) for the authenticated user."
+                    }
+                },
+                {
+                    "name": "My Location History",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/gps-logs/history?date=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "gps-logs",
+                                "history"
+                            ],
+                            "query": [
+                                {
+                                    "key": "date",
+                                    "value": "",
+                                    "description": "Optional: YYYY-MM-DD, defaults to today"
+                                }
+                            ]
+                        },
+                        "description": "Get the authenticated user's own GPS trail for a date."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Visit Plans",
+            "item": [
+                {
+                    "name": "Plan Visit",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"customer_id\": 1,\n  \"planned_date\": \"2026-08-05\",\n  \"notes\": \"Follow up on last order.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/visit-plans",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "visit-plans"
+                            ]
+                        },
+                        "description": "Plan a visit to a customer for a given date."
+                    }
+                },
+                {
+                    "name": "My Visit Plans",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/visit-plans?date_from=&date_to=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "visit-plans"
+                            ],
+                            "query": [
+                                {
+                                    "key": "date_from",
+                                    "value": "",
+                                    "description": "Optional: YYYY-MM-DD"
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "",
+                                    "description": "Optional: YYYY-MM-DD"
+                                }
+                            ]
+                        },
+                        "description": "List the authenticated user's own visit plans."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Visits",
+            "item": [
+                {
+                    "name": "Check In Visit",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "customer_id",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "visit_plan_id",
+                                    "value": "",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "lat",
+                                    "value": "23.8103",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "lng",
+                                    "value": "90.4125",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "photo",
+                                    "type": "file",
+                                    "src": "fixtures/sample-photo.jpg"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/visits/check-in",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "visits",
+                                "check-in"
+                            ]
+                        },
+                        "description": "Check in to a customer visit with GPS + photo."
+                    }
+                },
+                {
+                    "name": "Check Out Visit",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "lat",
+                                    "value": "23.8110",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "lng",
+                                    "value": "90.4130",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "feedback",
+                                    "value": "Placed a repeat order.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "photo",
+                                    "type": "file",
+                                    "src": "fixtures/sample-photo.jpg"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/visits/check-out",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "visits",
+                                "check-out"
+                            ]
+                        },
+                        "description": "Check out of the current open visit with feedback."
+                    }
+                },
+                {
+                    "name": "Current Visit",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/visits/current",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "visits",
+                                "current"
+                            ]
+                        },
+                        "description": "Get the authenticated user's currently open visit, if any."
+                    }
+                },
+                {
+                    "name": "My Visit History",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/visits/history?date_from=&date_to=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "visits",
+                                "history"
+                            ],
+                            "query": [
+                                {
+                                    "key": "date_from",
+                                    "value": "",
+                                    "description": "Optional: YYYY-MM-DD"
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "",
+                                    "description": "Optional: YYYY-MM-DD"
+                                }
+                            ]
+                        },
+                        "description": "List the authenticated user's own visit history."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Sales Entries",
+            "item": [
+                {
+                    "name": "Record Sale",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"customer_id\": 1,\n  \"sale_date\": \"2026-08-04\",\n  \"remarks\": \"Restocked shelf display.\",\n  \"items\": [\n    { \"product_id\": 1, \"quantity\": 4, \"discount_amount\": 0 },\n    { \"product_id\": 2, \"quantity\": 2, \"discount_amount\": 0 }\n  ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/sales-entries",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "sales-entries"
+                            ]
+                        },
+                        "description": "Record one or more products sold to a customer."
+                    }
+                },
+                {
+                    "name": "My Sales History",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/sales-entries?date_from=&date_to=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "sales-entries"
+                            ],
+                            "query": [
+                                {
+                                    "key": "date_from",
+                                    "value": "",
+                                    "description": "Optional: YYYY-MM-DD"
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "",
+                                    "description": "Optional: YYYY-MM-DD"
+                                }
+                            ]
+                        },
+                        "description": "List the authenticated user's own sales history."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Collection Entries",
+            "item": [
+                {
+                    "name": "Record Collection",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"customer_id\": 1,\n  \"collection_date\": \"2026-08-04\",\n  \"amount\": 600,\n  \"payment_method\": \"cash\",\n  \"reference_no\": null,\n  \"remarks\": \"Collected during routine visit.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/collection-entries",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "collection-entries"
+                            ]
+                        },
+                        "description": "Record a payment collected from a customer."
+                    }
+                },
+                {
+                    "name": "My Collection History",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/collection-entries?date_from=&date_to=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "collection-entries"
+                            ],
+                            "query": [
+                                {
+                                    "key": "date_from",
+                                    "value": "",
+                                    "description": "Optional: YYYY-MM-DD"
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "",
+                                    "description": "Optional: YYYY-MM-DD"
+                                }
+                            ]
+                        },
+                        "description": "List the authenticated user's own collection history."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Targets",
+            "item": [
+                {
+                    "name": "My Current Target",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/targets/current",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "targets",
+                                "current"
+                            ]
+                        },
+                        "description": "Get the authenticated user's target and achievement for the current month."
+                    }
+                },
+                {
+                    "name": "My Targets History",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/targets?year=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "targets"
+                            ],
+                            "query": [
+                                {
+                                    "key": "year",
+                                    "value": "",
+                                    "description": "Optional: e.g. 2026"
+                                }
+                            ]
+                        },
+                        "description": "List the authenticated user's own targets and achievements."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Notifications",
+            "item": [
+                {
+                    "name": "List My Notifications",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/notifications?status=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "notifications"
+                            ],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "Optional: read | unread"
+                                }
+                            ]
+                        },
+                        "description": "List the authenticated user's own notifications."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const body = pm.response.json();",
+                                    "if (body.success && Array.isArray(body.data) && body.data.length) {",
+                                    "    pm.collectionVariables.set(\"notification_id\", body.data[0].id);",
+                                    "    pm.environment.set(\"notification_id\", body.data[0].id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Unread Count",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/notifications/unread-count",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "notifications",
+                                "unread-count"
+                            ]
+                        },
+                        "description": "Get the unread notification count for the bell badge."
+                    }
+                },
+                {
+                    "name": "Mark Notification as Read",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/notifications/:id/read",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "notifications",
+                                ":id",
+                                "read"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "{{notification_id}}"
+                                }
+                            ]
+                        },
+                        "description": "Mark a single notification as read."
+                    }
+                },
+                {
+                    "name": "Mark All as Read",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/notifications/read-all",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "notifications",
+                                "read-all"
+                            ]
+                        },
+                        "description": "Mark all of the authenticated user's notifications as read."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Logout",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/auth/logout",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "logout"
+                    ]
+                },
+                "description": "Revoke the current API token."
+            }
+        }
+    ]
+}
