@@ -20,7 +20,7 @@
     @endphp
 
     <x-filter-bar :action="route('territory-map.index')">
-        <div class="col-md-3">
+        <div class="col-md-2">
             <label class="form-label">Month</label>
             <select name="month" class="form-select">
                 @foreach (range(1, 12) as $month)
@@ -28,9 +28,30 @@
                 @endforeach
             </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <label class="form-label">Year</label>
             <input type="number" name="year" class="form-control" value="{{ $filters['year'] }}">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Division</label>
+            <select name="division_id" id="filterDivision" class="form-select">
+                <option value="">All Divisions</option>
+                @foreach ($divisions as $division)
+                    <option value="{{ $division->id }}" @selected((string) $filters['division_id'] === (string) $division->id)>{{ $division->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">District</label>
+            <select name="district_id" id="filterDistrict" class="form-select" @disabled(empty($filters['division_id']))>
+                <option value="">All Districts</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Thana</label>
+            <select name="thana_id" id="filterThana" class="form-select" @disabled(empty($filters['district_id']))>
+                <option value="">All Thanas</option>
+            </select>
         </div>
     </x-filter-bar>
 
@@ -39,6 +60,7 @@
             <h5 class="mb-0">Territory Map</h5>
             <div class="d-flex flex-wrap gap-3 small text-muted">
                 <span>{{ number_format($mapData->count()) }} territories</span>
+                <span>{{ number_format((int) $mapData->sum('executiveCount')) }} executives</span>
                 <span>Each territory has its own color. Zoomed-out groups show a count — click a count bubble to zoom in. Zoom in further to see territories filled in with color; click one to see its details.</span>
             </div>
         </div>
@@ -60,6 +82,19 @@
             const territories = @json($mapData);
             const filters = @json($filters);
             const detailUrlBase = '{{ url('/territory-map') }}';
+
+            const filterDivision = document.getElementById('filterDivision');
+            const filterDistrict = document.getElementById('filterDistrict');
+            const filterThana = document.getElementById('filterThana');
+
+            initCascadingSelect(filterDivision, filterDistrict, '{{ route('districts.options') }}', 'division_id', {
+                placeholder: 'All Districts',
+                initialChildValue: '{{ $filters['district_id'] }}',
+            });
+            initCascadingSelect(filterDistrict, filterThana, '{{ route('thanas.options') }}', 'district_id', {
+                placeholder: 'All Thanas',
+                initialChildValue: '{{ $filters['thana_id'] }}',
+            });
 
             const map = window.L.map('territoryMap').setView([23.8103, 90.4125], 7);
 
@@ -203,6 +238,18 @@
 
                 modalBody.innerHTML = `
                     <div class="row g-3 mb-3">
+                        <div class="col-6 col-md-3">
+                            <div class="text-muted small">Division</div>
+                            <div class="fw-semibold">${t.divisionName ?? '—'}</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-muted small">District</div>
+                            <div class="fw-semibold">${t.districtName ?? '—'}</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-muted small">Thana</div>
+                            <div class="fw-semibold">${t.thanaName ?? '—'}</div>
+                        </div>
                         <div class="col-6 col-md-3">
                             <div class="text-muted small">Manager</div>
                             <div class="fw-semibold">${t.managerName ?? '—'}</div>

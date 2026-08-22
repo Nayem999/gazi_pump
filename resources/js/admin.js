@@ -1,8 +1,60 @@
 /**
+ * Wires a parent <select> to a dependent child <select>, fetching the
+ * child's options from a JSON endpoint whenever the parent changes (e.g.
+ * Division -> District options on the Thana form/filter bar). Kept generic
+ * so any future parent/child pair can reuse it the same way.
+ *
+ * @param {HTMLSelectElement|null} parentEl
+ * @param {HTMLSelectElement|null} childEl
+ * @param {string} url the options endpoint, e.g. "/districts-options"
+ * @param {string} paramName the query param the endpoint filters on, e.g. "division_id"
+ * @param {{placeholder?: string, initialChildValue?: string|number}} [options]
+ */
+function initCascadingSelect(parentEl, childEl, url, paramName, options = {}) {
+    if (!parentEl || !childEl) return;
+    const placeholder = options.placeholder || '— Select —';
+    const load = (parentValue, selectedChildValue) => {
+        childEl.innerHTML = `<option value="">${placeholder}</option>`;
+        if (!parentValue) { childEl.disabled = true; return; }
+        childEl.disabled = false;
+        fetch(`${url}?${paramName}=${encodeURIComponent(parentValue)}`, { headers: { Accept: 'application/json' } })
+            .then((r) => r.json())
+            .then((items) => {
+                items.forEach((item) => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.name;
+                    if (selectedChildValue && String(item.id) === String(selectedChildValue)) opt.selected = true;
+                    childEl.appendChild(opt);
+                });
+            });
+    };
+    parentEl.addEventListener('change', () => load(parentEl.value, null));
+    if (options.initialChildValue && parentEl.value) {
+        load(parentEl.value, options.initialChildValue);
+    }
+}
+
+// Exposed on window: this module is bundled as an ES module, so the plain
+// function declaration above is not visible to the inline (non-module)
+// <script> blocks in Blade views that call it.
+window.initCascadingSelect = initCascadingSelect;
+
+/**
  * Shared admin-shell behaviour: sidebar toggle, confirm-before-destroy forms,
  * and a default DataTables initializer. Reused by every module's views.
  */
 document.addEventListener('DOMContentLoaded', () => {
+    // Thana form/filter: Division -> District cascade. No-op on any page
+    // without these specific elements (guarded inside initCascadingSelect).
+    initCascadingSelect(
+        document.getElementById('division_id'),
+        document.getElementById('district_id'),
+        '/districts-options',
+        'division_id',
+        { initialChildValue: document.getElementById('district_id')?.dataset.initialValue }
+    );
+
     const sidebar = document.querySelector('.app-sidebar');
     const toggleBtn = document.querySelector('[data-sidebar-toggle]');
 

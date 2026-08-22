@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Territory;
 use App\Repositories\Contracts\DealerRepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -35,6 +36,44 @@ class DealerService extends BaseCrudService
     {
         $data['status'] ??= true;
 
-        return parent::create($data);
+        return parent::create($this->withGeoFromTerritory($data));
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function update(Model $model, array $data): Model
+    {
+        return parent::update($model, $this->withGeoFromTerritory($data));
+    }
+
+    /**
+     * A dealer's division/district/thana are never chosen independently —
+     * the admin/mobile-app UI only narrows the Territory dropdown through
+     * them. Whatever Territory ends up selected is the single source of
+     * truth, copied here so a dealer's geographic fields can never drift
+     * out of sync with its Territory's own hierarchy.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function withGeoFromTerritory(array $data): array
+    {
+        if (! array_key_exists('territory_id', $data)) {
+            return $data;
+        }
+
+        if ($data['territory_id'] === null) {
+            return [...$data, 'division_id' => null, 'district_id' => null, 'thana_id' => null];
+        }
+
+        $territory = Territory::find($data['territory_id']);
+
+        return [
+            ...$data,
+            'division_id' => $territory?->division_id,
+            'district_id' => $territory?->district_id,
+            'thana_id' => $territory?->thana_id,
+        ];
     }
 }

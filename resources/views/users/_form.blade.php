@@ -72,17 +72,23 @@
         @error('sales_team_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
-    <div class="col-md-6">
-        <label class="form-label">Territory</label>
-        <select name="territory_id" class="form-select @error('territory_id') is-invalid @enderror">
-            <option value="">— None —</option>
-            @foreach ($territories as $territory)
-                <option value="{{ $territory->id }}" @selected((string) old('territory_id', $user->territory_id ?? '') === (string) $territory->id)>
+    <div class="col-12">
+        <label class="form-label">Territories</label>
+        <div class="position-relative mb-2">
+            <input type="text" id="territorySearchInput" class="form-control" placeholder="Type a territory name to search and add..." autocomplete="off">
+            <div id="territorySearchResults" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index:1000;max-height:260px;overflow-y:auto"></div>
+        </div>
+        <div id="territoryChips" class="d-flex flex-wrap gap-2">
+            @foreach (($user->territories ?? []) as $territory)
+                <span class="badge text-bg-secondary d-inline-flex align-items-center gap-2 py-2 px-3" data-territory-chip="{{ $territory->id }}">
                     {{ $territory->name }}
-                </option>
+                    <input type="hidden" name="territory_ids[]" value="{{ $territory->id }}">
+                    <button type="button" class="btn-close btn-close-white" style="font-size:.6rem" aria-label="Remove" data-remove-territory-chip></button>
+                </span>
             @endforeach
-        </select>
-        @error('territory_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+        @error('territory_ids') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+        @error('territory_ids.*') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
     </div>
 
     <div class="col-md-6">
@@ -148,6 +154,88 @@
             if (!file) return;
             preview.src = URL.createObjectURL(file);
             preview.classList.remove('d-none');
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('territorySearchInput');
+            const resultsBox = document.getElementById('territorySearchResults');
+            const chipsContainer = document.getElementById('territoryChips');
+            const optionsUrl = '{{ route('territories.options') }}';
+            let searchTimer = null;
+
+            function addChip(id, name) {
+                if (chipsContainer.querySelector(`[data-territory-chip="${id}"]`)) {
+                    return;
+                }
+
+                const chip = document.createElement('span');
+                chip.className = 'badge text-bg-secondary d-inline-flex align-items-center gap-2 py-2 px-3';
+                chip.dataset.territoryChip = id;
+                chip.innerHTML = `${name} <input type="hidden" name="territory_ids[]" value="${id}"><button type="button" class="btn-close btn-close-white" style="font-size:.6rem" aria-label="Remove" data-remove-territory-chip></button>`;
+                chipsContainer.appendChild(chip);
+            }
+
+            function hideResults() {
+                resultsBox.classList.add('d-none');
+                resultsBox.innerHTML = '';
+            }
+
+            function renderResults(items) {
+                if (!items.length) {
+                    resultsBox.innerHTML = '<div class="list-group-item text-muted small">No matching territories</div>';
+                    resultsBox.classList.remove('d-none');
+                    return;
+                }
+
+                resultsBox.innerHTML = items.map((item) => `
+                    <button type="button" class="list-group-item list-group-item-action" data-result-id="${item.id}" data-result-name="${item.name}">
+                        ${item.name}
+                    </button>
+                `).join('');
+                resultsBox.classList.remove('d-none');
+            }
+
+            function search(query) {
+                clearTimeout(searchTimer);
+
+                searchTimer = setTimeout(function () {
+                    fetch(`${optionsUrl}?search=${encodeURIComponent(query)}`, { headers: { Accept: 'application/json' } })
+                        .then((r) => r.json())
+                        .then(renderResults);
+                }, 200);
+            }
+
+            searchInput.addEventListener('input', function () {
+                search(searchInput.value.trim());
+            });
+
+            searchInput.addEventListener('focus', function () {
+                search(searchInput.value.trim());
+            });
+
+            resultsBox.addEventListener('click', function (e) {
+                const button = e.target.closest('[data-result-id]');
+                if (!button) {
+                    return;
+                }
+
+                addChip(button.dataset.resultId, button.dataset.resultName);
+                searchInput.value = '';
+                hideResults();
+                searchInput.focus();
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('#territorySearchInput') && !e.target.closest('#territorySearchResults')) {
+                    hideResults();
+                }
+            });
+
+            chipsContainer.addEventListener('click', function (e) {
+                if (e.target.closest('[data-remove-territory-chip]')) {
+                    e.target.closest('[data-territory-chip]').remove();
+                }
+            });
         });
     </script>
 @endpush

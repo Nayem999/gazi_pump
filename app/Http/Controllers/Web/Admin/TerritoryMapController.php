@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Division;
 use App\Models\Territory;
 use App\Repositories\Contracts\DealerRepositoryInterface;
 use App\Services\TerritoryMapService;
@@ -30,13 +31,17 @@ class TerritoryMapController extends Controller
     {
         abort_unless($request->user()?->can('territory-map.view'), 403);
 
-        $filters = $request->only(['month', 'year']);
+        $filters = $request->only(['month', 'year', 'division_id', 'district_id', 'thana_id']);
 
         return view('territory-map.index', [
-            'territories' => $this->territoryMap->markers(),
+            'territories' => $this->territoryMap->markers($filters),
+            'divisions' => Division::where('status', true)->orderBy('name')->get(),
             'filters' => [
                 'month' => (int) ($filters['month'] ?? Carbon::now()->month),
                 'year' => (int) ($filters['year'] ?? Carbon::now()->year),
+                'division_id' => $filters['division_id'] ?? '',
+                'district_id' => $filters['district_id'] ?? '',
+                'thana_id' => $filters['thana_id'] ?? '',
             ],
         ]);
     }
@@ -59,11 +64,16 @@ class TerritoryMapController extends Controller
             'territory_id' => $territory->id,
         ], 10);
 
+        $territory->load(['division', 'district', 'thana']);
+
         return response()->json([
             'territory' => [
                 'id' => $territory->id,
                 'name' => $territory->name,
                 'code' => $territory->code,
+                'divisionName' => $territory->division?->name,
+                'districtName' => $territory->district?->name,
+                'thanaName' => $territory->thana?->name,
                 'managerName' => $territory->manager?->name,
                 'executiveCount' => $performance->executive_count ?? 0,
                 'totalOrderValue' => $performance->total_order_value ?? 0.0,

@@ -7,6 +7,7 @@ namespace App\Models;
 use Database\Factories\TerritoryFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Territory extends BaseModel
@@ -15,6 +16,9 @@ class Territory extends BaseModel
     use HasFactory;
 
     protected $fillable = [
+        'division_id',
+        'district_id',
+        'thana_id',
         'name',
         'code',
         'manager_id',
@@ -39,8 +43,28 @@ class Territory extends BaseModel
         return $this->belongsTo(User::class, 'manager_id');
     }
 
-    public function users(): HasMany
+    public function division(): BelongsTo
     {
-        return $this->hasMany(User::class, 'territory_id');
+        return $this->belongsTo(Division::class);
+    }
+
+    public function district(): BelongsTo
+    {
+        return $this->belongsTo(District::class);
+    }
+
+    public function thana(): BelongsTo
+    {
+        return $this->belongsTo(Thana::class);
+    }
+
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class);
+    }
+
+    public function dealers(): HasMany
+    {
+        return $this->hasMany(Dealer::class);
     }
 }

@@ -7,8 +7,10 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Traits\HasAudit;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -65,7 +67,6 @@ class User extends Authenticatable
         'date_of_birth',
         'manager_id',
         'sales_team_id',
-        'territory_id',
         'status',
         'password',
     ];
@@ -119,9 +120,21 @@ class User extends Authenticatable
         return $this->belongsTo(SalesTeam::class);
     }
 
-    public function territory(): BelongsTo
+    public function territories(): BelongsToMany
     {
-        return $this->belongsTo(Territory::class);
+        return $this->belongsToMany(Territory::class);
+    }
+
+    /**
+     * Comma-joined names of every assigned territory, or null when none —
+     * the single display value every report/export/view reads instead of
+     * hand-joining `territories->pluck('name')` at ~20 separate call sites.
+     */
+    protected function territoryNames(): Attribute
+    {
+        return Attribute::get(fn () => $this->territories->isNotEmpty()
+            ? $this->territories->pluck('name')->implode(', ')
+            : null);
     }
 
     public function photoUrl(): ?string

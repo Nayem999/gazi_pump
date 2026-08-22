@@ -49,6 +49,7 @@
                     <th>Name</th>
                     <th>Designation</th>
                     <th>Manager</th>
+                    <th>Territories</th>
                     <th>Roles</th>
                     <th>Status</th>
                     <th class="text-end">Actions</th>
@@ -69,6 +70,7 @@
                     </td>
                     <td>{{ $user->designation }}</td>
                     <td>{{ $user->manager?->name ?? '—' }}</td>
+                    <td>{{ $user->territory_names ?? '—' }}</td>
                     <td>
                         @foreach ($user->roles as $role)
                             <span class="badge text-bg-secondary">{{ $role->name }}</span>
@@ -134,7 +136,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-4">No users found.</td>
+                    <td colspan="9" class="text-center text-muted py-4">No users found.</td>
                 </tr>
             @endforelse
 
@@ -154,6 +156,7 @@
                                 <div>{{ $user->email }}</div>
                                 <div>{{ $user->designation }}</div>
                                 <div>Manager: {{ $user->manager?->name ?? '—' }}</div>
+                                <div>Territories: {{ $user->territory_names ?? '—' }}</div>
                                 <div class="mt-1">
                                     @foreach ($user->roles as $role)
                                         <span class="badge text-bg-secondary">{{ $role->name }}</span>

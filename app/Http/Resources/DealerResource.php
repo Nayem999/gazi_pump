@@ -31,6 +31,18 @@ class DealerResource extends JsonResource
                 'lat' => (float) $this->gps_lat,
                 'lng' => (float) $this->gps_lng,
             ]),
+            'division' => $this->whenLoaded('division', fn () => $this->division ? [
+                'id' => $this->division->id,
+                'name' => $this->division->name,
+            ] : null),
+            'district' => $this->whenLoaded('district', fn () => $this->district ? [
+                'id' => $this->district->id,
+                'name' => $this->district->name,
+            ] : null),
+            'thana' => $this->whenLoaded('thana', fn () => $this->thana ? [
+                'id' => $this->thana->id,
+                'name' => $this->thana->name,
+            ] : null),
             'territory' => $this->whenLoaded('territory', fn () => $this->territory ? [
                 'id' => $this->territory->id,
                 'name' => $this->territory->name,

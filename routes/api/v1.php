@@ -37,6 +37,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
     Route::get('/sales-teams', [OrgStructureController::class, 'salesTeams']);
+    Route::get('/divisions', [OrgStructureController::class, 'divisions']);
+    Route::get('/districts', [OrgStructureController::class, 'districts']);
+    Route::get('/thanas', [OrgStructureController::class, 'thanas']);
     Route::get('/territories', [OrgStructureController::class, 'territories']);
 
     Route::get('/dealers', [DealerController::class, 'index']);

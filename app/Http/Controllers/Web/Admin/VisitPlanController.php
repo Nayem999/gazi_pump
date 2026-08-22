@@ -42,16 +42,19 @@ class VisitPlanController extends Controller
 
         return view('visit-plans.create', [
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
-            'dealers' => Dealer::orderBy('name')->get(),
             'statuses' => VisitPlanStatus::cases(),
         ]);
     }
 
     public function store(StoreVisitPlanRequest $request): RedirectResponse
     {
-        $this->visitPlans->create($request->validated());
+        $data = $request->validated();
+        $dealerIds = $data['dealer_ids'];
+        unset($data['dealer_ids']);
 
-        return redirect()->route('visit-plans.index')->with('success', 'Visit plan created successfully.');
+        $count = $this->visitPlans->createMany($data, $dealerIds);
+
+        return redirect()->route('visit-plans.index')->with('success', "{$count} visit plan(s) created successfully.");
     }
 
     public function edit(VisitPlan $visitPlan): View

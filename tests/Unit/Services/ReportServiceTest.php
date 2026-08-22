@@ -90,8 +90,8 @@ class ReportServiceTest extends TestCase
     {
         $territoryA = Territory::factory()->create();
         $territoryB = Territory::factory()->create();
-        $userA = User::factory()->create(['territory_id' => $territoryA->id]);
-        $userB = User::factory()->create(['territory_id' => $territoryB->id]);
+        $userA = User::factory()->inTerritory($territoryA)->create();
+        $userB = User::factory()->inTerritory($territoryB)->create();
 
         Attendance::factory()->create(['user_id' => $userA->id, 'date' => '2026-08-05', 'status' => AttendanceStatus::Present]);
         Attendance::factory()->create(['user_id' => $userB->id, 'date' => '2026-08-05', 'status' => AttendanceStatus::Present]);
@@ -167,7 +167,7 @@ class ReportServiceTest extends TestCase
     public function test_territory_performance_aggregates_orders_collections_and_visits_per_territory(): void
     {
         $territory = Territory::factory()->create();
-        $user = User::factory()->create(['territory_id' => $territory->id]);
+        $user = User::factory()->inTerritory($territory)->create();
         $user->assignRole('Sales Executive');
         $dealer = Dealer::factory()->create();
 
@@ -184,5 +184,25 @@ class ReportServiceTest extends TestCase
         $this->assertSame(400.0, $row->total_collection_amount);
         $this->assertSame(1, $row->total_visits);
         $this->assertSame(100.0, $row->gps_verified_rate);
+    }
+
+    public function test_territory_performance_counts_a_multi_territory_executive_in_every_assigned_territory(): void
+    {
+        $territoryA = Territory::factory()->create();
+        $territoryB = Territory::factory()->create();
+        $user = User::factory()->create();
+        $user->territories()->attach([$territoryA->id, $territoryB->id]);
+        $user->assignRole('Sales Executive');
+        $dealer = Dealer::factory()->create();
+
+        Order::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'order_date' => '2026-08-05', 'total_amount' => 1000]);
+
+        $rows = $this->service()->territoryPerformance(['date_from' => '2026-08-01', 'date_to' => '2026-08-31'])
+            ->keyBy(fn ($row) => $row->territory->id);
+
+        $this->assertSame(1, $rows->get($territoryA->id)->executive_count);
+        $this->assertSame(1000.0, $rows->get($territoryA->id)->total_order_value);
+        $this->assertSame(1, $rows->get($territoryB->id)->executive_count);
+        $this->assertSame(1000.0, $rows->get($territoryB->id)->total_order_value);
     }
 }

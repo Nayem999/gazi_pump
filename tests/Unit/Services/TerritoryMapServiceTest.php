@@ -45,8 +45,8 @@ class TerritoryMapServiceTest extends TestCase
     public function test_it_computes_the_grade_from_the_average_achievement_of_the_territorys_executives(): void
     {
         $territory = Territory::factory()->create();
-        $executiveA = User::factory()->create(['territory_id' => $territory->id]);
-        $executiveB = User::factory()->create(['territory_id' => $territory->id]);
+        $executiveA = User::factory()->inTerritory($territory)->create();
+        $executiveB = User::factory()->inTerritory($territory)->create();
 
         $targetA = Target::factory()->create(['user_id' => $executiveA->id, 'month' => 8, 'year' => 2026]);
         Achievement::factory()->create(['target_id' => $targetA->id, 'overall_pct' => 100]);
@@ -64,7 +64,7 @@ class TerritoryMapServiceTest extends TestCase
     public function test_it_ignores_achievements_from_a_different_period(): void
     {
         $territory = Territory::factory()->create();
-        $executive = User::factory()->create(['territory_id' => $territory->id]);
+        $executive = User::factory()->inTerritory($territory)->create();
         $target = Target::factory()->create(['user_id' => $executive->id, 'month' => 7, 'year' => 2026]);
         Achievement::factory()->create(['target_id' => $target->id, 'overall_pct' => 100]);
 
@@ -76,7 +76,7 @@ class TerritoryMapServiceTest extends TestCase
     public function test_it_computes_the_grade_for_the_given_month_and_year(): void
     {
         $territory = Territory::factory()->create();
-        $executive = User::factory()->create(['territory_id' => $territory->id]);
+        $executive = User::factory()->inTerritory($territory)->create();
         $target = Target::factory()->create([
             'user_id' => $executive->id,
             'month' => 8,

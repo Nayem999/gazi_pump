@@ -31,7 +31,7 @@
             @foreach ($rows as $row)
                 <tr>
                     <td>{{ $row->user?->name }}</td>
-                    <td>{{ $row->user?->territory?->name }}</td>
+                    <td>{{ $row->user?->territory_names }}</td>
                     <td>{{ $row->order_count }}</td>
                     <td>{{ $row->total_quantity }}</td>
                     <td>{{ number_format($row->total_order_value, 2) }}</td>

@@ -9,7 +9,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 interface TerritoryRepositoryInterface extends BaseRepositoryInterface
 {
     /**
-     * @param  array{search?: string, area_id?: string, status?: string, trashed?: string}  $filters
+     * @param  array{search?: string, division_id?: string, district_id?: string, thana_id?: string, geo?: string, status?: string, trashed?: string}  $filters
      */
     public function paginateWithFilters(array $filters, int $perPage = 15): LengthAwarePaginator;
 }

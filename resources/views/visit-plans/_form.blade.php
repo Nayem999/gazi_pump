@@ -15,16 +15,30 @@
         @error('user_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
-    <div class="col-md-6">
-        <label class="form-label">Dealer <span class="text-danger">*</span></label>
-        <select name="dealer_id" class="form-select @error('dealer_id') is-invalid @enderror" required>
-            <option value="">— Select Dealer —</option>
-            @foreach ($dealers as $dealer)
-                <option value="{{ $dealer->id }}" @selected((string) old('dealer_id', $visitPlan->dealer_id ?? '') === (string) $dealer->id)>{{ $dealer->name }} ({{ $dealer->dealer_code }})</option>
-            @endforeach
-        </select>
-        @error('dealer_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-    </div>
+    @if (isset($visitPlan))
+        <div class="col-md-6">
+            <label class="form-label">Dealer <span class="text-danger">*</span></label>
+            <select name="dealer_id" class="form-select @error('dealer_id') is-invalid @enderror" required>
+                <option value="">— Select Dealer —</option>
+                @foreach ($dealers as $dealer)
+                    <option value="{{ $dealer->id }}" @selected((string) old('dealer_id', $visitPlan->dealer_id) === (string) $dealer->id)>{{ $dealer->name }} ({{ $dealer->dealer_code }})</option>
+                @endforeach
+            </select>
+            @error('dealer_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+    @else
+        <div class="col-md-6">
+            <label class="form-label">Dealer(s) <span class="text-danger">*</span></label>
+            <div class="position-relative mb-2">
+                <input type="text" id="dealerSearchInput" class="form-control" placeholder="Type a dealer name or code to search and add..." autocomplete="off">
+                <div id="dealerSearchResults" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index:1000;max-height:260px;overflow-y:auto"></div>
+            </div>
+            <div id="dealerChips" class="d-flex flex-wrap gap-2"></div>
+            <div class="form-text">A separate visit plan is created for each dealer added.</div>
+            @error('dealer_ids') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+            @error('dealer_ids.*') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+        </div>
+    @endif
 
     <div class="col-md-4">
         <label class="form-label">Planned Date <span class="text-danger">*</span></label>
@@ -54,3 +68,94 @@
     <button type="submit" class="btn btn-primary"><i class="ti ti-check me-1"></i>{{ isset($visitPlan) ? 'Update Visit Plan' : 'Plan Visit' }}</button>
     <a href="{{ route('visit-plans.index') }}" class="btn btn-outline-secondary">Cancel</a>
 </div>
+
+@unless (isset($visitPlan))
+    @push('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const searchInput = document.getElementById('dealerSearchInput');
+                const resultsBox = document.getElementById('dealerSearchResults');
+                const chipsContainer = document.getElementById('dealerChips');
+                const optionsUrl = '{{ route('dealers.options') }}';
+                let searchTimer = null;
+
+                function addChip(id, name) {
+                    if (chipsContainer.querySelector(`[data-dealer-chip="${id}"]`)) {
+                        return;
+                    }
+
+                    const chip = document.createElement('span');
+                    chip.className = 'badge text-bg-secondary d-inline-flex align-items-center gap-2 py-2 px-3';
+                    chip.dataset.dealerChip = id;
+                    chip.innerHTML = `${name} <input type="hidden" name="dealer_ids[]" value="${id}"><button type="button" class="btn-close btn-close-white" style="font-size:.6rem" aria-label="Remove" data-remove-dealer-chip></button>`;
+                    chipsContainer.appendChild(chip);
+                }
+
+                function hideResults() {
+                    resultsBox.classList.add('d-none');
+                    resultsBox.innerHTML = '';
+                }
+
+                function renderResults(items) {
+                    if (!items.length) {
+                        resultsBox.innerHTML = '<div class="list-group-item text-muted small">No matching dealers</div>';
+                        resultsBox.classList.remove('d-none');
+                        return;
+                    }
+
+                    resultsBox.innerHTML = items.map((item) => {
+                        const label = `${item.name} (${item.dealer_code})`;
+                        return `
+                            <button type="button" class="list-group-item list-group-item-action" data-result-id="${item.id}" data-result-name="${label}">
+                                ${label}
+                            </button>
+                        `;
+                    }).join('');
+                    resultsBox.classList.remove('d-none');
+                }
+
+                function search(query) {
+                    clearTimeout(searchTimer);
+
+                    searchTimer = setTimeout(function () {
+                        fetch(`${optionsUrl}?search=${encodeURIComponent(query)}`, { headers: { Accept: 'application/json' } })
+                            .then((r) => r.json())
+                            .then(renderResults);
+                    }, 200);
+                }
+
+                searchInput.addEventListener('input', function () {
+                    search(searchInput.value.trim());
+                });
+
+                searchInput.addEventListener('focus', function () {
+                    search(searchInput.value.trim());
+                });
+
+                resultsBox.addEventListener('click', function (e) {
+                    const button = e.target.closest('[data-result-id]');
+                    if (!button) {
+                        return;
+                    }
+
+                    addChip(button.dataset.resultId, button.dataset.resultName);
+                    searchInput.value = '';
+                    hideResults();
+                    searchInput.focus();
+                });
+
+                document.addEventListener('click', function (e) {
+                    if (!e.target.closest('#dealerSearchInput') && !e.target.closest('#dealerSearchResults')) {
+                        hideResults();
+                    }
+                });
+
+                chipsContainer.addEventListener('click', function (e) {
+                    if (e.target.closest('[data-remove-dealer-chip]')) {
+                        e.target.closest('[data-dealer-chip]').remove();
+                    }
+                });
+            });
+        </script>
+    @endpush
+@endunless

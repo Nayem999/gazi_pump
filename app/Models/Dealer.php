@@ -24,6 +24,9 @@ class Dealer extends BaseModel
         'address',
         'gps_lat',
         'gps_lng',
+        'division_id',
+        'district_id',
+        'thana_id',
         'territory_id',
         'status',
     ];
@@ -41,6 +44,21 @@ class Dealer extends BaseModel
     public function territory(): BelongsTo
     {
         return $this->belongsTo(Territory::class);
+    }
+
+    public function division(): BelongsTo
+    {
+        return $this->belongsTo(Division::class);
+    }
+
+    public function district(): BelongsTo
+    {
+        return $this->belongsTo(District::class);
+    }
+
+    public function thana(): BelongsTo
+    {
+        return $this->belongsTo(Thana::class);
     }
 
     public function orders(): HasMany

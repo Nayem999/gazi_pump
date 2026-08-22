@@ -43,13 +43,43 @@
         @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
-    <div class="col-md-6">
-        <label class="form-label">Territory</label>
-        <select name="territory_id" class="form-select @error('territory_id') is-invalid @enderror">
-            <option value="">— None —</option>
-            @foreach ($territories as $territory)
-                <option value="{{ $territory->id }}" @selected((string) old('territory_id', $dealer->territory_id ?? '') === (string) $territory->id)>{{ $territory->name }}</option>
+    <div class="col-md-3">
+        <label class="form-label">Division</label>
+        <select id="geoDivision" class="form-select">
+            <option value="">— Select Division —</option>
+            @foreach ($divisions as $division)
+                <option value="{{ $division->id }}" @selected((string) ($dealer->division_id ?? '') === (string) $division->id)>{{ $division->name }}</option>
             @endforeach
+        </select>
+    </div>
+
+    <div class="col-md-3">
+        <label class="form-label">District</label>
+        <select id="geoDistrict" class="form-select" @disabled(empty($dealer->division_id))>
+            <option value="">— Select District —</option>
+            @isset($dealer->district)
+                <option value="{{ $dealer->district->id }}" selected>{{ $dealer->district->name }}</option>
+            @endisset
+        </select>
+    </div>
+
+    <div class="col-md-3">
+        <label class="form-label">Thana / Upazila</label>
+        <select id="geoThana" class="form-select" @disabled(empty($dealer->district_id))>
+            <option value="">— Select Thana —</option>
+            @isset($dealer->thana)
+                <option value="{{ $dealer->thana->id }}" selected>{{ $dealer->thana->name }}</option>
+            @endisset
+        </select>
+    </div>
+
+    <div class="col-md-3">
+        <label class="form-label">Territory</label>
+        <select name="territory_id" id="geoTerritory" class="form-select @error('territory_id') is-invalid @enderror" @disabled(empty($dealer->thana_id))>
+            <option value="">— None —</option>
+            @isset($dealer->territory)
+                <option value="{{ $dealer->territory->id }}" selected>{{ $dealer->territory->name }}</option>
+            @endisset
         </select>
         @error('territory_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
@@ -100,6 +130,26 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            const geoDivision = document.getElementById('geoDivision');
+            const geoDistrict = document.getElementById('geoDistrict');
+            const geoThana = document.getElementById('geoThana');
+            const geoTerritory = document.getElementById('geoTerritory');
+
+            initCascadingSelect(geoDivision, geoDistrict, '{{ route('districts.options') }}', 'division_id', { placeholder: '— Select District —' });
+            initCascadingSelect(geoDistrict, geoThana, '{{ route('thanas.options') }}', 'district_id', { placeholder: '— Select Thana —' });
+            initCascadingSelect(geoThana, geoTerritory, '{{ route('territories.options') }}', 'thana_id', { placeholder: '— None —' });
+
+            geoDivision.addEventListener('change', function () {
+                geoThana.innerHTML = '<option value="">— Select Thana —</option>';
+                geoThana.disabled = true;
+                geoTerritory.innerHTML = '<option value="">— None —</option>';
+                geoTerritory.disabled = true;
+            });
+            geoDistrict.addEventListener('change', function () {
+                geoTerritory.innerHTML = '<option value="">— None —</option>';
+                geoTerritory.disabled = true;
+            });
+
             const latInput = document.getElementById('gpsLat');
             const lngInput = document.getElementById('gpsLng');
             const defaultLat = parseFloat(latInput.value) || 23.8103;

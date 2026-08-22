@@ -43,7 +43,7 @@ class OrgStructureSeeder extends Seeder
             }
 
             $territory->update(['manager_id' => $manager->id]);
-            $manager->update(['territory_id' => $territory->id]);
+            $manager->territories()->sync([$territory->id]);
         });
 
         $areaManagers = User::role('Area Manager')->orderBy('id')->get();
@@ -61,9 +61,9 @@ class OrgStructureSeeder extends Seeder
             $territory = $territories->get($i % $territories->count());
 
             $executive->update([
-                'territory_id' => $territory->id,
                 'sales_team_id' => $teams->get($i % $teams->count())->id,
             ]);
+            $executive->territories()->sync([$territory->id]);
         });
     }
 }

@@ -13,6 +13,34 @@
             <input type="text" name="search" class="form-control" placeholder="Name or code..." value="{{ $filters['search'] ?? '' }}">
         </div>
         <div class="col-md-2">
+            <label class="form-label">Division</label>
+            <select name="division_id" id="filterDivision" class="form-select">
+                <option value="">All Divisions</option>
+                @foreach ($divisions as $division)
+                    <option value="{{ $division->id }}" @selected((string) ($filters['division_id'] ?? '') === (string) $division->id)>{{ $division->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">District</label>
+            <select name="district_id" id="filterDistrict" class="form-select" @disabled(empty($filters['division_id']))>
+                <option value="">All Districts</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Thana</label>
+            <select name="thana_id" id="filterThana" class="form-select" @disabled(empty($filters['district_id']))>
+                <option value="">All Thanas</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Geo Data</label>
+            <select name="geo" class="form-select">
+                <option value="">All</option>
+                <option value="missing" @selected(($filters['geo'] ?? '') === 'missing')>Missing Geo Data</option>
+            </select>
+        </div>
+        <div class="col-md-2">
             <label class="form-label">Status</label>
             <select name="status" class="form-select">
                 <option value="">All</option>
@@ -38,6 +66,9 @@
                     <th style="width:2rem"><input type="checkbox" id="selectAll" class="form-check-input"></th>
                     <th>Code</th>
                     <th>Name</th>
+                    <th>Division</th>
+                    <th>District</th>
+                    <th>Thana</th>
                     <th>Manager</th>
                     <th>Executives</th>
                     <th>Status</th>
@@ -54,6 +85,9 @@
                     </td>
                     <td>{{ $territory->code }}</td>
                     <td>{{ $territory->name }}</td>
+                    <td>{{ $territory->division?->name ?? '—' }}</td>
+                    <td>{{ $territory->district?->name ?? '—' }}</td>
+                    <td>{{ $territory->thana?->name ?? '—' }}</td>
                     <td>{{ $territory->manager?->name ?? '—' }}</td>
                     <td><span class="badge text-bg-secondary">{{ $territory->users_count }}</span></td>
                     <td>
@@ -98,7 +132,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-4">No territories found.</td>
+                    <td colspan="11" class="text-center text-muted py-4">No territories found.</td>
                 </tr>
             @endforelse
 
@@ -114,6 +148,9 @@
                             :status-color="$territory->trashed() ? 'danger' : ($territory->status ? 'success' : 'secondary')"
                         >
                             <x-slot:meta>
+                                <div>Division: {{ $territory->division?->name ?? '—' }}</div>
+                                <div>District: {{ $territory->district?->name ?? '—' }}</div>
+                                <div>Thana: {{ $territory->thana?->name ?? '—' }}</div>
                                 <div>Manager: {{ $territory->manager?->name ?? '—' }}</div>
                                 <div>Executives: {{ $territory->users_count }}</div>
                             </x-slot:meta>
@@ -187,6 +224,21 @@
     <script>
         document.getElementById('selectAll')?.addEventListener('change', function () {
             document.querySelectorAll('.row-checkbox').forEach((cb) => { cb.checked = this.checked; });
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const filterDivision = document.getElementById('filterDivision');
+            const filterDistrict = document.getElementById('filterDistrict');
+            const filterThana = document.getElementById('filterThana');
+
+            initCascadingSelect(filterDivision, filterDistrict, '{{ route('districts.options') }}', 'division_id', {
+                placeholder: 'All Districts',
+                initialChildValue: '{{ $filters['district_id'] ?? '' }}',
+            });
+            initCascadingSelect(filterDistrict, filterThana, '{{ route('thanas.options') }}', 'district_id', {
+                placeholder: 'All Thanas',
+                initialChildValue: '{{ $filters['thana_id'] ?? '' }}',
+            });
         });
     </script>
 @endpush

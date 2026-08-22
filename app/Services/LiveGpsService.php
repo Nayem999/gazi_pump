@@ -26,9 +26,11 @@ class LiveGpsService
         $cutoff = Carbon::now()->subMinutes((int) config('sfa.live_gps.stale_after_minutes'));
 
         $executives = User::role('Sales Executive')
-            ->when($filters['territory_id'] ?? null, fn ($query, $territoryId) => $query->where('territory_id', $territoryId))
+            ->when($filters['territory_id'] ?? null, fn ($query, $territoryId) => $query->whereHas(
+                'territories', fn ($t) => $t->where('territories.id', $territoryId)
+            ))
             ->when($filters['user_id'] ?? null, fn ($query, $userId) => $query->where('id', $userId))
-            ->with('territory')
+            ->with('territories')
             ->get();
 
         return $executives

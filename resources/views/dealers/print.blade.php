@@ -23,6 +23,9 @@
                 <th>Name</th>
                 <th>Type</th>
                 <th>Phone</th>
+                <th>Division</th>
+                <th>District</th>
+                <th>Thana</th>
                 <th>Territory</th>
                 <th>Status</th>
             </tr>
@@ -34,6 +37,9 @@
                     <td>{{ $dealer->name }}</td>
                     <td>{{ $dealer->type->label() }}</td>
                     <td>{{ $dealer->phone }}</td>
+                    <td>{{ $dealer->division?->name }}</td>
+                    <td>{{ $dealer->district?->name }}</td>
+                    <td>{{ $dealer->thana?->name }}</td>
                     <td>{{ $dealer->territory?->name }}</td>
                     <td>{{ $dealer->status ? 'Active' : 'Inactive' }}</td>
                 </tr>

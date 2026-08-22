@@ -36,7 +36,7 @@ class CollectionSummaryExport implements FromCollection, WithHeadings, WithMappi
     {
         return [
             $row->user?->name,
-            $row->user?->territory?->name,
+            $row->user?->territory_names,
             $row->collections_count,
             (string) $row->total_amount,
             (string) $row->cash_total,

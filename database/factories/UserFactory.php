@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Territory;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -69,5 +70,12 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'status' => false,
         ]);
+    }
+
+    public function inTerritory(Territory|int $territory): static
+    {
+        return $this->afterCreating(function (User $user) use ($territory) {
+            $user->territories()->attach($territory instanceof Territory ? $territory->id : $territory);
+        });
     }
 }

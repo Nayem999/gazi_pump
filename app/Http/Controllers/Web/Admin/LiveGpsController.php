@@ -48,7 +48,7 @@ class LiveGpsController extends Controller
                 'userId' => $row->user->id,
                 'name' => $row->user->name,
                 'employeeId' => $row->user->employee_id,
-                'territory' => $row->user->territory?->name,
+                'territory' => $row->user->territory_names,
                 'lat' => $row->lat,
                 'lng' => $row->lng,
                 'recordedAt' => $row->recorded_at->toIso8601String(),

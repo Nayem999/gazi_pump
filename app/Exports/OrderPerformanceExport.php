@@ -36,7 +36,7 @@ class OrderPerformanceExport implements FromCollection, WithHeadings, WithMappin
     {
         return [
             $row->user?->name,
-            $row->user?->territory?->name,
+            $row->user?->territory_names,
             $row->order_count,
             $row->total_quantity,
             (string) $row->total_order_value,

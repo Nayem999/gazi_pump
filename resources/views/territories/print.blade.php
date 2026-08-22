@@ -21,6 +21,9 @@
             <tr>
                 <th>Code</th>
                 <th>Name</th>
+                <th>Division</th>
+                <th>District</th>
+                <th>Thana</th>
                 <th>Manager</th>
                 <th>Executives</th>
                 <th>Status</th>
@@ -31,6 +34,9 @@
                 <tr>
                     <td>{{ $territory->code }}</td>
                     <td>{{ $territory->name }}</td>
+                    <td>{{ $territory->division?->name }}</td>
+                    <td>{{ $territory->district?->name }}</td>
+                    <td>{{ $territory->thana?->name }}</td>
                     <td>{{ $territory->manager?->name }}</td>
                     <td>{{ $territory->users_count ?? $territory->users()->count() }}</td>
                     <td>{{ $territory->status ? 'Active' : 'Inactive' }}</td>

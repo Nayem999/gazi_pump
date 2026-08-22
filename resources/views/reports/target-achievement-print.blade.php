@@ -33,7 +33,7 @@
             @foreach ($rows as $row)
                 <tr>
                     <td>{{ $row->user?->name }}</td>
-                    <td>{{ $row->user?->territory?->name }}</td>
+                    <td>{{ $row->user?->territory_names }}</td>
                     <td>{{ number_format($row->order_target, 2) }}</td>
                     <td>{{ number_format($row->order_achieved, 2) }}</td>
                     <td>{{ number_format($row->collection_target, 2) }}</td>

@@ -40,8 +40,12 @@ class UserService
             $roles = $data['roles'] ?? [];
             unset($data['roles']);
 
+            $territoryIds = $data['territory_ids'] ?? [];
+            unset($data['territory_ids']);
+
             $user = $this->users->create($data);
             $user->syncRoles($roles);
+            $user->territories()->sync($territoryIds);
 
             return $user;
         });
@@ -69,11 +73,16 @@ class UserService
             $roles = $data['roles'] ?? null;
             unset($data['roles']);
 
+            $territoryIds = $data['territory_ids'] ?? [];
+            unset($data['territory_ids']);
+
             $user = $this->users->update($user, $data);
 
             if ($roles !== null) {
                 $user->syncRoles($roles);
             }
+
+            $user->territories()->sync($territoryIds);
 
             return $user;
         });

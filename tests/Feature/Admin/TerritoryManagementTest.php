@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
+use App\Models\District;
+use App\Models\Division;
 use App\Models\Territory;
+use App\Models\Thana;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -39,9 +42,16 @@ class TerritoryManagementTest extends TestCase
 
     public function test_super_admin_can_create_a_territory_with_a_geojson_boundary(): void
     {
+        $division = Division::factory()->create();
+        $district = District::factory()->create(['division_id' => $division->id]);
+        $thana = Thana::factory()->create(['district_id' => $district->id]);
+
         $boundary = ['type' => 'Polygon', 'coordinates' => [[[90.4, 23.8], [90.42, 23.8], [90.42, 23.82], [90.4, 23.8]]]];
 
         $response = $this->actingAs($this->superAdmin())->post(route('territories.store'), [
+            'division_id' => $division->id,
+            'district_id' => $district->id,
+            'thana_id' => $thana->id,
             'name' => 'Test Territory',
             'code' => 'TER-TEST',
             'center_lat' => '23.8103',
@@ -72,7 +82,7 @@ class TerritoryManagementTest extends TestCase
     {
         $admin = $this->superAdmin();
         $territory = Territory::factory()->create();
-        $executive = User::factory()->create(['territory_id' => $territory->id]);
+        $executive = User::factory()->inTerritory($territory)->create();
         $executive->assignRole('Sales Executive');
 
         $this->actingAs($admin)

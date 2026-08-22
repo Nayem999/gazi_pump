@@ -40,7 +40,7 @@ class ExecutivePerformanceExport implements FromCollection, WithHeadings, WithMa
     {
         return [
             $row->user?->name,
-            $row->user?->territory?->name,
+            $row->user?->territory_names,
             (string) $row->attendance_rate,
             (string) $row->visit_completion_rate,
             (string) $row->gps_verified_rate,

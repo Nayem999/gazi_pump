@@ -58,6 +58,9 @@ class RolePermissionSeeder extends Seeder
         $this->createModulePermissions('permissions', withApi: false);
         $this->createModulePermissions('sales-teams');
         $this->createModulePermissions('territories');
+        $this->createModulePermissions('divisions');
+        $this->createModulePermissions('districts');
+        $this->createModulePermissions('thanas');
         $this->createModulePermissions('dealers');
         Permission::firstOrCreate(['name' => PermissionName::api('dealers', ButtonAction::Add), 'guard_name' => 'web']);
         $this->createModulePermissions('product-categories');
@@ -119,7 +122,7 @@ class RolePermissionSeeder extends Seeder
     {
         Role::findByName('Super Admin', 'web')->syncPermissions(Permission::all());
 
-        $orgModules = ['sales-teams', 'territories'];
+        $orgModules = ['sales-teams', 'territories', 'divisions', 'districts', 'thanas'];
 
         $generalManagerPermissions = [
             PermissionName::menu('dashboard'),

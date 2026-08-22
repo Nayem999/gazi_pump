@@ -77,7 +77,7 @@
                         <dd class="col-sm-8">{{ $user->salesTeam?->name ?? '—' }}</dd>
 
                         <dt class="col-sm-4">Territory</dt>
-                        <dd class="col-sm-8">{{ $user->territory?->name ?? '—' }}</dd>
+                        <dd class="col-sm-8">{{ $user->territory_names ?? '—' }}</dd>
 
                         <dt class="col-sm-4">Direct Reports</dt>
                         <dd class="col-sm-8">{{ $user->subordinates->count() }}</dd>

@@ -33,7 +33,9 @@ class LiveGpsServiceTest extends TestCase
 
     private function executive(?int $territoryId = null): User
     {
-        $user = User::factory()->create(['territory_id' => $territoryId]);
+        $user = $territoryId !== null
+            ? User::factory()->inTerritory($territoryId)->create()
+            : User::factory()->create();
         $user->assignRole('Sales Executive');
 
         return $user;

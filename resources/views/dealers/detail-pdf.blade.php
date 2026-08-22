@@ -46,6 +46,9 @@
         <tr><th>Phone</th><td>{{ $dealer->phone }}</td></tr>
         <tr><th>Email</th><td>{{ $dealer->email ?? '—' }}</td></tr>
         <tr><th>Address</th><td>{{ $dealer->address ?? '—' }}</td></tr>
+        <tr><th>Division</th><td>{{ $dealer->division?->name ?? '—' }}</td></tr>
+        <tr><th>District</th><td>{{ $dealer->district?->name ?? '—' }}</td></tr>
+        <tr><th>Thana / Upazila</th><td>{{ $dealer->thana?->name ?? '—' }}</td></tr>
         <tr><th>Territory</th><td>{{ $dealer->territory?->name ?? '—' }}</td></tr>
         <tr>
             <th>Status</th>

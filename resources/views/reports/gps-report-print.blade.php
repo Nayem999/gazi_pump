@@ -31,7 +31,7 @@
             @foreach ($rows as $row)
                 <tr>
                     <td>{{ $row->user?->name }}</td>
-                    <td>{{ $row->user?->territory?->name }}</td>
+                    <td>{{ $row->user?->territory_names }}</td>
                     <td>{{ $row->ping_count }}</td>
                     <td>{{ $row->avg_accuracy !== null ? $row->avg_accuracy.' m' : '—' }}</td>
                     <td>{{ $row->avg_battery_level !== null ? $row->avg_battery_level.'%' : '—' }}</td>

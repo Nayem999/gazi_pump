@@ -47,7 +47,7 @@
         <tr><th>Phone</th><td>{{ $user->phone ?? '—' }}</td></tr>
         <tr><th>Manager</th><td>{{ $user->manager?->name ?? '—' }}</td></tr>
         <tr><th>Sales Team</th><td>{{ $user->salesTeam?->name ?? '—' }}</td></tr>
-        <tr><th>Territory</th><td>{{ $user->territory?->name ?? '—' }}</td></tr>
+        <tr><th>Territory</th><td>{{ $user->territory_names ?? '—' }}</td></tr>
         <tr><th>Roles</th><td>{{ $user->roles->pluck('name')->implode(', ') ?: '—' }}</td></tr>
         <tr>
             <th>Status</th>

@@ -51,7 +51,7 @@ class ReportService
             ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
             ->when($filters['user_id'] ?? null, fn (Builder $q, $userId) => $q->where('user_id', $userId))
             ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereHas(
-                'user', fn (Builder $u) => $u->where('territory_id', $territoryId)
+                'user.territories', fn (Builder $t) => $t->whereIn('territories.id', (array) $territoryId)
             ))
             ->selectRaw(
                 'user_id,
@@ -95,7 +95,7 @@ class ReportService
             ->whereBetween('planned_date', [$from->toDateString(), $to->toDateString()])
             ->when($filters['user_id'] ?? null, fn (Builder $q, $userId) => $q->where('user_id', $userId))
             ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereHas(
-                'user', fn (Builder $u) => $u->where('territory_id', $territoryId)
+                'user.territories', fn (Builder $t) => $t->whereIn('territories.id', (array) $territoryId)
             ))
             ->selectRaw(
                 'user_id,
@@ -112,7 +112,7 @@ class ReportService
             ->whereBetween('check_in_at', [$from, $to])
             ->when($filters['user_id'] ?? null, fn (Builder $q, $userId) => $q->where('user_id', $userId))
             ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereHas(
-                'user', fn (Builder $u) => $u->where('territory_id', $territoryId)
+                'user.territories', fn (Builder $t) => $t->whereIn('territories.id', (array) $territoryId)
             ))
             ->selectRaw(
                 'user_id,
@@ -161,7 +161,7 @@ class ReportService
             ->whereBetween('order_date', [$from->toDateString(), $to->toDateString()])
             ->when($filters['user_id'] ?? null, fn (Builder $q, $userId) => $q->where('user_id', $userId))
             ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereHas(
-                'user', fn (Builder $u) => $u->where('territory_id', $territoryId)
+                'user.territories', fn (Builder $t) => $t->whereIn('territories.id', (array) $territoryId)
             ))
             ->selectRaw('user_id, COUNT(*) as order_count, SUM(total_amount) as total_order_value')
             ->groupBy('user_id')
@@ -172,7 +172,7 @@ class ReportService
             ->whereBetween('orders.order_date', [$from->toDateString(), $to->toDateString()])
             ->when($filters['user_id'] ?? null, fn (Builder $q, $userId) => $q->where('orders.user_id', $userId))
             ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereHas(
-                'order.user', fn (Builder $u) => $u->where('territory_id', $territoryId)
+                'order.user.territories', fn (Builder $t) => $t->whereIn('territories.id', (array) $territoryId)
             ))
             ->selectRaw('orders.user_id as user_id, SUM(order_items.quantity) as total_quantity')
             ->groupBy('orders.user_id')
@@ -199,7 +199,7 @@ class ReportService
             ->whereBetween('collection_date', [$from->toDateString(), $to->toDateString()])
             ->when($filters['user_id'] ?? null, fn (Builder $q, $userId) => $q->where('user_id', $userId))
             ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereHas(
-                'user', fn (Builder $u) => $u->where('territory_id', $territoryId)
+                'user.territories', fn (Builder $t) => $t->whereIn('territories.id', (array) $territoryId)
             ))
             ->selectRaw(
                 'user_id,
@@ -237,39 +237,42 @@ class ReportService
 
         $orderValueByTerritory = Order::query()
             ->join('users', 'users.id', '=', 'orders.user_id')
+            ->join('territory_user', 'territory_user.user_id', '=', 'users.id')
             ->whereBetween('orders.order_date', [$dateFrom, $dateTo])
-            ->selectRaw('users.territory_id as territory_id, SUM(orders.total_amount) as total_order_value')
-            ->groupBy('users.territory_id')
+            ->selectRaw('territory_user.territory_id as territory_id, SUM(orders.total_amount) as total_order_value')
+            ->groupBy('territory_user.territory_id')
             ->pluck('total_order_value', 'territory_id');
 
         $collectionsByTerritory = CollectionEntry::query()
             ->join('users', 'users.id', '=', 'collection_entries.user_id')
+            ->join('territory_user', 'territory_user.user_id', '=', 'users.id')
             ->whereBetween('collection_entries.collection_date', [$dateFrom, $dateTo])
-            ->selectRaw('users.territory_id as territory_id, SUM(collection_entries.amount) as total_collection_amount')
-            ->groupBy('users.territory_id')
+            ->selectRaw('territory_user.territory_id as territory_id, SUM(collection_entries.amount) as total_collection_amount')
+            ->groupBy('territory_user.territory_id')
             ->pluck('total_collection_amount', 'territory_id');
 
         $visitsByTerritory = Visit::query()
             ->join('users', 'users.id', '=', 'visits.user_id')
+            ->join('territory_user', 'territory_user.user_id', '=', 'users.id')
             ->whereBetween('visits.check_in_at', [$from, $to])
             ->selectRaw(
-                'users.territory_id as territory_id,
+                'territory_user.territory_id as territory_id,
                 COUNT(*) as total_visits,
                 SUM(CASE WHEN visits.is_gps_verified = 1 THEN 1 ELSE 0 END) as gps_verified_count,
                 SUM(CASE WHEN visits.is_gps_verified = 0 THEN 1 ELSE 0 END) as gps_unverified_count'
             )
-            ->groupBy('users.territory_id')
+            ->groupBy('territory_user.territory_id')
             ->get()
             ->keyBy('territory_id');
 
         $executiveCounts = User::role('Sales Executive')
-            ->whereNotNull('territory_id')
-            ->selectRaw('territory_id, COUNT(*) as executive_count')
-            ->groupBy('territory_id')
+            ->join('territory_user', 'territory_user.user_id', '=', 'users.id')
+            ->selectRaw('territory_user.territory_id as territory_id, COUNT(*) as executive_count')
+            ->groupBy('territory_user.territory_id')
             ->pluck('executive_count', 'territory_id');
 
         $territories = Territory::query()
-            ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->where('id', $territoryId))
+            ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereIn('id', (array) $territoryId))
             ->orderBy('name')
             ->get();
 
@@ -299,12 +302,12 @@ class ReportService
         $year = (int) ($filters['year'] ?? Carbon::now()->year);
 
         $targets = Target::query()
-            ->with(['user.territory', 'achievement'])
+            ->with(['user.territories', 'achievement'])
             ->where('month', $month)
             ->where('year', $year)
             ->when($filters['user_id'] ?? null, fn (Builder $q, $userId) => $q->where('user_id', $userId))
             ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereHas(
-                'user', fn (Builder $u) => $u->where('territory_id', $territoryId)
+                'user.territories', fn (Builder $t) => $t->whereIn('territories.id', (array) $territoryId)
             ))
             ->get();
 
@@ -400,7 +403,7 @@ class ReportService
 
         $totalsByTerritory = Dealer::query()
             ->whereNotNull('territory_id')
-            ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->where('territory_id', $territoryId))
+            ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereIn('territory_id', (array) $territoryId))
             ->selectRaw('territory_id, COUNT(*) as total_dealers')
             ->groupBy('territory_id')
             ->pluck('total_dealers', 'territory_id');
@@ -408,7 +411,7 @@ class ReportService
         $visitedByTerritory = Visit::query()
             ->join('dealers', 'dealers.id', '=', 'visits.dealer_id')
             ->whereBetween('visits.check_in_at', [$from, $to])
-            ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->where('dealers.territory_id', $territoryId))
+            ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereIn('dealers.territory_id', (array) $territoryId))
             ->selectRaw('dealers.territory_id as territory_id, COUNT(DISTINCT visits.dealer_id) as visited_dealers')
             ->groupBy('dealers.territory_id')
             ->pluck('visited_dealers', 'territory_id');
@@ -445,7 +448,7 @@ class ReportService
             ->whereBetween('recorded_at', [$from, $to])
             ->when($filters['user_id'] ?? null, fn (Builder $q, $userId) => $q->where('user_id', $userId))
             ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereHas(
-                'user', fn (Builder $u) => $u->where('territory_id', $territoryId)
+                'user.territories', fn (Builder $t) => $t->whereIn('territories.id', (array) $territoryId)
             ))
             ->selectRaw(
                 'user_id,
@@ -474,6 +477,6 @@ class ReportService
      */
     private function usersFor(Collection $userIds): Collection
     {
-        return User::with('territory')->whereIn('id', $userIds->unique())->get()->keyBy('id');
+        return User::with('territories')->whereIn('id', $userIds->unique())->get()->keyBy('id');
     }
 }

@@ -11,11 +11,12 @@ use App\Http\Requests\Admin\StoreDealerRequest;
 use App\Http\Requests\Admin\UpdateDealerRequest;
 use App\Imports\DealersImport;
 use App\Models\Dealer;
+use App\Models\Division;
 use App\Models\Setting;
-use App\Models\Territory;
 use App\Services\DealerService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -28,11 +29,13 @@ class DealerController extends Controller
     {
         $this->authorize('viewAny', Dealer::class);
 
+        $filterKeys = ['search', 'type', 'division_id', 'district_id', 'thana_id', 'territory_id', 'status', 'trashed'];
+
         return view('dealers.index', [
-            'dealers' => $this->dealers->paginate($request->only(['search', 'type', 'territory_id', 'status', 'trashed']), 15),
-            'territories' => Territory::orderBy('name')->get(),
+            'dealers' => $this->dealers->paginate($request->only($filterKeys), 15),
+            'divisions' => Division::where('status', true)->orderBy('name')->get(),
             'types' => CustomerType::cases(),
-            'filters' => $request->only(['search', 'type', 'territory_id', 'status', 'trashed']),
+            'filters' => $request->only($filterKeys),
         ]);
     }
 
@@ -41,7 +44,7 @@ class DealerController extends Controller
         $this->authorize('create', Dealer::class);
 
         return view('dealers.create', [
-            'territories' => Territory::orderBy('name')->get(),
+            'divisions' => Division::where('status', true)->orderBy('name')->get(),
             'types' => CustomerType::cases(),
         ]);
     }
@@ -57,14 +60,14 @@ class DealerController extends Controller
     {
         $this->authorize('view', $dealer);
 
-        return view('dealers.show', ['dealer' => $dealer->load('territory')]);
+        return view('dealers.show', ['dealer' => $dealer->load(['territory', 'thana', 'district', 'division'])]);
     }
 
     public function downloadPdf(Dealer $dealer): mixed
     {
         $this->authorize('view', $dealer);
 
-        $dealer->load('territory');
+        $dealer->load(['territory', 'thana', 'district', 'division']);
 
         return Pdf::loadView('dealers.detail-pdf', ['dealer' => $dealer, 'setting' => Setting::current()])
             ->stream('dealer-'.$dealer->id.'-'.now()->format('Y-m-d-His').'.pdf');
@@ -75,8 +78,8 @@ class DealerController extends Controller
         $this->authorize('update', $dealer);
 
         return view('dealers.edit', [
-            'dealer' => $dealer,
-            'territories' => Territory::orderBy('name')->get(),
+            'dealer' => $dealer->load(['territory', 'thana', 'district', 'division']),
+            'divisions' => Division::where('status', true)->orderBy('name')->get(),
             'types' => CustomerType::cases(),
         ]);
     }
@@ -176,5 +179,26 @@ class DealerController extends Controller
         $this->dealers->update($dealer, ['status' => ! $dealer->status]);
 
         return back()->with('success', 'Dealer status updated.');
+    }
+
+    public function options(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Dealer::class);
+
+        $search = trim((string) $request->string('search'));
+
+        return response()->json(
+            Dealer::query()
+                ->where('status', true)
+                ->when($search !== '', function ($query) use ($search) {
+                    $query->where(function ($inner) use ($search) {
+                        $inner->where('name', 'like', "%{$search}%")
+                            ->orWhere('dealer_code', 'like', "%{$search}%");
+                    });
+                })
+                ->orderBy('name')
+                ->limit(50)
+                ->get(['id', 'name', 'dealer_code'])
+        );
     }
 }

@@ -52,6 +52,15 @@
                         <dt class="col-sm-4">Address</dt>
                         <dd class="col-sm-8">{{ $dealer->address ?? '—' }}</dd>
 
+                        <dt class="col-sm-4">Division</dt>
+                        <dd class="col-sm-8">{{ $dealer->division?->name ?? '—' }}</dd>
+
+                        <dt class="col-sm-4">District</dt>
+                        <dd class="col-sm-8">{{ $dealer->district?->name ?? '—' }}</dd>
+
+                        <dt class="col-sm-4">Thana / Upazila</dt>
+                        <dd class="col-sm-8">{{ $dealer->thana?->name ?? '—' }}</dd>
+
                         <dt class="col-sm-4">Territory</dt>
                         <dd class="col-sm-8">{{ $dealer->territory?->name ?? '—' }}</dd>
 

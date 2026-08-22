@@ -60,7 +60,7 @@ class DealerTest extends TestCase
         Dealer::factory()->count(2)->create(['territory_id' => $territoryA->id]);
         Dealer::factory()->create(['territory_id' => $territoryB->id]);
 
-        $executive = User::factory()->create(['territory_id' => $territoryA->id]);
+        $executive = User::factory()->inTerritory($territoryA)->create();
         $executive->assignRole('Sales Executive');
 
         $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))

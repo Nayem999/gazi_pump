@@ -27,7 +27,7 @@ class DealersExport implements FromCollection, WithHeadings, WithMapping
      */
     public function headings(): array
     {
-        return ['Code', 'Name', 'Type', 'Phone', 'Email', 'Address', 'Territory', 'GPS Lat', 'GPS Lng', 'Status'];
+        return ['Code', 'Name', 'Type', 'Phone', 'Email', 'Address', 'Division', 'District', 'Thana', 'Territory', 'GPS Lat', 'GPS Lng', 'Status'];
     }
 
     /**
@@ -42,6 +42,9 @@ class DealersExport implements FromCollection, WithHeadings, WithMapping
             $dealer->phone,
             $dealer->email,
             $dealer->address,
+            $dealer->division?->name,
+            $dealer->district?->name,
+            $dealer->thana?->name,
             $dealer->territory?->name,
             $dealer->gps_lat,
             $dealer->gps_lng,

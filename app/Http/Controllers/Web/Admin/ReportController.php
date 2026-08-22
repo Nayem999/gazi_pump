@@ -15,6 +15,7 @@ use App\Exports\TerritoryPerformanceExport;
 use App\Exports\VisitComplianceExport;
 use App\Helpers\PermissionName;
 use App\Http\Controllers\Controller;
+use App\Models\Division;
 use App\Models\Territory;
 use App\Models\User;
 use App\Services\ReportService;
@@ -34,6 +35,8 @@ use Maatwebsite\Excel\Facades\Excel;
  */
 class ReportController extends Controller
 {
+    private const GEO_FILTER_KEYS = ['division_id', 'district_id', 'thana_id', 'territory_id'];
+
     public function __construct(private readonly ReportService $reports) {}
 
     public function index(Request $request): View
@@ -45,11 +48,14 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('attendance')), 403);
 
+        $filters = $request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]);
+
         return view('reports.attendance-summary', [
-            'rows' => $this->paginate($this->reports->attendanceSummary($request->only(['date_from', 'date_to', 'user_id', 'territory_id'])), $request),
+            'rows' => $this->paginate($this->reports->attendanceSummary($this->resolveGeoFilters($filters)), $request),
             'executives' => $this->executives(),
+            'divisions' => $this->divisions(),
             'territories' => $this->territories(),
-            'filters' => $request->only(['date_from', 'date_to', 'user_id', 'territory_id']),
+            'filters' => $filters,
         ]);
     }
 
@@ -57,7 +63,8 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('attendance')), 403);
 
-        $rows = $this->reports->attendanceSummary($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]));
+        $rows = $this->reports->attendanceSummary($filters);
 
         return Excel::download(new AttendanceSummaryExport($rows), 'attendance-summary-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -66,7 +73,8 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('attendance')), 403);
 
-        $rows = $this->reports->attendanceSummary($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]));
+        $rows = $this->reports->attendanceSummary($filters);
 
         return Pdf::loadView('reports.attendance-summary-print', ['rows' => $rows])
             ->stream('attendance-summary-'.now()->format('Y-m-d-His').'.pdf');
@@ -76,11 +84,14 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('visits')), 403);
 
+        $filters = $request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]);
+
         return view('reports.visit-compliance', [
-            'rows' => $this->paginate($this->reports->visitCompliance($request->only(['date_from', 'date_to', 'user_id', 'territory_id'])), $request),
+            'rows' => $this->paginate($this->reports->visitCompliance($this->resolveGeoFilters($filters)), $request),
             'executives' => $this->executives(),
+            'divisions' => $this->divisions(),
             'territories' => $this->territories(),
-            'filters' => $request->only(['date_from', 'date_to', 'user_id', 'territory_id']),
+            'filters' => $filters,
         ]);
     }
 
@@ -88,7 +99,8 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('visits')), 403);
 
-        $rows = $this->reports->visitCompliance($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]));
+        $rows = $this->reports->visitCompliance($filters);
 
         return Excel::download(new VisitComplianceExport($rows), 'visit-compliance-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -97,7 +109,8 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('visits')), 403);
 
-        $rows = $this->reports->visitCompliance($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]));
+        $rows = $this->reports->visitCompliance($filters);
 
         return Pdf::loadView('reports.visit-compliance-print', ['rows' => $rows])
             ->stream('visit-compliance-'.now()->format('Y-m-d-His').'.pdf');
@@ -107,7 +120,8 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('order-performance')), 403);
 
-        $rows = $this->reports->orderPerformance($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
+        $filters = $request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]);
+        $rows = $this->reports->orderPerformance($this->resolveGeoFilters($filters));
 
         return view('reports.order-performance', [
             'rows' => $this->paginate($rows, $request),
@@ -117,8 +131,9 @@ class ReportController extends Controller
                 'total_order_value' => $rows->sum('total_order_value'),
             ],
             'executives' => $this->executives(),
+            'divisions' => $this->divisions(),
             'territories' => $this->territories(),
-            'filters' => $request->only(['date_from', 'date_to', 'user_id', 'territory_id']),
+            'filters' => $filters,
         ]);
     }
 
@@ -126,7 +141,8 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('order-performance')), 403);
 
-        $rows = $this->reports->orderPerformance($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]));
+        $rows = $this->reports->orderPerformance($filters);
 
         return Excel::download(new OrderPerformanceExport($rows), 'order-performance-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -135,7 +151,8 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('order-performance')), 403);
 
-        $rows = $this->reports->orderPerformance($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]));
+        $rows = $this->reports->orderPerformance($filters);
 
         return Pdf::loadView('reports.order-performance-print', ['rows' => $rows])
             ->stream('order-performance-'.now()->format('Y-m-d-His').'.pdf');
@@ -145,7 +162,8 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('collections')), 403);
 
-        $rows = $this->reports->collectionSummary($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
+        $filters = $request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]);
+        $rows = $this->reports->collectionSummary($this->resolveGeoFilters($filters));
 
         return view('reports.collection-summary', [
             'rows' => $this->paginate($rows, $request),
@@ -158,8 +176,9 @@ class ReportController extends Controller
                 'mobile_banking_total' => $rows->sum('mobile_banking_total'),
             ],
             'executives' => $this->executives(),
+            'divisions' => $this->divisions(),
             'territories' => $this->territories(),
-            'filters' => $request->only(['date_from', 'date_to', 'user_id', 'territory_id']),
+            'filters' => $filters,
         ]);
     }
 
@@ -167,7 +186,8 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('collections')), 403);
 
-        $rows = $this->reports->collectionSummary($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]));
+        $rows = $this->reports->collectionSummary($filters);
 
         return Excel::download(new CollectionSummaryExport($rows), 'collection-summary-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -176,7 +196,8 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('collections')), 403);
 
-        $rows = $this->reports->collectionSummary($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]));
+        $rows = $this->reports->collectionSummary($filters);
 
         return Pdf::loadView('reports.collection-summary-print', ['rows' => $rows])
             ->stream('collection-summary-'.now()->format('Y-m-d-His').'.pdf');
@@ -186,10 +207,13 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('territories')), 403);
 
+        $filters = $request->only(['date_from', 'date_to', ...self::GEO_FILTER_KEYS]);
+
         return view('reports.territory-performance', [
-            'rows' => $this->paginate($this->reports->territoryPerformance($request->only(['date_from', 'date_to', 'territory_id'])), $request),
+            'rows' => $this->paginate($this->reports->territoryPerformance($this->resolveGeoFilters($filters)), $request),
+            'divisions' => $this->divisions(),
             'territories' => $this->territories(),
-            'filters' => $request->only(['date_from', 'date_to', 'territory_id']),
+            'filters' => $filters,
         ]);
     }
 
@@ -197,7 +221,8 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('territories')), 403);
 
-        $rows = $this->reports->territoryPerformance($request->only(['date_from', 'date_to', 'territory_id']));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', ...self::GEO_FILTER_KEYS]));
+        $rows = $this->reports->territoryPerformance($filters);
 
         return Excel::download(new TerritoryPerformanceExport($rows), 'territory-performance-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -206,7 +231,8 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('territories')), 403);
 
-        $rows = $this->reports->territoryPerformance($request->only(['date_from', 'date_to', 'territory_id']));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', ...self::GEO_FILTER_KEYS]));
+        $rows = $this->reports->territoryPerformance($filters);
 
         return Pdf::loadView('reports.territory-performance-print', ['rows' => $rows])
             ->stream('territory-performance-'.now()->format('Y-m-d-His').'.pdf');
@@ -216,11 +242,14 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('target-achievement')), 403);
 
+        $filters = $this->periodFilters($request);
+
         return view('reports.target-achievement', [
-            'rows' => $this->paginate($this->reports->targetAchievement($request->only(['month', 'year', 'user_id', 'territory_id'])), $request),
+            'rows' => $this->paginate($this->reports->targetAchievement($this->resolveGeoFilters($filters)), $request),
             'executives' => $this->executives(),
+            'divisions' => $this->divisions(),
             'territories' => $this->territories(),
-            'filters' => $this->periodFilters($request),
+            'filters' => $filters,
         ]);
     }
 
@@ -228,7 +257,7 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('target-achievement')), 403);
 
-        $rows = $this->reports->targetAchievement($request->only(['month', 'year', 'user_id', 'territory_id']));
+        $rows = $this->reports->targetAchievement($this->resolveGeoFilters($this->periodFilters($request)));
 
         return Excel::download(new TargetAchievementExport($rows), 'target-achievement-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -237,7 +266,7 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('target-achievement')), 403);
 
-        $rows = $this->reports->targetAchievement($request->only(['month', 'year', 'user_id', 'territory_id']));
+        $rows = $this->reports->targetAchievement($this->resolveGeoFilters($this->periodFilters($request)));
 
         return Pdf::loadView('reports.target-achievement-print', ['rows' => $rows])
             ->stream('target-achievement-'.now()->format('Y-m-d-His').'.pdf');
@@ -247,11 +276,14 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('executive-performance')), 403);
 
+        $filters = $this->periodFilters($request);
+
         return view('reports.executive-performance', [
-            'rows' => $this->paginate($this->reports->executivePerformance($request->only(['month', 'year', 'user_id', 'territory_id'])), $request),
+            'rows' => $this->paginate($this->reports->executivePerformance($this->resolveGeoFilters($filters)), $request),
             'executives' => $this->executives(),
+            'divisions' => $this->divisions(),
             'territories' => $this->territories(),
-            'filters' => $this->periodFilters($request),
+            'filters' => $filters,
         ]);
     }
 
@@ -259,7 +291,7 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('executive-performance')), 403);
 
-        $rows = $this->reports->executivePerformance($request->only(['month', 'year', 'user_id', 'territory_id']));
+        $rows = $this->reports->executivePerformance($this->resolveGeoFilters($this->periodFilters($request)));
 
         return Excel::download(new ExecutivePerformanceExport($rows), 'executive-performance-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -268,7 +300,7 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('executive-performance')), 403);
 
-        $rows = $this->reports->executivePerformance($request->only(['month', 'year', 'user_id', 'territory_id']));
+        $rows = $this->reports->executivePerformance($this->resolveGeoFilters($this->periodFilters($request)));
 
         return Pdf::loadView('reports.executive-performance-print', ['rows' => $rows])
             ->stream('executive-performance-'.now()->format('Y-m-d-His').'.pdf');
@@ -278,10 +310,13 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('dealer-coverage')), 403);
 
+        $filters = $request->only(['date_from', 'date_to', ...self::GEO_FILTER_KEYS]);
+
         return view('reports.dealer-coverage', [
-            'rows' => $this->paginate($this->reports->dealerCoverage($request->only(['date_from', 'date_to', 'territory_id'])), $request),
+            'rows' => $this->paginate($this->reports->dealerCoverage($this->resolveGeoFilters($filters)), $request),
+            'divisions' => $this->divisions(),
             'territories' => $this->territories(),
-            'filters' => $request->only(['date_from', 'date_to', 'territory_id']),
+            'filters' => $filters,
         ]);
     }
 
@@ -289,7 +324,8 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('dealer-coverage')), 403);
 
-        $rows = $this->reports->dealerCoverage($request->only(['date_from', 'date_to', 'territory_id']));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', ...self::GEO_FILTER_KEYS]));
+        $rows = $this->reports->dealerCoverage($filters);
 
         return Excel::download(new DealerCoverageExport($rows), 'dealer-coverage-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -298,7 +334,8 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('dealer-coverage')), 403);
 
-        $rows = $this->reports->dealerCoverage($request->only(['date_from', 'date_to', 'territory_id']));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', ...self::GEO_FILTER_KEYS]));
+        $rows = $this->reports->dealerCoverage($filters);
 
         return Pdf::loadView('reports.dealer-coverage-print', ['rows' => $rows])
             ->stream('dealer-coverage-'.now()->format('Y-m-d-His').'.pdf');
@@ -308,11 +345,14 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('gps')), 403);
 
+        $filters = $request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]);
+
         return view('reports.gps-report', [
-            'rows' => $this->paginate($this->reports->gpsReport($request->only(['date_from', 'date_to', 'user_id', 'territory_id'])), $request),
+            'rows' => $this->paginate($this->reports->gpsReport($this->resolveGeoFilters($filters)), $request),
             'executives' => $this->executives(),
+            'divisions' => $this->divisions(),
             'territories' => $this->territories(),
-            'filters' => $request->only(['date_from', 'date_to', 'user_id', 'territory_id']),
+            'filters' => $filters,
         ]);
     }
 
@@ -320,7 +360,8 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('gps')), 403);
 
-        $rows = $this->reports->gpsReport($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]));
+        $rows = $this->reports->gpsReport($filters);
 
         return Excel::download(new GpsReportExport($rows), 'gps-report-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -329,14 +370,15 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('gps')), 403);
 
-        $rows = $this->reports->gpsReport($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]));
+        $rows = $this->reports->gpsReport($filters);
 
         return Pdf::loadView('reports.gps-report-print', ['rows' => $rows])
             ->stream('gps-report-'.now()->format('Y-m-d-His').'.pdf');
     }
 
     /**
-     * @return array{month: int, year: int, user_id: string|null, territory_id: string|null}
+     * @return array{month: int, year: int, user_id: string|null, division_id: string|null, district_id: string|null, thana_id: string|null, territory_id: string|null}
      */
     private function periodFilters(Request $request): array
     {
@@ -344,8 +386,48 @@ class ReportController extends Controller
             'month' => (int) ($request->integer('month') ?: Carbon::now()->month),
             'year' => (int) ($request->integer('year') ?: Carbon::now()->year),
             'user_id' => $request->input('user_id'),
+            'division_id' => $request->input('division_id'),
+            'district_id' => $request->input('district_id'),
+            'thana_id' => $request->input('thana_id'),
             'territory_id' => $request->input('territory_id'),
         ];
+    }
+
+    /**
+     * Every report ultimately filters by `territory_id`. When a Division/
+     * District/Thana filter is chosen instead (or in addition), it's
+     * resolved here into the matching territory id(s) so each report
+     * method's existing `territory_id` handling — already written to accept
+     * either a single id or an array via `whereIn` — keeps working
+     * unchanged. An explicit `territory_id` (the most specific filter)
+     * always wins over a broader geo filter if somehow both are present.
+     *
+     * @param  array<string, mixed>  $filters
+     * @return array<string, mixed>
+     */
+    private function resolveGeoFilters(array $filters): array
+    {
+        if (! empty($filters['territory_id'])) {
+            return $filters;
+        }
+
+        if (empty($filters['division_id']) && empty($filters['district_id']) && empty($filters['thana_id'])) {
+            return $filters;
+        }
+
+        $territoryIds = Territory::query()
+            ->when($filters['division_id'] ?? null, fn ($q, $id) => $q->where('division_id', $id))
+            ->when($filters['district_id'] ?? null, fn ($q, $id) => $q->where('district_id', $id))
+            ->when($filters['thana_id'] ?? null, fn ($q, $id) => $q->where('thana_id', $id))
+            ->pluck('id')
+            ->all();
+
+        // No territory matches the chosen geo scope — use an id that can
+        // never exist so the report correctly returns zero rows instead of
+        // silently falling back to "no filter at all".
+        $filters['territory_id'] = $territoryIds ?: [0];
+
+        return $filters;
     }
 
     /**
@@ -354,6 +436,14 @@ class ReportController extends Controller
     private function executives(): Collection
     {
         return User::role('Sales Executive')->orderBy('name')->get();
+    }
+
+    /**
+     * @return Collection<int, Division>
+     */
+    private function divisions(): Collection
+    {
+        return Division::where('status', true)->orderBy('name')->get();
     }
 
     /**

@@ -36,7 +36,7 @@ class AttendanceSummaryExport implements FromCollection, WithHeadings, WithMappi
     {
         return [
             $row->user?->name,
-            $row->user?->territory?->name,
+            $row->user?->territory_names,
             $row->present_count,
             $row->late_count,
             $row->half_day_count,

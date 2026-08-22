@@ -34,7 +34,7 @@
             @foreach ($rows as $row)
                 <tr>
                     <td>{{ $row->user?->name }}</td>
-                    <td>{{ $row->user?->territory?->name }}</td>
+                    <td>{{ $row->user?->territory_names }}</td>
                     <td>{{ $row->present_count }}</td>
                     <td>{{ $row->late_count }}</td>
                     <td>{{ $row->half_day_count }}</td>

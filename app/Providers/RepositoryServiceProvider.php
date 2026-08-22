@@ -9,6 +9,8 @@ use App\Repositories\Contracts\AttendanceRepositoryInterface;
 use App\Repositories\Contracts\BrochureRepositoryInterface;
 use App\Repositories\Contracts\CollectionEntryRepositoryInterface;
 use App\Repositories\Contracts\DealerRepositoryInterface;
+use App\Repositories\Contracts\DistrictRepositoryInterface;
+use App\Repositories\Contracts\DivisionRepositoryInterface;
 use App\Repositories\Contracts\FaqRepositoryInterface;
 use App\Repositories\Contracts\GpsLogRepositoryInterface;
 use App\Repositories\Contracts\InquiryRepositoryInterface;
@@ -22,6 +24,7 @@ use App\Repositories\Contracts\SalesTeamRepositoryInterface;
 use App\Repositories\Contracts\ServiceCenterRepositoryInterface;
 use App\Repositories\Contracts\TargetRepositoryInterface;
 use App\Repositories\Contracts\TerritoryRepositoryInterface;
+use App\Repositories\Contracts\ThanaRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\Contracts\VisitPlanRepositoryInterface;
 use App\Repositories\Contracts\VisitRepositoryInterface;
@@ -31,6 +34,8 @@ use App\Repositories\Eloquent\AttendanceRepository;
 use App\Repositories\Eloquent\BrochureRepository;
 use App\Repositories\Eloquent\CollectionEntryRepository;
 use App\Repositories\Eloquent\DealerRepository;
+use App\Repositories\Eloquent\DistrictRepository;
+use App\Repositories\Eloquent\DivisionRepository;
 use App\Repositories\Eloquent\FaqRepository;
 use App\Repositories\Eloquent\GpsLogRepository;
 use App\Repositories\Eloquent\InquiryRepository;
@@ -44,6 +49,7 @@ use App\Repositories\Eloquent\SalesTeamRepository;
 use App\Repositories\Eloquent\ServiceCenterRepository;
 use App\Repositories\Eloquent\TargetRepository;
 use App\Repositories\Eloquent\TerritoryRepository;
+use App\Repositories\Eloquent\ThanaRepository;
 use App\Repositories\Eloquent\UserRepository;
 use App\Repositories\Eloquent\VisitPlanRepository;
 use App\Repositories\Eloquent\VisitRepository;
@@ -66,6 +72,9 @@ class RepositoryServiceProvider extends ServiceProvider
         SalesTeamRepositoryInterface::class => SalesTeamRepository::class,
         TerritoryRepositoryInterface::class => TerritoryRepository::class,
         DealerRepositoryInterface::class => DealerRepository::class,
+        DivisionRepositoryInterface::class => DivisionRepository::class,
+        DistrictRepositoryInterface::class => DistrictRepository::class,
+        ThanaRepositoryInterface::class => ThanaRepository::class,
         ProductCategoryRepositoryInterface::class => ProductCategoryRepository::class,
         ProductRepositoryInterface::class => ProductRepository::class,
         AttendanceRepositoryInterface::class => AttendanceRepository::class,

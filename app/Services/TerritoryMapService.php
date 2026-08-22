@@ -23,12 +23,16 @@ class TerritoryMapService
     public function __construct(private readonly ReportService $reports) {}
 
     /**
+     * @param  array{division_id?: string, district_id?: string, thana_id?: string}  $filters
      * @return Collection<int, Territory>
      */
-    public function markers(): Collection
+    public function markers(array $filters = []): Collection
     {
         return Territory::query()
-            ->select(['id', 'name', 'code', 'center_lat', 'center_lng', 'boundary', 'manager_id'])
+            ->select(['id', 'name', 'code', 'center_lat', 'center_lng', 'boundary', 'manager_id', 'division_id', 'district_id', 'thana_id'])
+            ->when($filters['division_id'] ?? null, fn ($query, $id) => $query->where('division_id', $id))
+            ->when($filters['district_id'] ?? null, fn ($query, $id) => $query->where('district_id', $id))
+            ->when($filters['thana_id'] ?? null, fn ($query, $id) => $query->where('thana_id', $id))
             ->withCount('users')
             ->get();
     }
@@ -46,10 +50,11 @@ class TerritoryMapService
 
         $avgPct = Target::query()
             ->join('users', 'users.id', '=', 'targets.user_id')
+            ->join('territory_user', 'territory_user.user_id', '=', 'users.id')
             ->join('achievements', 'achievements.target_id', '=', 'targets.id')
             ->where('targets.month', $month)
             ->where('targets.year', $year)
-            ->where('users.territory_id', $territory->id)
+            ->where('territory_user.territory_id', $territory->id)
             ->avg('achievements.overall_pct');
 
         $avgPct = $avgPct !== null ? (float) $avgPct : null;

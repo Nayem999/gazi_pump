@@ -23,7 +23,7 @@ class CollectionEntrySeeder extends Seeder
 
     public function run(): void
     {
-        $executives = User::role('Sales Executive')->get();
+        $executives = User::role('Sales Executive')->with('territories')->get();
         $dealersByTerritory = Dealer::all()->groupBy('territory_id');
 
         $outstanding = Order::query()
@@ -34,7 +34,7 @@ class CollectionEntrySeeder extends Seeder
             ->all();
 
         foreach ($executives as $executive) {
-            $pool = $dealersByTerritory->get($executive->territory_id) ?? collect();
+            $pool = $executive->territories->flatMap(fn ($territory) => $dealersByTerritory->get($territory->id) ?? collect());
             if ($pool->isEmpty()) {
                 $pool = Dealer::inRandomOrder()->limit(5)->get();
             }

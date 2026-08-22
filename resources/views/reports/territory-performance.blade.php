@@ -9,9 +9,30 @@
 
 @section('content')
     <x-filter-bar :action="route('reports.territory-performance')">
-        <div class="col-md-4">
+        <div class="col-md-3">
+            <label class="form-label">Division</label>
+            <select name="division_id" id="filterDivision" class="form-select">
+                <option value="">All</option>
+                @foreach ($divisions as $division)
+                    <option value="{{ $division->id }}" @selected((string) ($filters['division_id'] ?? '') === (string) $division->id)>{{ $division->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">District</label>
+            <select name="district_id" id="filterDistrict" class="form-select" @disabled(empty($filters['division_id']))>
+                <option value="">All</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Thana</label>
+            <select name="thana_id" id="filterThana" class="form-select" @disabled(empty($filters['district_id']))>
+                <option value="">All</option>
+            </select>
+        </div>
+        <div class="col-md-3">
             <label class="form-label">Territory</label>
-            <select name="territory_id" class="form-select">
+            <select name="territory_id" id="filterTerritory" class="form-select" @disabled(empty($filters['thana_id']))>
                 <option value="">All</option>
                 @foreach ($territories as $territory)
                     <option value="{{ $territory->id }}" @selected((string) ($filters['territory_id'] ?? '') === (string) $territory->id)>{{ $territory->name }}</option>
@@ -73,3 +94,21 @@
         @endif
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const filterDivision = document.getElementById('filterDivision');
+            const filterDistrict = document.getElementById('filterDistrict');
+            const filterThana = document.getElementById('filterThana');
+            const filterTerritory = document.getElementById('filterTerritory');
+
+            initCascadingSelect(filterDivision, filterDistrict, '{{ route('districts.options') }}', 'division_id', {
+                initialChildValue: '{{ $filters['district_id'] ?? '' }}',
+            });
+            initCascadingSelect(filterDistrict, filterThana, '{{ route('thanas.options') }}', 'district_id', {
+                initialChildValue: '{{ $filters['thana_id'] ?? '' }}',
+            });
+        });
+    </script>
+@endpush

@@ -11,7 +11,6 @@ use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Imports\UsersImport;
 use App\Models\SalesTeam;
 use App\Models\Setting;
-use App\Models\Territory;
 use App\Models\User;
 use App\Services\UserService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -47,7 +46,6 @@ class UserController extends Controller
             'roles' => Role::all(),
             'managers' => User::where('status', true)->orderBy('name')->get(),
             'salesTeams' => SalesTeam::orderBy('name')->get(),
-            'territories' => Territory::orderBy('name')->get(),
         ]);
     }
 
@@ -62,7 +60,7 @@ class UserController extends Controller
     {
         $this->authorize('view', $user);
 
-        $user->load(['manager', 'roles', 'subordinates', 'salesTeam', 'territory']);
+        $user->load(['manager', 'roles', 'subordinates', 'salesTeam', 'territories']);
 
         return view('users.show', ['user' => $user]);
     }
@@ -71,7 +69,7 @@ class UserController extends Controller
     {
         $this->authorize('view', $user);
 
-        $user->load(['manager', 'roles', 'salesTeam', 'territory']);
+        $user->load(['manager', 'roles', 'salesTeam', 'territories']);
 
         return Pdf::loadView('users.detail-pdf', ['user' => $user, 'setting' => Setting::current()])
             ->stream('user-'.$user->id.'-'.now()->format('Y-m-d-His').'.pdf');
@@ -82,11 +80,10 @@ class UserController extends Controller
         $this->authorize('update', $user);
 
         return view('users.edit', [
-            'user' => $user->load('roles'),
+            'user' => $user->load(['roles', 'territories']),
             'roles' => Role::all(),
             'managers' => User::where('id', '!=', $user->id)->where('status', true)->orderBy('name')->get(),
             'salesTeams' => SalesTeam::orderBy('name')->get(),
-            'territories' => Territory::orderBy('name')->get(),
         ]);
     }
 

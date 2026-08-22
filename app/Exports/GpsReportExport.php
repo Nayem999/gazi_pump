@@ -36,7 +36,7 @@ class GpsReportExport implements FromCollection, WithHeadings, WithMapping
     {
         return [
             $row->user?->name,
-            $row->user?->territory?->name,
+            $row->user?->territory_names,
             (string) $row->ping_count,
             $row->avg_accuracy !== null ? (string) $row->avg_accuracy : null,
             $row->avg_battery_level !== null ? (string) $row->avg_battery_level : null,

@@ -36,7 +36,7 @@ class VisitComplianceExport implements FromCollection, WithHeadings, WithMapping
     {
         return [
             $row->user?->name,
-            $row->user?->territory?->name,
+            $row->user?->territory_names,
             $row->planned_count,
             $row->completed_count,
             $row->missed_count,

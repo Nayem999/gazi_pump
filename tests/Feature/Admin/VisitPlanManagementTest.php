@@ -68,7 +68,7 @@ class VisitPlanManagementTest extends TestCase
 
         $response = $this->actingAs($manager)->post(route('visit-plans.store'), [
             'user_id' => $executive->id,
-            'dealer_id' => $dealer->id,
+            'dealer_ids' => [$dealer->id],
             'planned_date' => Carbon::tomorrow()->toDateString(),
             'status' => VisitPlanStatus::Planned->value,
             'notes' => 'Discuss new product line.',
@@ -80,6 +80,31 @@ class VisitPlanManagementTest extends TestCase
             'dealer_id' => $dealer->id,
             'status' => 'planned',
         ]);
+    }
+
+    public function test_general_manager_can_create_visit_plans_for_multiple_dealers_at_once(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $dealers = Dealer::factory()->count(3)->create();
+
+        $response = $this->actingAs($manager)->post(route('visit-plans.store'), [
+            'user_id' => $executive->id,
+            'dealer_ids' => $dealers->pluck('id')->all(),
+            'planned_date' => Carbon::tomorrow()->toDateString(),
+            'status' => VisitPlanStatus::Planned->value,
+        ]);
+
+        $response->assertRedirect(route('visit-plans.index'));
+        $this->assertSame(3, VisitPlan::where('user_id', $executive->id)->count());
+
+        foreach ($dealers as $dealer) {
+            $this->assertDatabaseHas('visit_plans', [
+                'user_id' => $executive->id,
+                'dealer_id' => $dealer->id,
+                'status' => 'planned',
+            ]);
+        }
     }
 
     public function test_general_manager_can_update_a_visit_plan(): void

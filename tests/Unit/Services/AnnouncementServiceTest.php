@@ -76,7 +76,7 @@ class AnnouncementServiceTest extends TestCase
     {
         $sender = User::factory()->create();
         $territory = Territory::factory()->create();
-        $inTerritory = User::factory()->create(['territory_id' => $territory->id]);
+        $inTerritory = User::factory()->inTerritory($territory)->create();
         $outsideTerritory = User::factory()->create();
 
         $announcement = $this->service()->send($sender, [

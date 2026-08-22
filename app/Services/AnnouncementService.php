@@ -61,7 +61,9 @@ class AnnouncementService extends BaseCrudService
         return match (AnnouncementAudience::from($data['audience'])) {
             AnnouncementAudience::All => User::where('status', true)->get(),
             AnnouncementAudience::Role => User::role($data['audience_role'])->get(),
-            AnnouncementAudience::Territory => User::where('territory_id', $data['audience_territory_id'])->where('status', true)->get(),
+            AnnouncementAudience::Territory => User::whereHas(
+                'territories', fn ($q) => $q->where('territories.id', $data['audience_territory_id'])
+            )->where('status', true)->get(),
             AnnouncementAudience::User => User::where('id', $data['audience_user_id'])->get(),
         };
     }

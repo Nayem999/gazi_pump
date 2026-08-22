@@ -27,7 +27,7 @@ class VisitSeeder extends Seeder
 
     public function run(): void
     {
-        $executives = User::role('Sales Executive')->get();
+        $executives = User::role('Sales Executive')->with('territories')->get();
         $dealersByTerritory = Dealer::all()->groupBy('territory_id');
 
         $day = Carbon::today();
@@ -40,7 +40,7 @@ class VisitSeeder extends Seeder
         }
 
         foreach ($executives as $executive) {
-            $pool = $dealersByTerritory->get($executive->territory_id) ?? collect();
+            $pool = $executive->territories->flatMap(fn ($territory) => $dealersByTerritory->get($territory->id) ?? collect());
             if ($pool->isEmpty()) {
                 $pool = Dealer::inRandomOrder()->limit(5)->get();
             }

@@ -9,11 +9,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreTerritoryRequest;
 use App\Http\Requests\Admin\UpdateTerritoryRequest;
 use App\Imports\TerritoriesImport;
+use App\Models\Division;
 use App\Models\Territory;
 use App\Models\User;
 use App\Services\TerritoryService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -26,9 +28,12 @@ class TerritoryController extends Controller
     {
         $this->authorize('viewAny', Territory::class);
 
+        $filterKeys = ['search', 'division_id', 'district_id', 'thana_id', 'geo', 'status', 'trashed'];
+
         return view('territories.index', [
-            'territories' => $this->territories->paginate($request->only(['search', 'status', 'trashed']), 15),
-            'filters' => $request->only(['search', 'status', 'trashed']),
+            'territories' => $this->territories->paginate($request->only($filterKeys), 15),
+            'divisions' => Division::where('status', true)->orderBy('name')->get(),
+            'filters' => $request->only($filterKeys),
         ]);
     }
 
@@ -38,6 +43,7 @@ class TerritoryController extends Controller
 
         return view('territories.create', [
             'managers' => User::role('Territory Manager')->orderBy('name')->get(),
+            'divisions' => Division::where('status', true)->orderBy('name')->get(),
         ]);
     }
 
@@ -53,8 +59,9 @@ class TerritoryController extends Controller
         $this->authorize('update', $territory);
 
         return view('territories.edit', [
-            'territory' => $territory,
+            'territory' => $territory->load(['division', 'district', 'thana']),
             'managers' => User::role('Territory Manager')->orderBy('name')->get(),
+            'divisions' => Division::where('status', true)->orderBy('name')->get(),
         ]);
     }
 
@@ -153,6 +160,36 @@ class TerritoryController extends Controller
         $this->territories->update($territory, ['status' => ! $territory->status]);
 
         return back()->with('success', 'Territory status updated.');
+    }
+
+    public function options(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Territory::class);
+
+        if ($request->has('search')) {
+            $search = trim((string) $request->string('search'));
+
+            return response()->json(
+                Territory::query()
+                    ->where('status', true)
+                    ->when($search !== '', fn ($query) => $query->where('name', 'like', '%'.$search.'%'))
+                    ->orderBy('name')
+                    ->limit(50)
+                    ->get(['id', 'name'])
+            );
+        }
+
+        if (! $request->integer('thana_id')) {
+            return response()->json([]);
+        }
+
+        return response()->json(
+            Territory::query()
+                ->where('status', true)
+                ->when($request->integer('thana_id'), fn ($query, $id) => $query->where('thana_id', $id))
+                ->orderBy('name')
+                ->get(['id', 'name'])
+        );
     }
 
     /**

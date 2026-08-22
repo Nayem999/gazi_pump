@@ -27,7 +27,7 @@ class TerritoriesExport implements FromCollection, WithHeadings, WithMapping
      */
     public function headings(): array
     {
-        return ['Code', 'Name', 'Manager', 'Executives', 'Status'];
+        return ['Code', 'Name', 'Division', 'District', 'Thana', 'Manager', 'Executives', 'Status'];
     }
 
     /**
@@ -38,6 +38,9 @@ class TerritoriesExport implements FromCollection, WithHeadings, WithMapping
         return [
             $territory->code,
             $territory->name,
+            $territory->division?->name,
+            $territory->district?->name,
+            $territory->thana?->name,
             $territory->manager?->name,
             $territory->users_count ?? $territory->users()->count(),
             $territory->status ? 'Active' : 'Inactive',

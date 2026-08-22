@@ -41,7 +41,7 @@ class DealerController extends Controller
         $this->authorize('viewAny', Dealer::class);
 
         $filters = $request->only(['search', 'type', 'territory_id']);
-        $filters['territory_id'] ??= $request->user()?->territory_id;
+        $filters['territory_id'] ??= $request->user()?->territories->pluck('id')->all();
         $filters['status'] = 'active';
 
         $dealers = $this->dealers->paginate($filters, (int) $request->integer('per_page', 20));
@@ -71,7 +71,7 @@ class DealerController extends Controller
     {
         $this->authorize('view', $dealer);
 
-        return ApiResponse::success(new DealerResource($dealer->load('territory')));
+        return ApiResponse::success(new DealerResource($dealer->load(['territory', 'thana', 'district', 'division'])));
     }
 
     #[OA\Post(
@@ -104,7 +104,7 @@ class DealerController extends Controller
     public function store(StoreDealerRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $data['territory_id'] ??= $request->user()?->territory_id;
+        $data['territory_id'] ??= $request->user()?->territories->first()?->id;
 
         $dealer = $this->dealers->create($data);
 
