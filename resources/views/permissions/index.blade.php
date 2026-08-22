@@ -9,7 +9,7 @@
 @section('content')
     @foreach ($groupedPermissions as $module => $permissions)
         <div class="card mb-3">
-            <div class="card-header bg-white text-capitalize fw-semibold">{{ $module }}</div>
+            <div class="card-header text-capitalize fw-semibold">{{ $module }}</div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-sm align-middle mb-0">

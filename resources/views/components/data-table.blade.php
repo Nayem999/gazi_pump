@@ -11,7 +11,7 @@
 ])
 
 <div class="card">
-    <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2 bg-white">
+    <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
         <h5 class="mb-0">
             {{ $title }}
             @if (! is_null($total))

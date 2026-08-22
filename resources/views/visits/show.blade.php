@@ -49,6 +49,12 @@
                         <dt class="col-sm-4">Sales Executive</dt>
                         <dd class="col-sm-8">{{ $visit->user->name }} ({{ $visit->user->employee_id }})</dd>
 
+                        <dt class="col-sm-4">Executive Phone</dt>
+                        <dd class="col-sm-8"><x-phone-actions :phone="$visit->user->phone" /></dd>
+
+                        <dt class="col-sm-4">Dealer Phone</dt>
+                        <dd class="col-sm-8"><x-phone-actions :phone="$visit->dealer->phone" /></dd>
+
                         <dt class="col-sm-4">Visit Plan</dt>
                         <dd class="col-sm-8">
                             @if ($visit->visitPlan)
@@ -76,7 +82,7 @@
 
         <div class="col-md-6">
             <div class="card">
-                <div class="card-header bg-white">Check-In Photo</div>
+                <div class="card-header">Check-In Photo</div>
                 <div class="card-body text-center">
                     @if ($visit->check_in_photo)
                         <img src="{{ $visit->checkInPhotoUrl() }}" class="img-fluid rounded" style="max-height:280px">
@@ -89,7 +95,7 @@
 
         <div class="col-md-6">
             <div class="card">
-                <div class="card-header bg-white">Check-Out Photo</div>
+                <div class="card-header">Check-Out Photo</div>
                 <div class="card-body text-center">
                     @if ($visit->check_out_photo)
                         <img src="{{ $visit->checkOutPhotoUrl() }}" class="img-fluid rounded" style="max-height:280px">
@@ -102,7 +108,7 @@
 
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-white">GPS Locations</div>
+                <div class="card-header">GPS Locations</div>
                 <div class="card-body">
                     @if ($hasCheckInGps || $hasCheckOutGps || $hasDealerGps)
                         <div id="visitMap" style="height:320px;border-radius:.5rem"></div>

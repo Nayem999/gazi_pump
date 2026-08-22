@@ -64,7 +64,7 @@
 
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-white">GPS Location</div>
+                <div class="card-header">GPS Location</div>
                 <div class="card-body">
                     @if ($dealer->hasGps())
                         <div id="dealerMap" style="height:320px;border-radius:.5rem"></div>
@@ -77,7 +77,7 @@
 
         <div class="col-md-4">
             <div class="card">
-                <div class="card-header bg-white">Visit History</div>
+                <div class="card-header">Visit History</div>
                 <div class="card-body">
                     <p class="text-muted mb-0 small">No visits recorded yet &mdash; populates once the Visit Management module is built.</p>
                 </div>
@@ -86,7 +86,7 @@
 
         <div class="col-md-4">
             <div class="card">
-                <div class="card-header bg-white">Order History</div>
+                <div class="card-header">Order History</div>
                 <div class="card-body">
                     <p class="text-muted mb-0 small">No orders recorded yet &mdash; populates once the Order module is built.</p>
                 </div>
@@ -95,7 +95,7 @@
 
         <div class="col-md-4">
             <div class="card">
-                <div class="card-header bg-white">Collection History</div>
+                <div class="card-header">Collection History</div>
                 <div class="card-body">
                     <p class="text-muted mb-0 small">No collections recorded yet &mdash; populates once the Collection Entry module is built.</p>
                 </div>

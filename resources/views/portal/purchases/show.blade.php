@@ -31,7 +31,7 @@
     </div>
 
     <div class="card">
-        <div class="card-header bg-white">Items Purchased</div>
+        <div class="card-header">Items Purchased</div>
         <div class="table-responsive">
             <table class="table align-middle mb-0">
                 <thead class="table-light">

@@ -49,6 +49,12 @@
                         <dt class="col-sm-4">Sales Executive</dt>
                         <dd class="col-sm-8">{{ $order->user->name }} ({{ $order->user->employee_id }})</dd>
 
+                        <dt class="col-sm-4">Executive Phone</dt>
+                        <dd class="col-sm-8"><x-phone-actions :phone="$order->user->phone" /></dd>
+
+                        <dt class="col-sm-4">Dealer Phone</dt>
+                        <dd class="col-sm-8"><x-phone-actions :phone="$order->dealer->phone" /></dd>
+
                         <dt class="col-sm-4">Order Date</dt>
                         <dd class="col-sm-8">{{ $order->order_date->format('M d, Y') }}</dd>
 
@@ -64,7 +70,7 @@
 
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-white">Line Items</div>
+                <div class="card-header">Line Items</div>
                 <div class="table-responsive">
                     <table class="table mb-0">
                         <thead>

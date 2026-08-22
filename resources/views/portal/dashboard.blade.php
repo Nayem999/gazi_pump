@@ -21,7 +21,7 @@
     <div class="row g-4 mb-4">
         <div class="col-lg-7">
             <div class="card h-100">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">Purchases &mdash; Last 6 Months</h6>
                     <a href="{{ route('portal.purchases.index') }}" class="small">View All</a>
                 </div>
@@ -36,7 +36,7 @@
         </div>
         <div class="col-lg-5">
             <div class="card h-100">
-                <div class="card-header bg-white">
+                <div class="card-header">
                     <h6 class="mb-0">Purchases by Product</h6>
                 </div>
                 <div class="card-body">
@@ -53,7 +53,7 @@
     <div class="row g-4 mb-4">
         <div class="col-md-6">
             <div class="card h-100">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">Recent Inquiries</h6>
                     <a href="{{ route('portal.inquiries.index') }}" class="small">View All</a>
                 </div>
@@ -71,7 +71,7 @@
         </div>
         <div class="col-md-6">
             <div class="card h-100">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">Recent Visit Requests</h6>
                     <a href="{{ route('portal.visit-requests.index') }}" class="small">View All</a>
                 </div>

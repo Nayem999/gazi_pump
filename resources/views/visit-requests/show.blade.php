@@ -11,7 +11,7 @@
     <div class="row g-3">
         <div class="col-lg-8">
             <div class="card">
-                <div class="card-header bg-white">
+                <div class="card-header">
                     <h5 class="mb-0">Visit Request #{{ $visitRequest->id }}</h5>
                 </div>
                 <div class="card-body">
@@ -34,7 +34,7 @@
         </div>
         <div class="col-lg-4">
             <div class="card">
-                <div class="card-header bg-white">
+                <div class="card-header">
                     <h6 class="mb-0">Status</h6>
                 </div>
                 <div class="card-body">

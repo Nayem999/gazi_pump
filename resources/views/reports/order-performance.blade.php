@@ -38,7 +38,7 @@
     </x-filter-bar>
 
     <div class="card">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h6 class="mb-0">Order Performance</h6>
             <div class="btn-group btn-group-sm">
                 <a href="{{ route('reports.order-performance.export', request()->query()) }}" class="btn btn-outline-secondary"><i class="ti ti-file-spreadsheet me-1"></i>Export</a>
@@ -87,7 +87,7 @@
             </table>
         </div>
         @if ($rows->hasPages())
-            <div class="card-footer bg-white">
+            <div class="card-footer">
                 {{ $rows->links() }}
             </div>
         @endif

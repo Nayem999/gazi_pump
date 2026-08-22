@@ -74,6 +74,7 @@
                     <td>
                         {{ $visitPlan->user?->name }}
                         <div class="text-muted small">{{ $visitPlan->user?->employee_id }}</div>
+                        <div class="small"><x-phone-actions :phone="$visitPlan->user?->phone" /></div>
                     </td>
                     <td>
                         @if ($visitPlan->dealer && ! $visitPlan->dealer->trashed())
@@ -82,6 +83,7 @@
                             {{ $visitPlan->dealer?->name }}
                         @endif
                         <div class="text-muted small">{{ $visitPlan->dealer?->dealer_code }}</div>
+                        <div class="small"><x-phone-actions :phone="$visitPlan->dealer?->phone" /></div>
                     </td>
                     <td>{{ $visitPlan->planned_date->format('M d, Y') }}</td>
                     <td>
@@ -141,7 +143,8 @@
                             :status-color="$visitPlan->trashed() ? 'danger' : ($visitPlan->isMissed() ? 'danger' : $visitPlan->status->badgeColor())"
                         >
                             <x-slot:meta>
-                                <div>Executive: {{ $visitPlan->user?->name }}</div>
+                                <div>Executive: {{ $visitPlan->user?->name }} &middot; <x-phone-actions :phone="$visitPlan->user?->phone" /></div>
+                                <div>Dealer Phone: <x-phone-actions :phone="$visitPlan->dealer?->phone" /></div>
                                 <div>Date: {{ $visitPlan->planned_date->format('M d, Y') }}</div>
                                 @if ($visitPlan->notes)
                                     <div>{{ \Illuminate\Support\Str::limit($visitPlan->notes, 60) }}</div>

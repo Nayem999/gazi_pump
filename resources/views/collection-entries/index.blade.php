@@ -75,6 +75,7 @@
                     <td>
                         {{ $collectionEntry->user?->name }}
                         <div class="text-muted small">{{ $collectionEntry->user?->employee_id }}</div>
+                        <div class="small"><x-phone-actions :phone="$collectionEntry->user?->phone" /></div>
                     </td>
                     <td>
                         @if ($collectionEntry->dealer && ! $collectionEntry->dealer->trashed())
@@ -83,6 +84,7 @@
                             {{ $collectionEntry->dealer?->name }}
                         @endif
                         <div class="text-muted small">{{ $collectionEntry->dealer?->dealer_code }}</div>
+                        <div class="small"><x-phone-actions :phone="$collectionEntry->dealer?->phone" /></div>
                     </td>
                     <td>{{ $collectionEntry->collection_date->format('M d, Y') }}</td>
                     <td>{{ number_format((float) $collectionEntry->amount, 2) }}</td>
@@ -145,7 +147,8 @@
                             status-color="danger"
                         >
                             <x-slot:meta>
-                                <div>Executive: {{ $collectionEntry->user?->name }}</div>
+                                <div>Executive: {{ $collectionEntry->user?->name }} &middot; <x-phone-actions :phone="$collectionEntry->user?->phone" /></div>
+                                <div>Dealer Phone: <x-phone-actions :phone="$collectionEntry->dealer?->phone" /></div>
                                 <div>Date: {{ $collectionEntry->collection_date->format('M d, Y') }}</div>
                                 <div>Amount: {{ number_format((float) $collectionEntry->amount, 2) }}</div>
                             </x-slot:meta>

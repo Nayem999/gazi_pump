@@ -37,6 +37,9 @@
                 <div class="card-body">
                     <h6 class="mb-3">Attendance Details</h6>
                     <dl class="row mb-0">
+                        <dt class="col-sm-4">Employee Phone</dt>
+                        <dd class="col-sm-8"><x-phone-actions :phone="$attendance->user->phone" /></dd>
+
                         <dt class="col-sm-4">Date</dt>
                         <dd class="col-sm-8">{{ $attendance->date->format('M d, Y') }}</dd>
 
@@ -58,7 +61,7 @@
 
         <div class="col-md-6">
             <div class="card">
-                <div class="card-header bg-white">Check-In Photo</div>
+                <div class="card-header">Check-In Photo</div>
                 <div class="card-body text-center">
                     @if ($attendance->check_in_photo)
                         <img src="{{ $attendance->checkInPhotoUrl() }}" class="img-fluid rounded" style="max-height:280px">
@@ -71,7 +74,7 @@
 
         <div class="col-md-6">
             <div class="card">
-                <div class="card-header bg-white">Check-Out Photo</div>
+                <div class="card-header">Check-Out Photo</div>
                 <div class="card-body text-center">
                     @if ($attendance->check_out_photo)
                         <img src="{{ $attendance->checkOutPhotoUrl() }}" class="img-fluid rounded" style="max-height:280px">
@@ -84,7 +87,7 @@
 
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-white">GPS Locations</div>
+                <div class="card-header">GPS Locations</div>
                 <div class="card-body">
                     @if ($hasCheckInGps || $hasCheckOutGps)
                         <div id="attendanceMap" style="height:320px;border-radius:.5rem"></div>

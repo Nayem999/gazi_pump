@@ -12,7 +12,7 @@
         @method('PUT')
 
         <div class="card mb-3">
-            <div class="card-header bg-white"><h5 class="mb-0">Company Information</h5></div>
+            <div class="card-header"><h5 class="mb-0">Company Information</h5></div>
             <div class="card-body row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Company Name <span class="text-danger">*</span></label>
@@ -49,7 +49,7 @@
         </div>
 
         <div class="card mb-3">
-            <div class="card-header bg-white"><h5 class="mb-0">Attendance</h5></div>
+            <div class="card-header"><h5 class="mb-0">Attendance</h5></div>
             <div class="card-body row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Office Start Time <span class="text-danger">*</span></label>
@@ -68,7 +68,7 @@
         </div>
 
         <div class="card mb-3">
-            <div class="card-header bg-white"><h5 class="mb-0">Visits</h5></div>
+            <div class="card-header"><h5 class="mb-0">Visits</h5></div>
             <div class="card-body row g-3">
                 <div class="col-md-6">
                     <label class="form-label">GPS Verification Radius (meters) <span class="text-danger">*</span></label>
@@ -81,7 +81,7 @@
         </div>
 
         <div class="card mb-3">
-            <div class="card-header bg-white"><h5 class="mb-0">Orders &amp; Collections</h5></div>
+            <div class="card-header"><h5 class="mb-0">Orders &amp; Collections</h5></div>
             <div class="card-body row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Max Discount (%) <span class="text-danger">*</span></label>
@@ -99,7 +99,7 @@
         </div>
 
         <div class="card mb-3">
-            <div class="card-header bg-white"><h5 class="mb-0">Target Grading &amp; Notifications</h5></div>
+            <div class="card-header"><h5 class="mb-0">Target Grading &amp; Notifications</h5></div>
             <div class="card-body row g-3">
                 <div class="col-md-3">
                     <label class="form-label">Grade A Min (%) <span class="text-danger">*</span></label>
@@ -156,7 +156,7 @@
         </div>
 
         <div class="card mb-3">
-            <div class="card-header bg-white"><h5 class="mb-0">Live GPS Dashboard</h5></div>
+            <div class="card-header"><h5 class="mb-0">Live GPS Dashboard</h5></div>
             <div class="card-body row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Stale After (minutes) <span class="text-danger">*</span></label>

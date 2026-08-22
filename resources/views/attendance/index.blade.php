@@ -66,6 +66,7 @@
                     <td>
                         {{ $attendance->user?->name }}
                         <div class="text-muted small">{{ $attendance->user?->employee_id }}</div>
+                        <div class="small"><x-phone-actions :phone="$attendance->user?->phone" /></div>
                     </td>
                     <td>{{ $attendance->date->format('M d, Y') }}</td>
                     <td>{{ $attendance->check_in_at?->format('H:i') ?? '—' }}</td>
@@ -125,6 +126,7 @@
                             :status-color="$attendance->trashed() ? 'danger' : $attendance->status->badgeColor()"
                         >
                             <x-slot:meta>
+                                <div>Phone: <x-phone-actions :phone="$attendance->user?->phone" /></div>
                                 <div>Date: {{ $attendance->date->format('M d, Y') }}</div>
                                 <div>In: {{ $attendance->check_in_at?->format('H:i') ?? '—' }} &middot; Out: {{ $attendance->check_out_at?->format('H:i') ?? '—' }}</div>
                                 @if ($attendance->late_minutes)

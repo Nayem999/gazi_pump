@@ -49,7 +49,7 @@
 
     @if ($oldValues || $newValues)
         <div class="card">
-            <div class="card-header bg-white"><h5 class="mb-0">Changed Values</h5></div>
+            <div class="card-header"><h5 class="mb-0">Changed Values</h5></div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-bordered align-middle">

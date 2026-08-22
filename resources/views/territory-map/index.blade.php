@@ -35,7 +35,7 @@
     </x-filter-bar>
 
     <div class="card">
-        <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2 bg-white">
+        <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
             <h5 class="mb-0">Territory Map</h5>
             <div class="d-flex flex-wrap gap-3 small text-muted">
                 <span>{{ number_format($mapData->count()) }} territories</span>

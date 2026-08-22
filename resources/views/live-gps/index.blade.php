@@ -29,7 +29,7 @@
     </x-filter-bar>
 
     <div class="card mb-3">
-        <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2 bg-white">
+        <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
             <h5 class="mb-0">Live GPS Dashboard</h5>
             <div class="d-flex flex-wrap align-items-center gap-3 small">
                 <span class="d-inline-flex align-items-center gap-1">
@@ -49,7 +49,7 @@
     </div>
 
     <div class="card">
-        <div class="card-header bg-white"><h5 class="mb-0">Executives</h5></div>
+        <div class="card-header"><h5 class="mb-0">Executives</h5></div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">

@@ -65,6 +65,7 @@
                     <td>
                         {{ $visit->user?->name }}
                         <div class="text-muted small">{{ $visit->user?->employee_id }}</div>
+                        <div class="small"><x-phone-actions :phone="$visit->user?->phone" /></div>
                     </td>
                     <td>
                         @if ($visit->dealer && ! $visit->dealer->trashed())
@@ -73,6 +74,7 @@
                             {{ $visit->dealer?->name }}
                         @endif
                         <div class="text-muted small">{{ $visit->dealer?->dealer_code }}</div>
+                        <div class="small"><x-phone-actions :phone="$visit->dealer?->phone" /></div>
                     </td>
                     <td>{{ $visit->check_in_at?->format('M d, Y H:i') }}</td>
                     <td>{{ $visit->check_out_at?->format('M d, Y H:i') ?? '—' }}</td>
@@ -134,6 +136,8 @@
                             :status-color="$visit->trashed() ? 'danger' : match ($visit->is_gps_verified) { true => 'success', false => 'danger', default => 'secondary' }"
                         >
                             <x-slot:meta>
+                                <div>Executive: {{ $visit->user?->name }} &middot; <x-phone-actions :phone="$visit->user?->phone" /></div>
+                                <div>Dealer Phone: <x-phone-actions :phone="$visit->dealer?->phone" /></div>
                                 <div>In: {{ $visit->check_in_at?->format('M d, Y H:i') }}</div>
                                 <div>Out: {{ $visit->check_out_at?->format('M d, Y H:i') ?? '—' }}</div>
                             </x-slot:meta>

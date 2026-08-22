@@ -66,6 +66,7 @@
                     <td>
                         {{ $order->user?->name }}
                         <div class="text-muted small">{{ $order->user?->employee_id }}</div>
+                        <div class="small"><x-phone-actions :phone="$order->user?->phone" /></div>
                     </td>
                     <td>
                         @if ($order->dealer && ! $order->dealer->trashed())
@@ -74,6 +75,7 @@
                             {{ $order->dealer?->name }}
                         @endif
                         <div class="text-muted small">{{ $order->dealer?->dealer_code }}</div>
+                        <div class="small"><x-phone-actions :phone="$order->dealer?->phone" /></div>
                     </td>
                     <td>
                         <span class="badge text-bg-secondary">{{ $order->items->count() }} item(s)</span>
@@ -134,7 +136,8 @@
                             status-color="danger"
                         >
                             <x-slot:meta>
-                                <div>Executive: {{ $order->user?->name }}</div>
+                                <div>Executive: {{ $order->user?->name }} &middot; <x-phone-actions :phone="$order->user?->phone" /></div>
+                                <div>Dealer Phone: <x-phone-actions :phone="$order->dealer?->phone" /></div>
                                 <div>Date: {{ $order->order_date->format('M d, Y') }}</div>
                                 <div>{{ \Illuminate\Support\Str::limit($order->items->pluck('product.name')->filter()->implode(', '), 60) }}</div>
                                 <div>Total: {{ number_format((float) $order->total_amount, 2) }}</div>

@@ -49,6 +49,9 @@
                         <dt class="col-sm-4">Sales Executive</dt>
                         <dd class="col-sm-8">{{ $collectionEntry->user->name }} ({{ $collectionEntry->user->employee_id }})</dd>
 
+                        <dt class="col-sm-4">Executive Phone</dt>
+                        <dd class="col-sm-8"><x-phone-actions :phone="$collectionEntry->user->phone" /></dd>
+
                         <dt class="col-sm-4">Dealer Phone</dt>
                         <dd class="col-sm-8"><x-phone-actions :phone="$collectionEntry->dealer?->phone" /></dd>
 

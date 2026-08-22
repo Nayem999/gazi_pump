@@ -43,7 +43,7 @@
     </div>
 
     <div class="card mb-4 hover-lift">
-        <div class="card-header bg-white">
+        <div class="card-header">
             Travel Route
             @if ($selectedUser)
                 &mdash; {{ $selectedUser->name }} on {{ \Illuminate\Support\Carbon::parse($selectedDate)->format('M d, Y') }}
