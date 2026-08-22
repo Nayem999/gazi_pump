@@ -11,6 +11,7 @@ use App\Http\Requests\Admin\StoreDealerRequest;
 use App\Http\Requests\Admin\UpdateDealerRequest;
 use App\Imports\DealersImport;
 use App\Models\Dealer;
+use App\Models\Setting;
 use App\Models\Territory;
 use App\Services\DealerService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -57,6 +58,16 @@ class DealerController extends Controller
         $this->authorize('view', $dealer);
 
         return view('dealers.show', ['dealer' => $dealer->load('territory')]);
+    }
+
+    public function downloadPdf(Dealer $dealer): mixed
+    {
+        $this->authorize('view', $dealer);
+
+        $dealer->load('territory');
+
+        return Pdf::loadView('dealers.detail-pdf', ['dealer' => $dealer, 'setting' => Setting::current()])
+            ->stream('dealer-'.$dealer->id.'-'.now()->format('Y-m-d-His').'.pdf');
     }
 
     public function edit(Dealer $dealer): View

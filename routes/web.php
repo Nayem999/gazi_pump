@@ -124,6 +124,7 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
         Route::delete('/{id}/force', [UserController::class, 'forceDestroy'])->whereNumber('id')->name('force-destroy');
         Route::patch('/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('toggle-status');
         Route::get('/{user}', [UserController::class, 'show'])->name('show');
+        Route::get('/{user}/pdf', [UserController::class, 'downloadPdf'])->name('download-pdf');
         Route::get('/{user}/edit', [UserController::class, 'edit'])->name('edit');
         Route::put('/{user}', [UserController::class, 'update'])->name('update');
         Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy');
@@ -136,6 +137,7 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
     $registerManagementRoutes('sales-teams', SalesTeamController::class);
     $registerManagementRoutes('territories', TerritoryController::class);
     $registerManagementRoutes('dealers', DealerController::class, withShow: true);
+    Route::get('/dealers/{dealer}/pdf', [DealerController::class, 'downloadPdf'])->name('dealers.download-pdf');
     $registerManagementRoutes('product-categories', ProductCategoryController::class);
     $registerManagementRoutes('products', ProductController::class);
 
@@ -249,6 +251,7 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
         Route::post('/{id}/restore', [OrderController::class, 'restore'])->whereNumber('id')->name('restore');
         Route::delete('/{id}/force', [OrderController::class, 'forceDestroy'])->whereNumber('id')->name('force-destroy');
         Route::get('/{order}', [OrderController::class, 'show'])->name('show');
+        Route::get('/{order}/pdf', [OrderController::class, 'downloadPdf'])->name('download-pdf');
         Route::get('/{order}/edit', [OrderController::class, 'edit'])->name('edit');
         Route::put('/{order}', [OrderController::class, 'update'])->name('update');
         Route::delete('/{order}', [OrderController::class, 'destroy'])->name('destroy');
@@ -271,6 +274,8 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
         Route::post('/bulk-restore', [CollectionEntryController::class, 'bulkRestore'])->name('bulk-restore');
         Route::post('/{id}/restore', [CollectionEntryController::class, 'restore'])->whereNumber('id')->name('restore');
         Route::delete('/{id}/force', [CollectionEntryController::class, 'forceDestroy'])->whereNumber('id')->name('force-destroy');
+        Route::get('/{collection_entry}', [CollectionEntryController::class, 'show'])->name('show');
+        Route::get('/{collection_entry}/pdf', [CollectionEntryController::class, 'downloadPdf'])->name('download-pdf');
         Route::get('/{collection_entry}/edit', [CollectionEntryController::class, 'edit'])->name('edit');
         Route::put('/{collection_entry}', [CollectionEntryController::class, 'update'])->name('update');
         Route::delete('/{collection_entry}', [CollectionEntryController::class, 'destroy'])->name('destroy');

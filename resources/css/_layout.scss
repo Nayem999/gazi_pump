@@ -146,6 +146,17 @@ body.admin-body {
     }
 }
 
+// Printing a detail page (via a page's own Print button, which just calls
+// window.print()) should show only the record itself — sidebar/topbar are
+// hidden with Bootstrap's d-print-none utility in the layout, and the
+// content column's sidebar offset is reset here so it isn't left with a
+// blank gutter down the left side of the printed page.
+@media print {
+    .app-content {
+        margin-left: 0;
+    }
+}
+
 // Elevated surfaces: every module reuses either a generic Bootstrap `.card`
 // or the `.stat-card` component below, so restyling these two cascades the
 // new look everywhere with no per-module Blade changes.

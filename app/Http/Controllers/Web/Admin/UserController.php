@@ -10,6 +10,7 @@ use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Imports\UsersImport;
 use App\Models\SalesTeam;
+use App\Models\Setting;
 use App\Models\Territory;
 use App\Models\User;
 use App\Services\UserService;
@@ -64,6 +65,16 @@ class UserController extends Controller
         $user->load(['manager', 'roles', 'subordinates', 'salesTeam', 'territory']);
 
         return view('users.show', ['user' => $user]);
+    }
+
+    public function downloadPdf(User $user): mixed
+    {
+        $this->authorize('view', $user);
+
+        $user->load(['manager', 'roles', 'salesTeam', 'territory']);
+
+        return Pdf::loadView('users.detail-pdf', ['user' => $user, 'setting' => Setting::current()])
+            ->stream('user-'.$user->id.'-'.now()->format('Y-m-d-His').'.pdf');
     }
 
     public function edit(User $user): View

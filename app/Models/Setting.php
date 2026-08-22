@@ -105,4 +105,20 @@ class Setting extends BaseModel
     {
         return $this->company_logo ? asset('storage/'.$this->company_logo) : null;
     }
+
+    /**
+     * A local filesystem path to the logo, for PDF generation — DomPDF's
+     * remote-file fetching is disabled (config/dompdf.php), so a public
+     * asset() URL can't be embedded, only a path within its chroot.
+     */
+    public function logoPath(): ?string
+    {
+        if (! $this->company_logo) {
+            return null;
+        }
+
+        $path = storage_path('app/public/'.$this->company_logo);
+
+        return is_file($path) ? $path : null;
+    }
 }

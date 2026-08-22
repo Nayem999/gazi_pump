@@ -109,6 +109,9 @@
                                     </form>
                                 @endcan
                             @else
+                                @can('view', $collectionEntry)
+                                    <a href="{{ route('collection-entries.show', $collectionEntry) }}" class="btn btn-outline-secondary" title="View"><i class="ti ti-eye"></i></a>
+                                @endcan
                                 @can('update', $collectionEntry)
                                     <a href="{{ route('collection-entries.edit', $collectionEntry) }}" class="btn btn-outline-primary" title="Edit"><i class="ti ti-pencil"></i></a>
                                 @endcan
@@ -167,6 +170,9 @@
                                         </form>
                                     @endcan
                                 @else
+                                    @can('view', $collectionEntry)
+                                        <a href="{{ route('collection-entries.show', $collectionEntry) }}" class="btn btn-outline-secondary" title="View"><i class="ti ti-eye"></i></a>
+                                    @endcan
                                     @can('update', $collectionEntry)
                                         <a href="{{ route('collection-entries.edit', $collectionEntry) }}" class="btn btn-outline-primary" title="Edit"><i class="ti ti-pencil"></i></a>
                                     @endcan

@@ -18,7 +18,7 @@
     @stack('styles')
 </head>
 <body class="admin-body">
-    <div class="app-sidebar" id="appSidebar">
+    <div class="app-sidebar d-print-none" id="appSidebar">
         <a href="{{ route('dashboard') }}" class="sidebar-brand text-decoration-none">
             @if ($companyLogoUrl ?? null)
                 <img src="{{ $companyLogoUrl }}" alt="{{ config('app.name') }}" style="height:1.5rem;width:auto">
@@ -33,7 +33,7 @@
     </div>
 
     <div class="app-content">
-        <header class="app-topbar d-flex align-items-center justify-content-between px-3">
+        <header class="app-topbar d-print-none d-flex align-items-center justify-content-between px-3">
             <div class="d-flex align-items-center gap-2">
                 <button type="button" class="btn btn-sm btn-light border d-lg-none" data-sidebar-toggle>
                     <i class="ti ti-menu-2 fs-5"></i>
@@ -74,7 +74,7 @@
 
         <main class="flex-grow-1 p-3 p-lg-4">
             @if (session('success'))
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <div class="alert alert-success alert-dismissible fade show d-print-none" role="alert">
                     {{ session('success') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>

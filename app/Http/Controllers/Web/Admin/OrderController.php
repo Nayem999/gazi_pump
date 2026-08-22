@@ -12,6 +12,7 @@ use App\Imports\OrdersImport;
 use App\Models\Dealer;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\OrderService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -63,6 +64,16 @@ class OrderController extends Controller
         return view('orders.show', [
             'order' => $order->load(['user', 'dealer', 'items.product']),
         ]);
+    }
+
+    public function downloadPdf(Order $order): mixed
+    {
+        $this->authorize('view', $order);
+
+        $order->load(['user', 'dealer', 'items.product']);
+
+        return Pdf::loadView('orders.detail-pdf', ['order' => $order, 'setting' => Setting::current()])
+            ->stream('order-'.$order->id.'-'.now()->format('Y-m-d-His').'.pdf');
     }
 
     public function edit(Order $order): View

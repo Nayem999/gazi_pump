@@ -12,6 +12,7 @@ use App\Http\Requests\Admin\UpdateCollectionEntryRequest;
 use App\Imports\CollectionEntriesImport;
 use App\Models\CollectionEntry;
 use App\Models\Dealer;
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\CollectionEntryService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -37,6 +38,23 @@ class CollectionEntryController extends Controller
             'paymentMethods' => PaymentMethod::cases(),
             'filters' => $filters,
         ]);
+    }
+
+    public function show(CollectionEntry $collectionEntry): View
+    {
+        $this->authorize('view', $collectionEntry);
+
+        return view('collection-entries.show', ['collectionEntry' => $collectionEntry->load(['user', 'dealer'])]);
+    }
+
+    public function downloadPdf(CollectionEntry $collectionEntry): mixed
+    {
+        $this->authorize('view', $collectionEntry);
+
+        $collectionEntry->load(['user', 'dealer']);
+
+        return Pdf::loadView('collection-entries.detail-pdf', ['collectionEntry' => $collectionEntry, 'setting' => Setting::current()])
+            ->stream('collection-'.$collectionEntry->id.'-'.now()->format('Y-m-d-His').'.pdf');
     }
 
     public function create(): View

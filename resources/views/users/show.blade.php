@@ -44,6 +44,14 @@
                             <i class="ti ti-pencil me-1"></i>Edit
                         </a>
                     @endcan
+                    <div class="d-flex justify-content-center gap-2 mt-2 d-print-none">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                            <i class="ti ti-printer me-1"></i>Print
+                        </button>
+                        <a href="{{ route('users.download-pdf', $user) }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                            <i class="ti ti-file-download me-1"></i>Download PDF
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
