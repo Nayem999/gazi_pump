@@ -42,6 +42,7 @@
             :import-url="auth()->user()->can('import', \App\Models\Order::class) ? '#importModal' : null"
             :print-url="auth()->user()->can('print', \App\Models\Order::class) ? route('orders.print', request()->query()) : null"
             :paginator="$orders"
+            :total="$total"
         >
             <x-slot:thead>
                 <tr>

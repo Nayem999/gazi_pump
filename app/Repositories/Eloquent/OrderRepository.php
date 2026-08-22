@@ -6,6 +6,7 @@ namespace App\Repositories\Eloquent;
 
 use App\Models\Order;
 use App\Repositories\Contracts\OrderRepositoryInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class OrderRepository extends BaseRepository implements OrderRepositoryInterface
@@ -17,8 +18,21 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
 
     public function paginateWithFilters(array $filters, int $perPage = 15): LengthAwarePaginator
     {
-        return $this->query()
+        return $this->filtered($filters)
             ->with(['user', 'dealer', 'items.product'])
+            ->latest('order_date')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    public function sumWithFilters(array $filters): float
+    {
+        return (float) $this->filtered($filters)->sum('total_amount');
+    }
+
+    private function filtered(array $filters): Builder
+    {
+        return $this->query()
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->whereHas('dealer', function ($q) use ($search) {
@@ -41,9 +55,6 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
                     'with' => $query->withTrashed(),
                     default => null,
                 };
-            })
-            ->latest('order_date')
-            ->paginate($perPage)
-            ->withQueryString();
+            });
     }
 }

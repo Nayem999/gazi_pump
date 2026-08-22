@@ -28,11 +28,14 @@ class CollectionEntryController extends Controller
     {
         $this->authorize('viewAny', CollectionEntry::class);
 
+        $filters = $request->only(['search', 'user_id', 'dealer_id', 'payment_method', 'date_from', 'date_to', 'trashed']);
+
         return view('collection-entries.index', [
-            'collectionEntries' => $this->collectionEntries->paginate($request->only(['search', 'user_id', 'dealer_id', 'payment_method', 'date_from', 'date_to', 'trashed']), 15),
+            'collectionEntries' => $this->collectionEntries->paginate($filters, 15),
+            'total' => $this->collectionEntries->total($filters),
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
             'paymentMethods' => PaymentMethod::cases(),
-            'filters' => $request->only(['search', 'user_id', 'dealer_id', 'payment_method', 'date_from', 'date_to', 'trashed']),
+            'filters' => $filters,
         ]);
     }
 

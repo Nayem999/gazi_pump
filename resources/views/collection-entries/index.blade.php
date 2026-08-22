@@ -51,6 +51,7 @@
             :import-url="auth()->user()->can('import', \App\Models\CollectionEntry::class) ? '#importModal' : null"
             :print-url="auth()->user()->can('print', \App\Models\CollectionEntry::class) ? route('collection-entries.print', request()->query()) : null"
             :paginator="$collectionEntries"
+            :total="$total"
         >
             <x-slot:thead>
                 <tr>

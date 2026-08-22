@@ -28,10 +28,13 @@ class OrderController extends Controller
     {
         $this->authorize('viewAny', Order::class);
 
+        $filters = $request->only(['search', 'user_id', 'dealer_id', 'product_id', 'date_from', 'date_to', 'trashed']);
+
         return view('orders.index', [
-            'orders' => $this->orders->paginate($request->only(['search', 'user_id', 'dealer_id', 'product_id', 'date_from', 'date_to', 'trashed']), 15),
+            'orders' => $this->orders->paginate($filters, 15),
+            'total' => $this->orders->total($filters),
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
-            'filters' => $request->only(['search', 'user_id', 'dealer_id', 'product_id', 'date_from', 'date_to', 'trashed']),
+            'filters' => $filters,
         ]);
     }
 

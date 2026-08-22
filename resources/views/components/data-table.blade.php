@@ -6,11 +6,18 @@
     'importUrl' => null,
     'printUrl' => null,
     'paginator' => null, // pass a LengthAwarePaginator to switch to server-side mode
+    'total' => null, // pass a currency amount to show a "Total: ..." badge next to the title
+    'totalLabel' => 'Total',
 ])
 
 <div class="card">
     <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2 bg-white">
-        <h5 class="mb-0">{{ $title }}</h5>
+        <h5 class="mb-0">
+            {{ $title }}
+            @if (! is_null($total))
+                <span class="badge text-bg-primary ms-2 align-middle">{{ $totalLabel }}: ৳ {{ number_format((float) $total, 2) }}</span>
+            @endif
+        </h5>
         <div class="d-flex flex-wrap gap-2">
             @isset($cards)
                 <div class="btn-group btn-group-sm" role="group" data-view-toggle aria-label="Display mode">

@@ -30,6 +30,14 @@ class CollectionEntryService extends BaseCrudService
     }
 
     /**
+     * @param  array{search?: string, user_id?: string, dealer_id?: string, payment_method?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
+     */
+    public function total(array $filters): float
+    {
+        return $this->collectionEntries->sumWithFilters($filters);
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      */
     public function create(array $data): Model

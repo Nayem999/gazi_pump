@@ -6,6 +6,7 @@ namespace App\Repositories\Eloquent;
 
 use App\Models\CollectionEntry;
 use App\Repositories\Contracts\CollectionEntryRepositoryInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class CollectionEntryRepository extends BaseRepository implements CollectionEntryRepositoryInterface
@@ -17,8 +18,21 @@ class CollectionEntryRepository extends BaseRepository implements CollectionEntr
 
     public function paginateWithFilters(array $filters, int $perPage = 15): LengthAwarePaginator
     {
-        return $this->query()
+        return $this->filtered($filters)
             ->with(['user', 'dealer'])
+            ->latest('collection_date')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    public function sumWithFilters(array $filters): float
+    {
+        return (float) $this->filtered($filters)->sum('amount');
+    }
+
+    private function filtered(array $filters): Builder
+    {
+        return $this->query()
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->whereHas('dealer', function ($inner) use ($search) {
                     $inner->where('name', 'like', "%{$search}%")->orWhere('dealer_code', 'like', "%{$search}%");
@@ -35,9 +49,6 @@ class CollectionEntryRepository extends BaseRepository implements CollectionEntr
                     'with' => $query->withTrashed(),
                     default => null,
                 };
-            })
-            ->latest('collection_date')
-            ->paginate($perPage)
-            ->withQueryString();
+            });
     }
 }
