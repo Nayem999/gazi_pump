@@ -24,12 +24,12 @@
                     <div class="mt-2">
                         <span class="badge text-bg-primary">{{ $order->items->count() }} item(s)</span>
                     </div>
-                    @can('update', $order)
-                        <a href="{{ route('orders.edit', $order) }}" class="btn btn-outline-primary btn-sm mt-3">
-                            <i class="ti ti-pencil me-1"></i>Edit
-                        </a>
-                    @endcan
-                    <div class="d-flex justify-content-center gap-2 mt-2 d-print-none">
+                    <div class="d-flex flex-wrap justify-content-center gap-2 mt-2 d-print-none">
+                        @can('update', $order)
+                            <a href="{{ route('orders.edit', $order) }}" class="btn btn-outline-primary btn-sm">
+                                <i class="ti ti-pencil me-1"></i>Edit
+                            </a>
+                        @endcan
                         <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()">
                             <i class="ti ti-printer me-1"></i>Print
                         </button>

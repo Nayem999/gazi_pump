@@ -27,24 +27,24 @@
                             <span class="badge text-bg-primary">{{ $role->name }}</span>
                         @endforeach
                     </div>
-                    @can('update', $user)
-                        @if ($user->id !== auth()->id())
-                            <form method="POST" action="{{ route('users.toggle-status', $user) }}" class="d-inline"
-                                data-confirm
-                                data-confirm-title="{{ $user->status ? 'Deactivate this user?' : 'Activate this user?' }}"
-                                data-confirm-text="{{ $user->status ? 'They will no longer be able to log in.' : 'They will be able to log in again.' }}">
-                                @csrf
-                                @method('PATCH')
-                                <button type="submit" class="btn btn-outline-{{ $user->status ? 'danger' : 'success' }} btn-sm mt-3">
-                                    <i class="ti ti-{{ $user->status ? 'ban' : 'user-check' }} me-1"></i>{{ $user->status ? 'Deactivate' : 'Activate' }}
-                                </button>
-                            </form>
-                        @endif
-                        <a href="{{ route('users.edit', $user) }}" class="btn btn-outline-primary btn-sm mt-3">
-                            <i class="ti ti-pencil me-1"></i>Edit
-                        </a>
-                    @endcan
-                    <div class="d-flex justify-content-center gap-2 mt-2 d-print-none">
+                    <div class="d-flex flex-wrap justify-content-center gap-2 mt-2 d-print-none">
+                        @can('update', $user)
+                            @if ($user->id !== auth()->id())
+                                <form method="POST" action="{{ route('users.toggle-status', $user) }}" class="d-inline"
+                                    data-confirm
+                                    data-confirm-title="{{ $user->status ? 'Deactivate this user?' : 'Activate this user?' }}"
+                                    data-confirm-text="{{ $user->status ? 'They will no longer be able to log in.' : 'They will be able to log in again.' }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button type="submit" class="btn btn-outline-{{ $user->status ? 'danger' : 'success' }} btn-sm">
+                                        <i class="ti ti-{{ $user->status ? 'ban' : 'user-check' }} me-1"></i>{{ $user->status ? 'Deactivate' : 'Activate' }}
+                                    </button>
+                                </form>
+                            @endif
+                            <a href="{{ route('users.edit', $user) }}" class="btn btn-outline-primary btn-sm">
+                                <i class="ti ti-pencil me-1"></i>Edit
+                            </a>
+                        @endcan
                         <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()">
                             <i class="ti ti-printer me-1"></i>Print
                         </button>
