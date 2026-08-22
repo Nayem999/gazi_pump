@@ -17,25 +17,25 @@ return [
     ],
 
     'visits' => [
-        // A check-in more than this far from the customer's registered GPS
+        // A check-in more than this far from the dealer's registered GPS
         // pin is flagged as unverified rather than rejected outright — field
         // GPS accuracy is imperfect and shops move within a building/lot.
         'gps_verification_radius_meters' => (int) env('SFA_VISIT_GPS_RADIUS_METERS', 300),
     ],
 
-    'sales' => [
+    'orders' => [
         // A discount larger than this percentage of the line subtotal needs
         // manager approval outside this system for now — the entry itself is
         // rejected rather than silently capped, so the rep re-enters the
         // correct figure or escalates.
-        'max_discount_percent' => (float) env('SFA_SALES_MAX_DISCOUNT_PERCENT', 20),
+        'max_discount_percent' => (float) env('SFA_ORDERS_MAX_DISCOUNT_PERCENT', 20),
     ],
 
     'collections' => [
-        // A collection is allowed to exceed the customer's outstanding
+        // A collection is allowed to exceed the dealer's outstanding
         // balance by up to this percentage — field collections sometimes
         // round up or advance-pay slightly — but a collection wildly beyond
-        // what's owed almost always means the wrong customer or amount was
+        // what's owed almost always means the wrong dealer or amount was
         // entered, so it's rejected rather than silently accepted.
         'overpayment_tolerance_percent' => (float) env('SFA_COLLECTION_OVERPAYMENT_PERCENT', 10),
     ],

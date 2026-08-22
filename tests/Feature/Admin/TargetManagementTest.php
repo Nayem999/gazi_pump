@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
-use App\Models\SalesEntry;
+use App\Models\Order;
 use App\Models\Target;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -67,7 +67,7 @@ class TargetManagementTest extends TestCase
             'user_id' => $executive->id,
             'month' => 8,
             'year' => 2026,
-            'sales_value_target' => 100000,
+            'order_value_target' => 100000,
             'collection_target' => 50000,
             'quantity_target' => 100,
         ]);
@@ -89,7 +89,7 @@ class TargetManagementTest extends TestCase
             'user_id' => $executive->id,
             'month' => 8,
             'year' => 2026,
-            'sales_value_target' => 100000,
+            'order_value_target' => 100000,
             'collection_target' => 50000,
             'quantity_target' => 100,
         ]);
@@ -110,19 +110,19 @@ class TargetManagementTest extends TestCase
     {
         $manager = $this->generalManager();
         $executive = $this->executive();
-        $target = Target::factory()->create(['user_id' => $executive->id, 'sales_value_target' => 1000]);
-        SalesEntry::factory()->create(['user_id' => $executive->id, 'sale_date' => now()->toDateString(), 'total_amount' => 1000]);
+        $target = Target::factory()->create(['user_id' => $executive->id, 'order_value_target' => 1000]);
+        Order::factory()->create(['user_id' => $executive->id, 'order_date' => now()->toDateString(), 'total_amount' => 1000]);
 
         $this->actingAs($manager)->put(route('targets.update', $target), [
             'user_id' => $executive->id,
             'month' => $target->month,
             'year' => $target->year,
-            'sales_value_target' => 2000,
+            'order_value_target' => 2000,
             'collection_target' => (string) $target->collection_target,
             'quantity_target' => $target->quantity_target,
         ])->assertRedirect(route('targets.index'));
 
-        $this->assertDatabaseHas('targets', ['id' => $target->id, 'sales_value_target' => 2000]);
+        $this->assertDatabaseHas('targets', ['id' => $target->id, 'order_value_target' => 2000]);
         $target->refresh();
         $this->assertNotNull($target->achievement);
     }
@@ -131,12 +131,12 @@ class TargetManagementTest extends TestCase
     {
         $manager = $this->generalManager();
         $executive = $this->executive();
-        $target = Target::factory()->create(['user_id' => $executive->id, 'sales_value_target' => 1000]);
+        $target = Target::factory()->create(['user_id' => $executive->id, 'order_value_target' => 1000]);
 
         $this->actingAs($manager)->post(route('targets.recalculate', $target))
             ->assertRedirect();
 
-        $this->assertDatabaseHas('achievements', ['target_id' => $target->id, 'sales_achieved' => 0]);
+        $this->assertDatabaseHas('achievements', ['target_id' => $target->id, 'order_achieved' => 0]);
     }
 
     public function test_general_manager_cannot_delete_a_target(): void
@@ -158,7 +158,7 @@ class TargetManagementTest extends TestCase
             'user_id' => $executive->id,
             'month' => 9,
             'year' => 2026,
-            'sales_value_target' => 50000,
+            'order_value_target' => 50000,
             'collection_target' => 20000,
             'quantity_target' => 50,
         ])->assertRedirect(route('targets.index'));

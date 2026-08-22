@@ -36,15 +36,15 @@
             </div>
         @endcan
 
-        @can('report.sales')
+        @can('report.order-performance')
             <div class="col-md-6 col-lg-4">
-                <a href="{{ route('reports.sales-performance') }}" class="card h-100 hover-lift text-decoration-none">
+                <a href="{{ route('reports.order-performance') }}" class="card h-100 hover-lift text-decoration-none">
                     <div class="card-body">
                         <div class="stat-card-icon bg-primary-subtle text-primary mb-3" style="width:48px;height:48px;font-size:1.25rem">
                             <i class="ti ti-receipt"></i>
                         </div>
-                        <h6 class="mb-1 text-body">Sales Performance</h6>
-                        <p class="text-muted small mb-0">Sales count, quantity, and total value per executive.</p>
+                        <h6 class="mb-1 text-body">Order Performance</h6>
+                        <p class="text-muted small mb-0">Order count, quantity, and total value per executive.</p>
                     </div>
                 </a>
             </div>
@@ -72,7 +72,7 @@
                             <i class="ti ti-map-pin-2"></i>
                         </div>
                         <h6 class="mb-1 text-body">Territory Performance</h6>
-                        <p class="text-muted small mb-0">Sales, collections, and visit activity grouped by territory.</p>
+                        <p class="text-muted small mb-0">Orders, collections, and visit activity grouped by territory.</p>
                     </div>
                 </a>
             </div>
@@ -86,7 +86,7 @@
                             <i class="ti ti-target-arrow"></i>
                         </div>
                         <h6 class="mb-1 text-body">Target vs Achievement</h6>
-                        <p class="text-muted small mb-0">Monthly sales/collection targets against actual achievement and grade.</p>
+                        <p class="text-muted small mb-0">Monthly order/collection targets against actual achievement and grade.</p>
                     </div>
                 </a>
             </div>
@@ -100,21 +100,21 @@
                             <i class="ti ti-user-star"></i>
                         </div>
                         <h6 class="mb-1 text-body">Executive Performance</h6>
-                        <p class="text-muted small mb-0">A combined monthly scorecard: attendance, visits, sales, collections, achievement.</p>
+                        <p class="text-muted small mb-0">A combined monthly scorecard: attendance, visits, orders, collections, achievement.</p>
                     </div>
                 </a>
             </div>
         @endcan
 
-        @can('report.customer-coverage')
+        @can('report.dealer-coverage')
             <div class="col-md-6 col-lg-4">
-                <a href="{{ route('reports.customer-coverage') }}" class="card h-100 hover-lift text-decoration-none">
+                <a href="{{ route('reports.dealer-coverage') }}" class="card h-100 hover-lift text-decoration-none">
                     <div class="card-body">
                         <div class="stat-card-icon bg-info-subtle text-info mb-3" style="width:48px;height:48px;font-size:1.25rem">
                             <i class="ti ti-building-store"></i>
                         </div>
-                        <h6 class="mb-1 text-body">Customer Coverage</h6>
-                        <p class="text-muted small mb-0">Visited vs not-visited customers per territory for the period.</p>
+                        <h6 class="mb-1 text-body">Dealer Coverage</h6>
+                        <p class="text-muted small mb-0">Visited vs not-visited dealers per territory for the period.</p>
                     </div>
                 </a>
             </div>
@@ -135,7 +135,7 @@
         @endcan
     </div>
 
-    @canany(['report.attendance', 'report.visits', 'report.sales', 'report.collections', 'report.territories', 'report.target-achievement', 'report.executive-performance', 'report.customer-coverage', 'report.gps'])
+    @canany(['report.attendance', 'report.visits', 'report.order-performance', 'report.collections', 'report.territories', 'report.target-achievement', 'report.executive-performance', 'report.dealer-coverage', 'report.gps'])
     @else
         <div class="text-center text-muted py-5">
             <i class="ti ti-lock display-4 d-block mb-2"></i>

@@ -6,7 +6,7 @@ namespace App\Imports;
 
 use App\Enums\PaymentMethod;
 use App\Models\CollectionEntry;
-use App\Models\Customer;
+use App\Models\Dealer;
 use App\Models\User;
 use App\Services\CollectionEntryService;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -19,7 +19,7 @@ use Maatwebsite\Excel\Concerns\WithValidation;
 
 /**
  * Bulk backfill of collections recorded on paper. A row's amount is capped
- * at the customer's current outstanding balance (plus tolerance) rather than
+ * at the dealer's current outstanding balance (plus tolerance) rather than
  * the whole row being rejected — a spreadsheet import has no per-row
  * feedback channel back to the person who is importing it.
  */
@@ -36,13 +36,13 @@ class CollectionEntriesImport implements ToModel, WithHeadingRow, WithValidation
         $currentUser = Auth::user();
 
         $userId = User::where('employee_id', $row['employee_id'])->value('id');
-        $customerId = Customer::where('customer_code', $row['customer_code'])->value('id');
+        $dealerId = Dealer::where('dealer_code', $row['dealer_code'])->value('id');
 
-        if (! $userId || ! $customerId) {
+        if (! $userId || ! $dealerId) {
             return null;
         }
 
-        $balance = $this->collectionEntries->outstandingBalance($customerId);
+        $balance = $this->collectionEntries->outstandingBalance($dealerId);
         $tolerancePercent = (float) config('sfa.collections.overpayment_tolerance_percent');
         $maxAllowed = round(max($balance, 0) * (1 + $tolerancePercent / 100), 2);
         $amount = min((float) $row['amount'], $maxAllowed);
@@ -53,7 +53,7 @@ class CollectionEntriesImport implements ToModel, WithHeadingRow, WithValidation
 
         return new CollectionEntry([
             'user_id' => $userId,
-            'customer_id' => $customerId,
+            'dealer_id' => $dealerId,
             'collection_date' => $row['collection_date'],
             'amount' => $amount,
             'payment_method' => $row['payment_method'],
@@ -70,7 +70,7 @@ class CollectionEntriesImport implements ToModel, WithHeadingRow, WithValidation
     {
         return [
             'employee_id' => ['required', 'string', 'exists:users,employee_id'],
-            'customer_code' => ['required', 'string', 'exists:customers,customer_code'],
+            'dealer_code' => ['required', 'string', 'exists:dealers,dealer_code'],
             'collection_date' => ['required', 'date'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'payment_method' => ['required', new Enum(PaymentMethod::class)],

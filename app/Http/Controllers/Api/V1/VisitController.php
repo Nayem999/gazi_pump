@@ -16,8 +16,8 @@ use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
 
 /**
- * Self-service customer-visit check-in/out for the mobile app: a Sales
- * Executive starts a visit (GPS + photo, verified against the customer's
+ * Self-service dealer-visit check-in/out for the mobile app: a Sales
+ * Executive starts a visit (GPS + photo, verified against the dealer's
  * registered location), later ends it with feedback. Cross-rep visit
  * history is an Admin Dashboard concern (Module 7 web CRUD).
  */
@@ -28,14 +28,14 @@ class VisitController extends Controller
     #[OA\Post(
         path: '/visits/check-in',
         tags: ['Visits'],
-        summary: 'Check in to a customer visit with GPS + photo',
+        summary: 'Check in to a dealer visit with GPS + photo',
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\MediaType(mediaType: 'multipart/form-data', schema: new OA\Schema(
-                required: ['customer_id', 'lat', 'lng', 'photo'],
+                required: ['dealer_id', 'lat', 'lng', 'photo'],
                 properties: [
-                    new OA\Property(property: 'customer_id', type: 'integer'),
+                    new OA\Property(property: 'dealer_id', type: 'integer'),
                     new OA\Property(property: 'visit_plan_id', type: 'integer', nullable: true),
                     new OA\Property(property: 'lat', type: 'number', format: 'float'),
                     new OA\Property(property: 'lng', type: 'number', format: 'float'),
@@ -44,7 +44,7 @@ class VisitController extends Controller
             )),
         ),
         responses: [
-            new OA\Response(response: 201, description: 'Checked in — response includes is_gps_verified against the customer\'s registered location'),
+            new OA\Response(response: 201, description: 'Checked in — response includes is_gps_verified against the dealer\'s registered location'),
             new OA\Response(response: 422, description: 'Validation error, or an open visit is already in progress'),
         ],
     )]
@@ -52,7 +52,7 @@ class VisitController extends Controller
     {
         $visit = $this->visits->checkIn(
             $request->user(),
-            (int) $request->input('customer_id'),
+            (int) $request->input('dealer_id'),
             $request->filled('visit_plan_id') ? (int) $request->input('visit_plan_id') : null,
             (float) $request->input('lat'),
             (float) $request->input('lng'),
@@ -125,7 +125,7 @@ class VisitController extends Controller
     )]
     public function history(Request $request): JsonResponse
     {
-        $query = Visit::where('user_id', $request->user()->id)->with('customer');
+        $query = Visit::where('user_id', $request->user()->id)->with('dealer');
 
         if ($request->filled('date_from')) {
             $query->whereDate('check_in_at', '>=', $request->string('date_from'));

@@ -17,7 +17,7 @@ class VisitPlan extends BaseModel
 
     protected $fillable = [
         'user_id',
-        'customer_id',
+        'dealer_id',
         'planned_date',
         'status',
         'notes',
@@ -36,9 +36,9 @@ class VisitPlan extends BaseModel
         return $this->belongsTo(User::class);
     }
 
-    public function customer(): BelongsTo
+    public function dealer(): BelongsTo
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(Dealer::class);
     }
 
     public function visits(): HasMany

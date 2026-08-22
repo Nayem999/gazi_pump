@@ -17,7 +17,7 @@ use RuntimeException;
  * in center_lat/center_lng as a fallback marker position for territories
  * that end up with no computed data point.
  *
- * Existing users/customers pointing at the deleted rows are set to NULL by
+ * Existing users/dealers pointing at the deleted rows are set to NULL by
  * their `territory_id` FK's nullOnDelete, not left dangling.
  */
 class ImportTerritoryBoundariesAction

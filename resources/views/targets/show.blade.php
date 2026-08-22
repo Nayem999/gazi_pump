@@ -50,11 +50,11 @@
                     @if ($achievement)
                         <div class="mb-3">
                             <div class="d-flex justify-content-between small mb-1">
-                                <span>Sales Value</span>
-                                <span>{{ number_format((float) $achievement->sales_achieved, 2) }} / {{ number_format((float) $target->sales_value_target, 2) }} ({{ number_format((float) $achievement->sales_pct, 1) }}%)</span>
+                                <span>Order Value</span>
+                                <span>{{ number_format((float) $achievement->order_achieved, 2) }} / {{ number_format((float) $target->order_value_target, 2) }} ({{ number_format((float) $achievement->order_pct, 1) }}%)</span>
                             </div>
                             <div class="progress" style="height:8px">
-                                <div class="progress-bar bg-primary" style="width: {{ min(100, (float) $achievement->sales_pct) }}%"></div>
+                                <div class="progress-bar bg-primary" style="width: {{ min(100, (float) $achievement->order_pct) }}%"></div>
                             </div>
                         </div>
 

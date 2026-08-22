@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Admin;
 
 use App\Enums\VisitPlanStatus;
-use App\Models\Customer;
+use App\Models\Dealer;
 use App\Models\User;
 use App\Models\VisitPlan;
 use Database\Seeders\RolePermissionSeeder;
@@ -62,13 +62,13 @@ class VisitPlanManagementTest extends TestCase
     {
         $manager = $this->generalManager();
         $executive = $this->executive();
-        $customer = Customer::factory()->create();
+        $dealer = Dealer::factory()->create();
 
         $this->actingAs($manager)->get(route('visit-plans.index'))->assertOk();
 
         $response = $this->actingAs($manager)->post(route('visit-plans.store'), [
             'user_id' => $executive->id,
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'planned_date' => Carbon::tomorrow()->toDateString(),
             'status' => VisitPlanStatus::Planned->value,
             'notes' => 'Discuss new product line.',
@@ -77,7 +77,7 @@ class VisitPlanManagementTest extends TestCase
         $response->assertRedirect(route('visit-plans.index'));
         $this->assertDatabaseHas('visit_plans', [
             'user_id' => $executive->id,
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'status' => 'planned',
         ]);
     }
@@ -89,10 +89,10 @@ class VisitPlanManagementTest extends TestCase
 
         $this->actingAs($manager)->put(route('visit-plans.update', $visitPlan), [
             'user_id' => $visitPlan->user_id,
-            'customer_id' => $visitPlan->customer_id,
+            'dealer_id' => $visitPlan->dealer_id,
             'planned_date' => $visitPlan->planned_date->toDateString(),
             'status' => VisitPlanStatus::Cancelled->value,
-            'notes' => 'Customer requested reschedule.',
+            'notes' => 'Dealer requested reschedule.',
         ])->assertRedirect(route('visit-plans.index'));
 
         $this->assertDatabaseHas('visit_plans', ['id' => $visitPlan->id, 'status' => 'cancelled']);
@@ -130,7 +130,7 @@ class VisitPlanManagementTest extends TestCase
 
         $this->actingAs($manager)->put(route('visit-plans.update', $visitPlan), [
             'user_id' => $visitPlan->user_id,
-            'customer_id' => $visitPlan->customer_id,
+            'dealer_id' => $visitPlan->dealer_id,
             'planned_date' => $visitPlan->planned_date->toDateString(),
             'status' => VisitPlanStatus::Planned->value,
         ])->assertRedirect(route('visit-plans.index'));

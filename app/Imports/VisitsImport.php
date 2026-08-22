@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Imports;
 
-use App\Models\Customer;
+use App\Models\Dealer;
 use App\Models\User;
 use App\Models\Visit;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -30,15 +30,15 @@ class VisitsImport implements ToModel, WithHeadingRow, WithValidation
         $currentUser = Auth::user();
 
         $userId = User::where('employee_id', $row['employee_id'])->value('id');
-        $customerId = Customer::where('customer_code', $row['customer_code'])->value('id');
+        $dealerId = Dealer::where('dealer_code', $row['dealer_code'])->value('id');
 
-        if (! $userId || ! $customerId) {
+        if (! $userId || ! $dealerId) {
             return null;
         }
 
         return new Visit([
             'user_id' => $userId,
-            'customer_id' => $customerId,
+            'dealer_id' => $dealerId,
             'check_in_at' => $row['check_in_at'],
             'check_out_at' => $row['check_out_at'] ?? null,
             'feedback' => $row['feedback'] ?? null,
@@ -53,7 +53,7 @@ class VisitsImport implements ToModel, WithHeadingRow, WithValidation
     {
         return [
             'employee_id' => ['required', 'string', 'exists:users,employee_id'],
-            'customer_code' => ['required', 'string', 'exists:customers,customer_code'],
+            'dealer_code' => ['required', 'string', 'exists:dealers,dealer_code'],
             'check_in_at' => ['required', 'date'],
             'check_out_at' => ['nullable', 'date'],
         ];

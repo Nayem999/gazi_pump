@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Portal;
 
-use App\Models\Customer;
 use App\Models\CustomerAccount;
+use App\Models\Dealer;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
-use App\Models\SalesEntry;
-use App\Models\SalesEntryItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
@@ -46,7 +46,7 @@ class DashboardTest extends TestCase
             ->assertSee(route('portal.inquiries.index'), false);
     }
 
-    public function test_an_account_with_no_matching_customer_record_sees_a_zeroed_out_dashboard(): void
+    public function test_an_account_with_no_matching_dealer_record_sees_a_zeroed_out_dashboard(): void
     {
         $account = CustomerAccount::factory()->create(['email' => 'unlinked@example.com']);
 
@@ -57,19 +57,19 @@ class DashboardTest extends TestCase
             ->assertSee('No product purchases yet.');
     }
 
-    public function test_an_account_is_auto_linked_to_a_customer_record_sharing_its_email_and_shows_purchase_history(): void
+    public function test_an_account_is_auto_linked_to_a_dealer_record_sharing_its_email_and_shows_purchase_history(): void
     {
-        $customer = Customer::factory()->create(['email' => 'linked@example.com']);
-        $account = CustomerAccount::factory()->create(['customer_id' => null, 'email' => 'linked@example.com']);
+        $dealer = Dealer::factory()->create(['email' => 'linked@example.com']);
+        $account = CustomerAccount::factory()->create(['dealer_id' => null, 'email' => 'linked@example.com']);
 
         $product = Product::factory()->create(['name' => 'Fuel Pump XL']);
-        $salesEntry = SalesEntry::factory()->create([
-            'customer_id' => $customer->id,
-            'sale_date' => Carbon::now()->startOfMonth()->toDateString(),
+        $order = Order::factory()->create([
+            'dealer_id' => $dealer->id,
+            'order_date' => Carbon::now()->startOfMonth()->toDateString(),
             'total_amount' => 500,
         ]);
-        SalesEntryItem::factory()->create([
-            'sales_entry_id' => $salesEntry->id,
+        OrderItem::factory()->create([
+            'order_id' => $order->id,
             'product_id' => $product->id,
             'quantity' => 2,
             'unit_price' => 250,
@@ -82,6 +82,6 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertSee('Fuel Pump XL');
 
-        $this->assertSame($customer->id, $account->fresh()->customer_id);
+        $this->assertSame($dealer->id, $account->fresh()->dealer_id);
     }
 }

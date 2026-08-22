@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
-use App\Models\Customer;
+use App\Models\Dealer;
 use App\Models\User;
 use App\Models\Visit;
 use Database\Seeders\RolePermissionSeeder;
@@ -61,20 +61,20 @@ class VisitManagementTest extends TestCase
     {
         $manager = $this->generalManager();
         $executive = $this->executive();
-        $customer = Customer::factory()->create();
+        $dealer = Dealer::factory()->create();
 
         $this->actingAs($manager)->get(route('visits.index'))->assertOk();
 
         $response = $this->actingAs($manager)->post(route('visits.store'), [
             'user_id' => $executive->id,
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'check_in_at' => Carbon::yesterday()->setTime(10, 0)->format('Y-m-d H:i:s'),
             'check_out_at' => Carbon::yesterday()->setTime(10, 30)->format('Y-m-d H:i:s'),
             'feedback' => 'Backfilled from paper log.',
         ]);
 
         $response->assertRedirect(route('visits.index'));
-        $this->assertDatabaseHas('visits', ['user_id' => $executive->id, 'customer_id' => $customer->id]);
+        $this->assertDatabaseHas('visits', ['user_id' => $executive->id, 'dealer_id' => $dealer->id]);
     }
 
     public function test_general_manager_can_view_a_visit_detail_page(): void
@@ -92,7 +92,7 @@ class VisitManagementTest extends TestCase
 
         $this->actingAs($manager)->put(route('visits.update', $visit), [
             'user_id' => $visit->user_id,
-            'customer_id' => $visit->customer_id,
+            'dealer_id' => $visit->dealer_id,
             'check_in_at' => $visit->check_in_at->format('Y-m-d H:i:s'),
             'feedback' => 'Corrected feedback note.',
         ])->assertRedirect(route('visits.index'));
@@ -132,7 +132,7 @@ class VisitManagementTest extends TestCase
 
         $this->actingAs($manager)->put(route('visits.update', $visit), [
             'user_id' => $visit->user_id,
-            'customer_id' => $visit->customer_id,
+            'dealer_id' => $visit->dealer_id,
             'check_in_at' => $visit->check_in_at->format('Y-m-d H:i:s'),
         ])->assertForbidden();
     }

@@ -3,7 +3,7 @@
 @section('title', 'Edit Visit')
 
 @section('breadcrumb')
-    <li class="breadcrumb-item"><a href="{{ route('visits.index') }}">Customer Visits</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('visits.index') }}">Dealer Visits</a></li>
     <li class="breadcrumb-item active">Edit</li>
 @endsection
 

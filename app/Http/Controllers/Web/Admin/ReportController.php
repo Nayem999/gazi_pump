@@ -6,10 +6,10 @@ namespace App\Http\Controllers\Web\Admin;
 
 use App\Exports\AttendanceSummaryExport;
 use App\Exports\CollectionSummaryExport;
-use App\Exports\CustomerCoverageExport;
+use App\Exports\DealerCoverageExport;
 use App\Exports\ExecutivePerformanceExport;
 use App\Exports\GpsReportExport;
-use App\Exports\SalesPerformanceExport;
+use App\Exports\OrderPerformanceExport;
 use App\Exports\TargetAchievementExport;
 use App\Exports\TerritoryPerformanceExport;
 use App\Exports\VisitComplianceExport;
@@ -103,18 +103,18 @@ class ReportController extends Controller
             ->stream('visit-compliance-'.now()->format('Y-m-d-His').'.pdf');
     }
 
-    public function salesPerformance(Request $request): View
+    public function orderPerformance(Request $request): View
     {
-        abort_unless($request->user()?->can(PermissionName::report('sales')), 403);
+        abort_unless($request->user()?->can(PermissionName::report('order-performance')), 403);
 
-        $rows = $this->reports->salesPerformance($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
+        $rows = $this->reports->orderPerformance($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
 
-        return view('reports.sales-performance', [
+        return view('reports.order-performance', [
             'rows' => $this->paginate($rows, $request),
             'totals' => [
-                'sales_count' => $rows->sum('sales_count'),
+                'order_count' => $rows->sum('order_count'),
                 'total_quantity' => $rows->sum('total_quantity'),
-                'total_sales_value' => $rows->sum('total_sales_value'),
+                'total_order_value' => $rows->sum('total_order_value'),
             ],
             'executives' => $this->executives(),
             'territories' => $this->territories(),
@@ -122,23 +122,23 @@ class ReportController extends Controller
         ]);
     }
 
-    public function salesPerformanceExport(Request $request): mixed
+    public function orderPerformanceExport(Request $request): mixed
     {
-        abort_unless($request->user()?->can(PermissionName::report('sales')), 403);
+        abort_unless($request->user()?->can(PermissionName::report('order-performance')), 403);
 
-        $rows = $this->reports->salesPerformance($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
+        $rows = $this->reports->orderPerformance($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
 
-        return Excel::download(new SalesPerformanceExport($rows), 'sales-performance-'.now()->format('Y-m-d-His').'.xlsx');
+        return Excel::download(new OrderPerformanceExport($rows), 'order-performance-'.now()->format('Y-m-d-His').'.xlsx');
     }
 
-    public function salesPerformancePrint(Request $request): mixed
+    public function orderPerformancePrint(Request $request): mixed
     {
-        abort_unless($request->user()?->can(PermissionName::report('sales')), 403);
+        abort_unless($request->user()?->can(PermissionName::report('order-performance')), 403);
 
-        $rows = $this->reports->salesPerformance($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
+        $rows = $this->reports->orderPerformance($request->only(['date_from', 'date_to', 'user_id', 'territory_id']));
 
-        return Pdf::loadView('reports.sales-performance-print', ['rows' => $rows])
-            ->stream('sales-performance-'.now()->format('Y-m-d-His').'.pdf');
+        return Pdf::loadView('reports.order-performance-print', ['rows' => $rows])
+            ->stream('order-performance-'.now()->format('Y-m-d-His').'.pdf');
     }
 
     public function collectionSummary(Request $request): View
@@ -274,34 +274,34 @@ class ReportController extends Controller
             ->stream('executive-performance-'.now()->format('Y-m-d-His').'.pdf');
     }
 
-    public function customerCoverage(Request $request): View
+    public function dealerCoverage(Request $request): View
     {
-        abort_unless($request->user()?->can(PermissionName::report('customer-coverage')), 403);
+        abort_unless($request->user()?->can(PermissionName::report('dealer-coverage')), 403);
 
-        return view('reports.customer-coverage', [
-            'rows' => $this->paginate($this->reports->customerCoverage($request->only(['date_from', 'date_to', 'territory_id'])), $request),
+        return view('reports.dealer-coverage', [
+            'rows' => $this->paginate($this->reports->dealerCoverage($request->only(['date_from', 'date_to', 'territory_id'])), $request),
             'territories' => $this->territories(),
             'filters' => $request->only(['date_from', 'date_to', 'territory_id']),
         ]);
     }
 
-    public function customerCoverageExport(Request $request): mixed
+    public function dealerCoverageExport(Request $request): mixed
     {
-        abort_unless($request->user()?->can(PermissionName::report('customer-coverage')), 403);
+        abort_unless($request->user()?->can(PermissionName::report('dealer-coverage')), 403);
 
-        $rows = $this->reports->customerCoverage($request->only(['date_from', 'date_to', 'territory_id']));
+        $rows = $this->reports->dealerCoverage($request->only(['date_from', 'date_to', 'territory_id']));
 
-        return Excel::download(new CustomerCoverageExport($rows), 'customer-coverage-'.now()->format('Y-m-d-His').'.xlsx');
+        return Excel::download(new DealerCoverageExport($rows), 'dealer-coverage-'.now()->format('Y-m-d-His').'.xlsx');
     }
 
-    public function customerCoveragePrint(Request $request): mixed
+    public function dealerCoveragePrint(Request $request): mixed
     {
-        abort_unless($request->user()?->can(PermissionName::report('customer-coverage')), 403);
+        abort_unless($request->user()?->can(PermissionName::report('dealer-coverage')), 403);
 
-        $rows = $this->reports->customerCoverage($request->only(['date_from', 'date_to', 'territory_id']));
+        $rows = $this->reports->dealerCoverage($request->only(['date_from', 'date_to', 'territory_id']));
 
-        return Pdf::loadView('reports.customer-coverage-print', ['rows' => $rows])
-            ->stream('customer-coverage-'.now()->format('Y-m-d-His').'.pdf');
+        return Pdf::loadView('reports.dealer-coverage-print', ['rows' => $rows])
+            ->stream('dealer-coverage-'.now()->format('Y-m-d-His').'.pdf');
     }
 
     public function gpsReport(Request $request): View

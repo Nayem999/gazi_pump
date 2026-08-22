@@ -102,7 +102,7 @@ class SettingsManagementTest extends TestCase
             'attendance_office_start_time' => '09:00',
             'attendance_late_grace_minutes' => 15,
             'visit_gps_radius_meters' => 300,
-            'sales_max_discount_percent' => 20,
+            'order_max_discount_percent' => 20,
             'collection_overpayment_tolerance_percent' => 10,
             'target_grade_a_min' => 90,
             'target_grade_b_min' => 75,

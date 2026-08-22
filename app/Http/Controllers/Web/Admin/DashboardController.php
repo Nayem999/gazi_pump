@@ -7,7 +7,7 @@ namespace App\Http\Controllers\Web\Admin;
 use App\Enums\AttendanceStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
-use App\Models\Customer;
+use App\Models\Dealer;
 use App\Models\Product;
 use App\Models\Territory;
 use App\Models\User;
@@ -23,7 +23,7 @@ class DashboardController extends Controller
             'activeUserCount' => User::where('status', true)->count(),
             'salesExecutiveCount' => User::role('Sales Executive')->count(),
             'territoryCount' => Territory::where('status', true)->count(),
-            'customerCount' => Customer::where('status', true)->count(),
+            'dealerCount' => Dealer::where('status', true)->count(),
             'productCount' => Product::where('status', true)->count(),
             'presentTodayCount' => Attendance::whereDate('date', Carbon::today())->whereNotNull('check_in_at')->count(),
             'attendanceTrend' => $this->attendanceTrend(),

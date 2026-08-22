@@ -33,10 +33,10 @@
     </div>
 
     <div class="col-md-4">
-        <label class="form-label">Sales Value Target <span class="text-danger">*</span></label>
-        <input type="number" min="1" step="0.01" name="sales_value_target" class="form-control @error('sales_value_target') is-invalid @enderror"
-               value="{{ old('sales_value_target', $target->sales_value_target ?? '') }}" required>
-        @error('sales_value_target') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        <label class="form-label">Order Value Target <span class="text-danger">*</span></label>
+        <input type="number" min="1" step="0.01" name="order_value_target" class="form-control @error('order_value_target') is-invalid @enderror"
+               value="{{ old('order_value_target', $target->order_value_target ?? '') }}" required>
+        @error('order_value_target') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
     <div class="col-md-4">

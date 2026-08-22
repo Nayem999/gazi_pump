@@ -16,14 +16,14 @@
     </div>
 
     <div class="col-md-6">
-        <label class="form-label">Customer <span class="text-danger">*</span></label>
-        <select id="customerSelect" name="customer_id" class="form-select @error('customer_id') is-invalid @enderror" required>
-            <option value="">— Select Customer —</option>
-            @foreach ($customers as $customer)
-                <option value="{{ $customer->id }}" data-balance="{{ $outstandingBalances[$customer->id] ?? 0 }}" @selected((string) old('customer_id', $collectionEntry->customer_id ?? '') === (string) $customer->id)>{{ $customer->name }} ({{ $customer->customer_code }})</option>
+        <label class="form-label">Dealer <span class="text-danger">*</span></label>
+        <select id="dealerSelect" name="dealer_id" class="form-select @error('dealer_id') is-invalid @enderror" required>
+            <option value="">— Select Dealer —</option>
+            @foreach ($dealers as $dealer)
+                <option value="{{ $dealer->id }}" data-balance="{{ $outstandingBalances[$dealer->id] ?? 0 }}" @selected((string) old('dealer_id', $collectionEntry->dealer_id ?? '') === (string) $dealer->id)>{{ $dealer->name }} ({{ $dealer->dealer_code }})</option>
             @endforeach
         </select>
-        @error('customer_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('dealer_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
     <div class="col-12">
@@ -80,16 +80,16 @@
 @push('scripts')
     <script>
         (function () {
-            const customerSelect = document.getElementById('customerSelect');
+            const dealerSelect = document.getElementById('dealerSelect');
             const balancePreview = document.getElementById('balancePreview');
 
             function updateBalance() {
-                const option = customerSelect.options[customerSelect.selectedIndex];
+                const option = dealerSelect.options[dealerSelect.selectedIndex];
                 const balance = option?.dataset.balance;
                 balancePreview.textContent = balance ? parseFloat(balance).toFixed(2) : '—';
             }
 
-            customerSelect?.addEventListener('change', updateBalance);
+            dealerSelect?.addEventListener('change', updateBalance);
             updateBalance();
         })();
     </script>

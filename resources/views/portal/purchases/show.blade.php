@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0">Purchase &mdash; {{ $salesEntry->sale_date->format('M d, Y') }}</h1>
+        <h1 class="mb-0">Purchase &mdash; {{ $order->order_date->format('M d, Y') }}</h1>
         <a href="{{ route('portal.purchases.index') }}" class="btn btn-outline-secondary btn-sm">
             <i class="ti ti-arrow-left me-1"></i>Back to Purchases
         </a>
@@ -14,17 +14,17 @@
         <div class="card-body">
             <dl class="row mb-0">
                 <dt class="col-sm-3">Date</dt>
-                <dd class="col-sm-9">{{ $salesEntry->sale_date->format('M d, Y') }}</dd>
+                <dd class="col-sm-9">{{ $order->order_date->format('M d, Y') }}</dd>
 
                 <dt class="col-sm-3">Items</dt>
-                <dd class="col-sm-9">{{ $salesEntry->items->count() }}</dd>
+                <dd class="col-sm-9">{{ $order->items->count() }}</dd>
 
                 <dt class="col-sm-3">Total Amount</dt>
-                <dd class="col-sm-9 fw-semibold">{{ number_format((float) $salesEntry->total_amount, 2) }}</dd>
+                <dd class="col-sm-9 fw-semibold">{{ number_format((float) $order->total_amount, 2) }}</dd>
 
-                @if ($salesEntry->remarks)
+                @if ($order->remarks)
                     <dt class="col-sm-3">Remarks</dt>
-                    <dd class="col-sm-9">{{ $salesEntry->remarks }}</dd>
+                    <dd class="col-sm-9">{{ $order->remarks }}</dd>
                 @endif
             </dl>
         </div>
@@ -44,7 +44,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($salesEntry->items as $item)
+                    @foreach ($order->items as $item)
                         <tr>
                             <td>
                                 {{ $item->product?->name ?? 'Unknown product' }}
@@ -62,7 +62,7 @@
                 <tfoot>
                     <tr>
                         <td colspan="4" class="text-end fw-semibold">Grand Total</td>
-                        <td class="fw-semibold">{{ number_format((float) $salesEntry->total_amount, 2) }}</td>
+                        <td class="fw-semibold">{{ number_format((float) $order->total_amount, 2) }}</td>
                     </tr>
                 </tfoot>
             </table>

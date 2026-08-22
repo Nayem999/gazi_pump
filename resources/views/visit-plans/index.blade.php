@@ -10,7 +10,7 @@
     <x-filter-bar :action="route('visit-plans.index')">
         <div class="col-md-3">
             <label class="form-label">Search</label>
-            <input type="text" name="search" class="form-control" placeholder="Customer name or code..." value="{{ $filters['search'] ?? '' }}">
+            <input type="text" name="search" class="form-control" placeholder="Dealer name or code..." value="{{ $filters['search'] ?? '' }}">
         </div>
         <div class="col-md-2">
             <label class="form-label">Executive</label>
@@ -56,7 +56,7 @@
                 <tr>
                     <th style="width:2rem"><input type="checkbox" id="selectAll" class="form-check-input"></th>
                     <th>Executive</th>
-                    <th>Customer</th>
+                    <th>Dealer</th>
                     <th>Planned Date</th>
                     <th>Status</th>
                     <th>Notes</th>
@@ -76,8 +76,8 @@
                         <div class="text-muted small">{{ $visitPlan->user?->employee_id }}</div>
                     </td>
                     <td>
-                        {{ $visitPlan->customer?->name }}
-                        <div class="text-muted small">{{ $visitPlan->customer?->customer_code }}</div>
+                        {{ $visitPlan->dealer?->name }}
+                        <div class="text-muted small">{{ $visitPlan->dealer?->dealer_code }}</div>
                     </td>
                     <td>{{ $visitPlan->planned_date->format('M d, Y') }}</td>
                     <td>
@@ -130,8 +130,8 @@
                         <x-item-card
                             icon="ti-calendar-event"
                             icon-color="{{ $visitPlan->status->badgeColor() }}"
-                            :title="$visitPlan->customer?->name"
-                            :subtitle="$visitPlan->customer?->customer_code"
+                            :title="$visitPlan->dealer?->name"
+                            :subtitle="$visitPlan->dealer?->dealer_code"
                             :status-label="$visitPlan->trashed() ? 'Trashed' : ($visitPlan->isMissed() ? 'Missed' : $visitPlan->status->label())"
                             :status-color="$visitPlan->trashed() ? 'danger' : ($visitPlan->isMissed() ? 'danger' : $visitPlan->status->badgeColor())"
                         >
@@ -197,7 +197,7 @@
                 <div class="mb-3">
                     <label class="form-label">Excel/CSV File</label>
                     <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.csv" required>
-                    <div class="form-text">Columns: employee_id, customer_code, planned_date, status, notes.</div>
+                    <div class="form-text">Columns: employee_id, dealer_code, planned_date, status, notes.</div>
                 </div>
             </form>
             <x-slot:footer>

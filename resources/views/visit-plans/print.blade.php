@@ -20,7 +20,7 @@
         <thead>
             <tr>
                 <th>Executive</th>
-                <th>Customer</th>
+                <th>Dealer</th>
                 <th>Planned Date</th>
                 <th>Status</th>
                 <th>Notes</th>
@@ -30,7 +30,7 @@
             @foreach ($visitPlans as $visitPlan)
                 <tr>
                     <td>{{ $visitPlan->user?->name }}</td>
-                    <td>{{ $visitPlan->customer?->name }}</td>
+                    <td>{{ $visitPlan->dealer?->name }}</td>
                     <td>{{ $visitPlan->planned_date->format('M d, Y') }}</td>
                     <td>{{ $visitPlan->status->label() }}</td>
                     <td>{{ $visitPlan->notes }}</td>

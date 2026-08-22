@@ -24,7 +24,7 @@ class StoreVisitPlanRequest extends FormRequest
     {
         return [
             'user_id' => ['required', 'integer', Rule::exists('users', 'id')],
-            'customer_id' => ['required', 'integer', Rule::exists('customers', 'id')],
+            'dealer_id' => ['required', 'integer', Rule::exists('dealers', 'id')],
             'planned_date' => ['required', 'date'],
             'status' => ['required', new Enum(VisitPlanStatus::class)],
             'notes' => ['nullable', 'string', 'max:1000'],

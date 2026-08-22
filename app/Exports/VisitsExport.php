@@ -27,7 +27,7 @@ class VisitsExport implements FromCollection, WithHeadings, WithMapping
      */
     public function headings(): array
     {
-        return ['Employee', 'Customer', 'Check In', 'Check Out', 'GPS Verified', 'Distance (m)', 'Feedback'];
+        return ['Employee', 'Dealer', 'Check In', 'Check Out', 'GPS Verified', 'Distance (m)', 'Feedback'];
     }
 
     /**
@@ -37,7 +37,7 @@ class VisitsExport implements FromCollection, WithHeadings, WithMapping
     {
         return [
             $visit->user?->name,
-            $visit->customer?->name,
+            $visit->dealer?->name,
             $visit->check_in_at?->format('Y-m-d H:i'),
             $visit->check_out_at?->format('Y-m-d H:i'),
             match ($visit->is_gps_verified) {
@@ -45,7 +45,7 @@ class VisitsExport implements FromCollection, WithHeadings, WithMapping
                 false => 'No',
                 default => 'Unknown',
             },
-            $visit->distance_from_customer_meters !== null ? (string) $visit->distance_from_customer_meters : null,
+            $visit->distance_from_dealer_meters !== null ? (string) $visit->distance_from_dealer_meters : null,
             $visit->feedback,
         ];
     }

@@ -6,7 +6,7 @@ namespace App\Services;
 
 use App\Enums\VisitPlanStatus;
 use App\Helpers\DistanceCalculator;
-use App\Models\Customer;
+use App\Models\Dealer;
 use App\Models\User;
 use App\Models\Visit;
 use App\Models\VisitPlan;
@@ -24,14 +24,14 @@ class VisitService extends BaseCrudService
     }
 
     /**
-     * @param  array{search?: string, user_id?: string, customer_id?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
+     * @param  array{search?: string, user_id?: string, dealer_id?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
      */
     public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         return $this->visits->paginateWithFilters($filters, $perPage);
     }
 
-    public function checkIn(User $user, int $customerId, ?int $visitPlanId, float $lat, float $lng, UploadedFile $photo): Visit
+    public function checkIn(User $user, int $dealerId, ?int $visitPlanId, float $lat, float $lng, UploadedFile $photo): Visit
     {
         if ($this->visits->findOpenVisitForUser($user->id)) {
             throw ValidationException::withMessages([
@@ -39,19 +39,19 @@ class VisitService extends BaseCrudService
             ]);
         }
 
-        $customer = Customer::findOrFail($customerId);
-        [$verified, $distanceMeters] = $this->verifyGpsProximity($customer, $lat, $lng);
+        $dealer = Dealer::findOrFail($dealerId);
+        [$verified, $distanceMeters] = $this->verifyGpsProximity($dealer, $lat, $lng);
 
         $visit = $this->create([
             'visit_plan_id' => $visitPlanId,
             'user_id' => $user->id,
-            'customer_id' => $customerId,
+            'dealer_id' => $dealerId,
             'check_in_at' => Carbon::now(),
             'check_in_lat' => $lat,
             'check_in_lng' => $lng,
             'check_in_photo' => $photo->store('visits', 'public'),
             'is_gps_verified' => $verified,
-            'distance_from_customer_meters' => $distanceMeters,
+            'distance_from_dealer_meters' => $distanceMeters,
         ]);
 
         if ($visitPlanId) {
@@ -81,22 +81,22 @@ class VisitService extends BaseCrudService
     }
 
     /**
-     * Compares a check-in point against the customer's registered GPS pin.
-     * Returns [null, null] when the customer has no pin on file at all —
+     * Compares a check-in point against the dealer's registered GPS pin.
+     * Returns [null, null] when the dealer has no pin on file at all —
      * that's "unknown", not "unverified" (which would wrongly imply the rep
      * checked in at the wrong place).
      *
      * @return array{0: bool|null, 1: float|null}
      */
-    public function verifyGpsProximity(Customer $customer, float $lat, float $lng): array
+    public function verifyGpsProximity(Dealer $dealer, float $lat, float $lng): array
     {
-        if (! $customer->hasGps()) {
+        if (! $dealer->hasGps()) {
             return [null, null];
         }
 
         $distanceMeters = DistanceCalculator::haversineKm(
-            (float) $customer->gps_lat,
-            (float) $customer->gps_lng,
+            (float) $dealer->gps_lat,
+            (float) $dealer->gps_lng,
             $lat,
             $lng
         ) * 1000;

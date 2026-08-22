@@ -1,16 +1,16 @@
 @extends('layouts.admin')
 
-@section('title', 'Customer Visits')
+@section('title', 'Dealer Visits')
 
 @section('breadcrumb')
-    <li class="breadcrumb-item active">Customer Visits</li>
+    <li class="breadcrumb-item active">Dealer Visits</li>
 @endsection
 
 @section('content')
     <x-filter-bar :action="route('visits.index')">
         <div class="col-md-3">
             <label class="form-label">Search</label>
-            <input type="text" name="search" class="form-control" placeholder="Customer name or code..." value="{{ $filters['search'] ?? '' }}">
+            <input type="text" name="search" class="form-control" placeholder="Dealer name or code..." value="{{ $filters['search'] ?? '' }}">
         </div>
         <div class="col-md-2">
             <label class="form-label">Executive</label>
@@ -35,7 +35,7 @@
     <form id="bulkForm" method="POST" action="{{ route('visits.bulk-destroy') }}" data-confirm data-confirm-title="Delete selected visits?">
         @csrf
         <x-data-table
-            title="Customer Visits"
+            title="Dealer Visits"
             :create-url="auth()->user()->can('create', \App\Models\Visit::class) ? route('visits.create') : null"
             create-label="Record Visit"
             :export-url="auth()->user()->can('export', \App\Models\Visit::class) ? route('visits.export', request()->query()) : null"
@@ -47,7 +47,7 @@
                 <tr>
                     <th style="width:2rem"><input type="checkbox" id="selectAll" class="form-check-input"></th>
                     <th>Executive</th>
-                    <th>Customer</th>
+                    <th>Dealer</th>
                     <th>Check In</th>
                     <th>Check Out</th>
                     <th>GPS Verified</th>
@@ -67,8 +67,8 @@
                         <div class="text-muted small">{{ $visit->user?->employee_id }}</div>
                     </td>
                     <td>
-                        {{ $visit->customer?->name }}
-                        <div class="text-muted small">{{ $visit->customer?->customer_code }}</div>
+                        {{ $visit->dealer?->name }}
+                        <div class="text-muted small">{{ $visit->dealer?->dealer_code }}</div>
                     </td>
                     <td>{{ $visit->check_in_at?->format('M d, Y H:i') }}</td>
                     <td>{{ $visit->check_out_at?->format('M d, Y H:i') ?? '—' }}</td>
@@ -123,7 +123,7 @@
                         <x-item-card
                             icon="ti-walk"
                             icon-color="{{ match ($visit->is_gps_verified) { true => 'success', false => 'danger', default => 'secondary' } }}"
-                            :title="$visit->customer?->name"
+                            :title="$visit->dealer?->name"
                             :subtitle="$visit->user?->name"
                             :status-label="$visit->trashed() ? 'Trashed' : match ($visit->is_gps_verified) { true => 'Verified', false => 'Unverified', default => 'Unknown' }"
                             :status-color="$visit->trashed() ? 'danger' : match ($visit->is_gps_verified) { true => 'success', false => 'danger', default => 'secondary' }"
@@ -190,7 +190,7 @@
                 <div class="mb-3">
                     <label class="form-label">Excel/CSV File</label>
                     <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.csv" required>
-                    <div class="form-text">Columns: employee_id, customer_code, check_in_at, check_out_at, feedback.</div>
+                    <div class="form-text">Columns: employee_id, dealer_code, check_in_at, check_out_at, feedback.</div>
                 </div>
             </form>
             <x-slot:footer>

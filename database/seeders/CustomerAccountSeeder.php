@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Models\Customer;
 use App\Models\CustomerAccount;
+use App\Models\Dealer;
 use Illuminate\Database\Seeder;
 
 class CustomerAccountSeeder extends Seeder
 {
     public function run(): void
     {
-        $linkedCustomers = Customer::inRandomOrder()->limit(3)->get();
+        $linkedDealers = Dealer::inRandomOrder()->limit(3)->get();
 
-        foreach ($linkedCustomers as $customer) {
+        foreach ($linkedDealers as $dealer) {
             CustomerAccount::factory()->create([
-                'customer_id' => $customer->id,
-                'name' => $customer->name,
-                'email' => $customer->email ?? fake()->unique()->safeEmail(),
-                'phone' => $customer->phone,
+                'dealer_id' => $dealer->id,
+                'name' => $dealer->name,
+                'email' => $dealer->email ?? fake()->unique()->safeEmail(),
+                'phone' => $dealer->phone,
             ]);
         }
 

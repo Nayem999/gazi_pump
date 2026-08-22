@@ -23,10 +23,10 @@ class Achievement extends Model
 
     protected $fillable = [
         'target_id',
-        'sales_achieved',
+        'order_achieved',
         'collection_achieved',
         'quantity_achieved',
-        'sales_pct',
+        'order_pct',
         'collection_pct',
         'quantity_pct',
         'overall_pct',
@@ -37,10 +37,10 @@ class Achievement extends Model
     protected function casts(): array
     {
         return [
-            'sales_achieved' => 'decimal:2',
+            'order_achieved' => 'decimal:2',
             'collection_achieved' => 'decimal:2',
             'quantity_achieved' => 'integer',
-            'sales_pct' => 'decimal:2',
+            'order_pct' => 'decimal:2',
             'collection_pct' => 'decimal:2',
             'quantity_pct' => 'decimal:2',
             'overall_pct' => 'decimal:2',

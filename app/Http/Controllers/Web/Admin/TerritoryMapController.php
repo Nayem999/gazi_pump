@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Territory;
-use App\Repositories\Contracts\CustomerRepositoryInterface;
+use App\Repositories\Contracts\DealerRepositoryInterface;
 use App\Services\TerritoryMapService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -23,7 +23,7 @@ class TerritoryMapController extends Controller
 {
     public function __construct(
         private readonly TerritoryMapService $territoryMap,
-        private readonly CustomerRepositoryInterface $customers,
+        private readonly DealerRepositoryInterface $dealers,
     ) {}
 
     public function index(Request $request): View
@@ -43,7 +43,7 @@ class TerritoryMapController extends Controller
 
     /**
      * Drill-down payload for one territory: performance summary for the
-     * requested month + a paginated customer list — fetched only when a
+     * requested month + a paginated dealer list — fetched only when a
      * user actually clicks a territory, not for the whole map upfront.
      */
     public function show(Request $request, Territory $territory): JsonResponse
@@ -55,7 +55,7 @@ class TerritoryMapController extends Controller
 
         $performance = $this->territoryMap->performanceFor($territory, $month, $year);
 
-        $customers = $this->customers->paginateWithFilters([
+        $dealers = $this->dealers->paginateWithFilters([
             'territory_id' => $territory->id,
         ], 10);
 
@@ -66,7 +66,7 @@ class TerritoryMapController extends Controller
                 'code' => $territory->code,
                 'managerName' => $territory->manager?->name,
                 'executiveCount' => $performance->executive_count ?? 0,
-                'totalSalesValue' => $performance->total_sales_value ?? 0.0,
+                'totalOrderValue' => $performance->total_order_value ?? 0.0,
                 'totalCollectionAmount' => $performance->total_collection_amount ?? 0.0,
                 'totalVisits' => $performance->total_visits ?? 0,
                 'gpsVerifiedRate' => $performance->gps_verified_rate ?? 0.0,
@@ -74,18 +74,18 @@ class TerritoryMapController extends Controller
                 'grade' => $performance->grade?->value,
                 'gradeLabel' => $performance->grade?->label(),
             ],
-            'customers' => [
-                'data' => $customers->getCollection()->map(fn ($customer) => [
-                    'id' => $customer->id,
-                    'name' => $customer->name,
-                    'code' => $customer->customer_code,
-                    'type' => $customer->type->label(),
-                    'phone' => $customer->phone,
-                    'url' => route('customers.show', $customer),
+            'dealers' => [
+                'data' => $dealers->getCollection()->map(fn ($dealer) => [
+                    'id' => $dealer->id,
+                    'name' => $dealer->name,
+                    'code' => $dealer->dealer_code,
+                    'type' => $dealer->type->label(),
+                    'phone' => $dealer->phone,
+                    'url' => route('dealers.show', $dealer),
                 ]),
-                'currentPage' => $customers->currentPage(),
-                'lastPage' => $customers->lastPage(),
-                'total' => $customers->total(),
+                'currentPage' => $dealers->currentPage(),
+                'lastPage' => $dealers->lastPage(),
+                'total' => $dealers->total(),
             ],
         ]);
     }

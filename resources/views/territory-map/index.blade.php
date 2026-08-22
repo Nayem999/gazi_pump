@@ -163,16 +163,16 @@
 
             function renderDetail(payload) {
                 const t = payload.territory;
-                const c = payload.customers;
+                const c = payload.dealers;
 
                 modalTitle.textContent = `${t.name} (${t.code})`;
 
-                const rows = c.data.map((customer) => `
+                const rows = c.data.map((dealer) => `
                     <tr>
-                        <td><a href="${customer.url}">${customer.name}</a></td>
-                        <td>${customer.code}</td>
-                        <td>${customer.type}</td>
-                        <td>${customer.phone ?? '—'}</td>
+                        <td><a href="${dealer.url}">${dealer.name}</a></td>
+                        <td>${dealer.code}</td>
+                        <td>${dealer.type}</td>
+                        <td>${dealer.phone ?? '—'}</td>
                     </tr>
                 `).join('');
 
@@ -187,8 +187,8 @@
                             <div class="fw-semibold">${t.executiveCount}</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted small">Sales (period)</div>
-                            <div class="fw-semibold">${money(t.totalSalesValue)}</div>
+                            <div class="text-muted small">Orders (period)</div>
+                            <div class="fw-semibold">${money(t.totalOrderValue)}</div>
                         </div>
                         <div class="col-6 col-md-3">
                             <div class="text-muted small">Collections (period)</div>
@@ -207,14 +207,14 @@
                             <div class="fw-semibold">${t.grade ? `${t.grade} (${t.gradeLabel})` : '—'}</div>
                         </div>
                     </div>
-                    <h6 class="mb-2">Customers ${c.total ? `(${c.total})` : ''}</h6>
+                    <h6 class="mb-2">Dealers ${c.total ? `(${c.total})` : ''}</h6>
                     <div class="table-responsive">
                         <table class="table table-sm table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr><th>Name</th><th>Code</th><th>Type</th><th>Phone</th></tr>
                             </thead>
                             <tbody>
-                                ${rows || '<tr><td colspan="4" class="text-center text-muted py-3">No customers in this territory yet.</td></tr>'}
+                                ${rows || '<tr><td colspan="4" class="text-center text-muted py-3">No dealers in this territory yet.</td></tr>'}
                             </tbody>
                         </table>
                     </div>

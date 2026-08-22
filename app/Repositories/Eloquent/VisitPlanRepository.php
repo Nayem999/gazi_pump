@@ -18,10 +18,10 @@ class VisitPlanRepository extends BaseRepository implements VisitPlanRepositoryI
     public function paginateWithFilters(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         return $this->query()
-            ->with(['user', 'customer'])
+            ->with(['user', 'dealer'])
             ->when($filters['search'] ?? null, function ($query, $search) {
-                $query->whereHas('customer', function ($inner) use ($search) {
-                    $inner->where('name', 'like', "%{$search}%")->orWhere('customer_code', 'like', "%{$search}%");
+                $query->whereHas('dealer', function ($inner) use ($search) {
+                    $inner->where('name', 'like', "%{$search}%")->orWhere('dealer_code', 'like', "%{$search}%");
                 });
             })
             ->when($filters['user_id'] ?? null, fn ($query, $userId) => $query->where('user_id', $userId))

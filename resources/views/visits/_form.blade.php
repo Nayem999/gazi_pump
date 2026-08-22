@@ -16,14 +16,14 @@
     </div>
 
     <div class="col-md-6">
-        <label class="form-label">Customer <span class="text-danger">*</span></label>
-        <select name="customer_id" class="form-select @error('customer_id') is-invalid @enderror" required>
-            <option value="">— Select Customer —</option>
-            @foreach ($customers as $customer)
-                <option value="{{ $customer->id }}" @selected((string) old('customer_id', $visit->customer_id ?? '') === (string) $customer->id)>{{ $customer->name }} ({{ $customer->customer_code }})</option>
+        <label class="form-label">Dealer <span class="text-danger">*</span></label>
+        <select name="dealer_id" class="form-select @error('dealer_id') is-invalid @enderror" required>
+            <option value="">— Select Dealer —</option>
+            @foreach ($dealers as $dealer)
+                <option value="{{ $dealer->id }}" @selected((string) old('dealer_id', $visit->dealer_id ?? '') === (string) $dealer->id)>{{ $dealer->name }} ({{ $dealer->dealer_code }})</option>
             @endforeach
         </select>
-        @error('customer_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('dealer_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
     <div class="col-md-6">

@@ -18,14 +18,14 @@ class VisitRepository extends BaseRepository implements VisitRepositoryInterface
     public function paginateWithFilters(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         return $this->query()
-            ->with(['user', 'customer'])
+            ->with(['user', 'dealer'])
             ->when($filters['search'] ?? null, function ($query, $search) {
-                $query->whereHas('customer', function ($inner) use ($search) {
-                    $inner->where('name', 'like', "%{$search}%")->orWhere('customer_code', 'like', "%{$search}%");
+                $query->whereHas('dealer', function ($inner) use ($search) {
+                    $inner->where('name', 'like', "%{$search}%")->orWhere('dealer_code', 'like', "%{$search}%");
                 });
             })
             ->when($filters['user_id'] ?? null, fn ($query, $userId) => $query->where('user_id', $userId))
-            ->when($filters['customer_id'] ?? null, fn ($query, $customerId) => $query->where('customer_id', $customerId))
+            ->when($filters['dealer_id'] ?? null, fn ($query, $dealerId) => $query->where('dealer_id', $dealerId))
             ->when($filters['date_from'] ?? null, fn ($query, $date) => $query->whereDate('check_in_at', '>=', $date))
             ->when($filters['date_to'] ?? null, fn ($query, $date) => $query->whereDate('check_in_at', '<=', $date))
             ->when($filters['trashed'] ?? null, function ($query, $trashed) {

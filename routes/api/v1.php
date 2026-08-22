@@ -6,12 +6,12 @@ use App\Helpers\ApiResponse;
 use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CollectionEntryController;
-use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\DealerController;
 use App\Http\Controllers\Api\V1\GpsLogController;
 use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\OrgStructureController;
 use App\Http\Controllers\Api\V1\ProductController;
-use App\Http\Controllers\Api\V1\SalesEntryController;
 use App\Http\Controllers\Api\V1\TargetController;
 use App\Http\Controllers\Api\V1\VisitController;
 use App\Http\Controllers\Api\V1\VisitPlanController;
@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Route;
 | API v1 Routes
 |--------------------------------------------------------------------------
 | Each module appends its own route group here as it is built
-| (Users, Customers, Products, Attendance, GPS, Visits, Sales,
+| (Users, Dealers, Products, Attendance, GPS, Visits, Orders,
 | Collections, Targets, Reports, ...). All routes are versioned under
 | /api/v1 and, from Module 1 onward, protected by the `auth:sanctum`
 | middleware plus Spatie API permissions.
@@ -39,9 +39,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
     Route::get('/sales-teams', [OrgStructureController::class, 'salesTeams']);
     Route::get('/territories', [OrgStructureController::class, 'territories']);
 
-    Route::get('/customers', [CustomerController::class, 'index']);
-    Route::post('/customers', [CustomerController::class, 'store']);
-    Route::get('/customers/{customer}', [CustomerController::class, 'show']);
+    Route::get('/dealers', [DealerController::class, 'index']);
+    Route::post('/dealers', [DealerController::class, 'store']);
+    Route::get('/dealers/{dealer}', [DealerController::class, 'show']);
 
     Route::get('/products', [ProductController::class, 'index']);
     Route::get('/products/{product}', [ProductController::class, 'show']);
@@ -62,8 +62,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
     Route::get('/visits/current', [VisitController::class, 'current']);
     Route::get('/visits/history', [VisitController::class, 'history']);
 
-    Route::post('/sales-entries', [SalesEntryController::class, 'store']);
-    Route::get('/sales-entries', [SalesEntryController::class, 'index']);
+    Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/orders', [OrderController::class, 'index']);
 
     Route::post('/collection-entries', [CollectionEntryController::class, 'store']);
     Route::get('/collection-entries', [CollectionEntryController::class, 'index']);

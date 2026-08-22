@@ -28,7 +28,7 @@ class ExecutivePerformanceExport implements FromCollection, WithHeadings, WithMa
     {
         return [
             'Executive', 'Territory', 'Attendance Rate %', 'Visit Completion Rate %',
-            'GPS Verified Rate %', 'Total Sales Value', 'Total Collection Amount',
+            'GPS Verified Rate %', 'Total Order Value', 'Total Collection Amount',
             'Overall Achievement %', 'Grade',
         ];
     }
@@ -44,7 +44,7 @@ class ExecutivePerformanceExport implements FromCollection, WithHeadings, WithMa
             (string) $row->attendance_rate,
             (string) $row->visit_completion_rate,
             (string) $row->gps_verified_rate,
-            (string) $row->total_sales_value,
+            (string) $row->total_order_value,
             (string) $row->total_collection_amount,
             (string) $row->overall_achievement_pct,
             $row->grade?->value,

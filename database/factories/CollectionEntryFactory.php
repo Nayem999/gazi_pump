@@ -6,7 +6,7 @@ namespace Database\Factories;
 
 use App\Enums\PaymentMethod;
 use App\Models\CollectionEntry;
-use App\Models\Customer;
+use App\Models\Dealer;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Carbon;
@@ -25,7 +25,7 @@ class CollectionEntryFactory extends Factory
 
         return [
             'user_id' => User::factory(),
-            'customer_id' => Customer::factory(),
+            'dealer_id' => Dealer::factory(),
             'collection_date' => Carbon::today()->toDateString(),
             'amount' => fake()->randomFloat(2, 500, 20000),
             'payment_method' => $method,

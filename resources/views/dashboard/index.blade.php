@@ -15,7 +15,7 @@
             <x-stat-card icon="ti-id-badge-2" label="Sales Executives" value="{{ $salesExecutiveCount }}" color="success" />
         </div>
         <div class="col-6 col-lg-3">
-            <x-stat-card icon="ti-building-store" label="Customers" value="{{ $customerCount }}" color="info" />
+            <x-stat-card icon="ti-building-store" label="Dealers" value="{{ $dealerCount }}" color="info" />
         </div>
         <div class="col-6 col-lg-3">
             <x-stat-card icon="ti-map-pin" label="Territories" value="{{ $territoryCount }}" color="warning" />

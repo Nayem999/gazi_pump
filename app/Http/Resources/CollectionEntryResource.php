@@ -21,10 +21,10 @@ class CollectionEntryResource extends JsonResource
         return [
             'id' => $this->id,
             'collection_date' => $this->collection_date->toDateString(),
-            'customer' => $this->whenLoaded('customer', fn () => $this->customer ? [
-                'id' => $this->customer->id,
-                'name' => $this->customer->name,
-                'customer_code' => $this->customer->customer_code,
+            'dealer' => $this->whenLoaded('dealer', fn () => $this->dealer ? [
+                'id' => $this->dealer->id,
+                'name' => $this->dealer->name,
+                'dealer_code' => $this->dealer->dealer_code,
             ] : null),
             'amount' => (float) $this->amount,
             'payment_method' => $this->payment_method->value,

@@ -6,7 +6,7 @@ namespace App\Services;
 
 use App\Enums\PaymentMethod;
 use App\Models\CollectionEntry;
-use App\Models\SalesEntry;
+use App\Models\Order;
 use App\Models\User;
 use App\Repositories\Contracts\CollectionEntryRepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -22,7 +22,7 @@ class CollectionEntryService extends BaseCrudService
     }
 
     /**
-     * @param  array{search?: string, user_id?: string, customer_id?: string, payment_method?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
+     * @param  array{search?: string, user_id?: string, dealer_id?: string, payment_method?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
      */
     public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
     {
@@ -34,7 +34,7 @@ class CollectionEntryService extends BaseCrudService
      */
     public function create(array $data): Model
     {
-        $this->validateAmount((int) $data['customer_id'], (float) $data['amount']);
+        $this->validateAmount((int) $data['dealer_id'], (float) $data['amount']);
 
         return parent::create($data);
     }
@@ -44,7 +44,7 @@ class CollectionEntryService extends BaseCrudService
      */
     public function update(Model $model, array $data): Model
     {
-        $this->validateAmount((int) $data['customer_id'], (float) $data['amount'], excludeCollectionId: $model->id);
+        $this->validateAmount((int) $data['dealer_id'], (float) $data['amount'], excludeCollectionId: $model->id);
 
         return parent::update($model, $data);
     }
@@ -55,7 +55,7 @@ class CollectionEntryService extends BaseCrudService
      */
     public function recordCollection(
         User $user,
-        int $customerId,
+        int $dealerId,
         float $amount,
         PaymentMethod $paymentMethod,
         ?string $referenceNo,
@@ -65,7 +65,7 @@ class CollectionEntryService extends BaseCrudService
         /** @var CollectionEntry $entry */
         $entry = $this->create([
             'user_id' => $user->id,
-            'customer_id' => $customerId,
+            'dealer_id' => $dealerId,
             'collection_date' => $collectionDate ?? Carbon::today()->toDateString(),
             'amount' => $amount,
             'payment_method' => $paymentMethod->value,
@@ -77,36 +77,36 @@ class CollectionEntryService extends BaseCrudService
     }
 
     /**
-     * Total sold to the customer minus total already collected from them —
+     * Total sold to the dealer minus total already collected from them —
      * excluding a given collection's own amount, so editing an existing
      * entry doesn't double-count it against itself.
      */
-    public function outstandingBalance(int $customerId, ?int $excludeCollectionId = null): float
+    public function outstandingBalance(int $dealerId, ?int $excludeCollectionId = null): float
     {
-        $salesTotal = (float) SalesEntry::where('customer_id', $customerId)->sum('total_amount');
+        $ordersTotal = (float) Order::where('dealer_id', $dealerId)->sum('total_amount');
 
-        $collectedTotal = (float) CollectionEntry::where('customer_id', $customerId)
+        $collectedTotal = (float) CollectionEntry::where('dealer_id', $dealerId)
             ->when($excludeCollectionId, fn ($query, $id) => $query->where('id', '!=', $id))
             ->sum('amount');
 
-        return $salesTotal - $collectedTotal;
+        return $ordersTotal - $collectedTotal;
     }
 
     /**
      * A collection may exceed the outstanding balance by up to the
      * configured tolerance — field collections sometimes round up — but
      * anything further is rejected outright rather than silently accepted,
-     * since it almost always means the wrong customer or amount was entered.
+     * since it almost always means the wrong dealer or amount was entered.
      */
-    private function validateAmount(int $customerId, float $amount, ?int $excludeCollectionId = null): void
+    private function validateAmount(int $dealerId, float $amount, ?int $excludeCollectionId = null): void
     {
-        $balance = $this->outstandingBalance($customerId, $excludeCollectionId);
+        $balance = $this->outstandingBalance($dealerId, $excludeCollectionId);
         $tolerancePercent = (float) config('sfa.collections.overpayment_tolerance_percent');
         $maxAllowed = round(max($balance, 0) * (1 + $tolerancePercent / 100), 2);
 
         if ($amount > $maxAllowed) {
             throw ValidationException::withMessages([
-                'amount' => "Amount exceeds the customer's outstanding balance (".number_format(max($balance, 0), 2).") by more than the {$tolerancePercent}% tolerance (max ".number_format($maxAllowed, 2).').',
+                'amount' => "Amount exceeds the dealer's outstanding balance (".number_format(max($balance, 0), 2).") by more than the {$tolerancePercent}% tolerance (max ".number_format($maxAllowed, 2).').',
             ]);
         }
     }

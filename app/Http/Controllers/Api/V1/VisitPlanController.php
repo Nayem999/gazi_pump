@@ -17,7 +17,7 @@ use OpenApi\Attributes as OA;
 
 /**
  * Self-service daily planning for the mobile app: a Sales Executive plans
- * which customers to visit and pulls back their own plan list. Cross-rep
+ * which dealers to visit and pulls back their own plan list. Cross-rep
  * planning/assignment is an Admin Dashboard concern (Module 7 web CRUD).
  */
 class VisitPlanController extends Controller
@@ -27,14 +27,14 @@ class VisitPlanController extends Controller
     #[OA\Post(
         path: '/visit-plans',
         tags: ['Visit Plans'],
-        summary: 'Plan a visit to a customer for a given date',
+        summary: 'Plan a visit to a dealer for a given date',
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['customer_id', 'planned_date'],
+                required: ['dealer_id', 'planned_date'],
                 properties: [
-                    new OA\Property(property: 'customer_id', type: 'integer'),
+                    new OA\Property(property: 'dealer_id', type: 'integer'),
                     new OA\Property(property: 'planned_date', type: 'string', format: 'date'),
                     new OA\Property(property: 'notes', type: 'string', nullable: true),
                 ],
@@ -70,7 +70,7 @@ class VisitPlanController extends Controller
     )]
     public function index(Request $request): JsonResponse
     {
-        $query = VisitPlan::where('user_id', $request->user()->id)->with('customer');
+        $query = VisitPlan::where('user_id', $request->user()->id)->with('dealer');
 
         if ($request->filled('date_from')) {
             $query->whereDate('planned_date', '>=', $request->string('date_from'));

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Api;
 
-use App\Models\Customer;
+use App\Models\Dealer;
 use App\Models\User;
 use App\Models\VisitPlan;
 use Database\Seeders\RolePermissionSeeder;
@@ -44,11 +44,11 @@ class VisitPlanTest extends TestCase
     public function test_sales_executive_can_plan_a_visit(): void
     {
         $executive = $this->executive();
-        $customer = Customer::factory()->create();
+        $dealer = Dealer::factory()->create();
 
         $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
             ->postJson('/api/v1/visit-plans', [
-                'customer_id' => $customer->id,
+                'dealer_id' => $dealer->id,
                 'planned_date' => Carbon::tomorrow()->toDateString(),
                 'notes' => 'Follow up on last order.',
             ]);
@@ -57,7 +57,7 @@ class VisitPlanTest extends TestCase
 
         $this->assertDatabaseHas('visit_plans', [
             'user_id' => $executive->id,
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'status' => 'planned',
         ]);
     }
@@ -65,10 +65,10 @@ class VisitPlanTest extends TestCase
     public function test_planned_date_is_required(): void
     {
         $executive = $this->executive();
-        $customer = Customer::factory()->create();
+        $dealer = Dealer::factory()->create();
 
         $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
-            ->postJson('/api/v1/visit-plans', ['customer_id' => $customer->id])
+            ->postJson('/api/v1/visit-plans', ['dealer_id' => $dealer->id])
             ->assertStatus(422)
             ->assertJsonPath('success', false);
     }

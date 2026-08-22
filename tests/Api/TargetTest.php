@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Api;
 
 use App\Actions\CalculateAchievementAction;
-use App\Models\SalesEntry;
+use App\Models\Order;
 use App\Models\Target;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -60,16 +60,16 @@ class TargetTest extends TestCase
             'user_id' => $executive->id,
             'month' => $today->month,
             'year' => $today->year,
-            'sales_value_target' => 1000,
+            'order_value_target' => 1000,
         ]);
-        SalesEntry::factory()->create(['user_id' => $executive->id, 'sale_date' => $today->toDateString(), 'total_amount' => 500]);
+        Order::factory()->create(['user_id' => $executive->id, 'order_date' => $today->toDateString(), 'total_amount' => 500]);
 
         app(CalculateAchievementAction::class)($target);
 
         $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
             ->getJson('/api/v1/targets/current');
 
-        $response->assertOk()->assertJsonPath('data.achievement.sales_pct', 50);
+        $response->assertOk()->assertJsonPath('data.achievement.order_pct', 50);
     }
 
     public function test_index_only_returns_the_authenticated_users_own_targets(): void

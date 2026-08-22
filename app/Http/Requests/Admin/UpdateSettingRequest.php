@@ -33,7 +33,7 @@ class UpdateSettingRequest extends FormRequest
 
             'visit_gps_radius_meters' => ['required', 'integer', 'min:10', 'max:5000'],
 
-            'sales_max_discount_percent' => ['required', 'numeric', 'min:0', 'max:100'],
+            'order_max_discount_percent' => ['required', 'numeric', 'min:0', 'max:100'],
 
             'collection_overpayment_tolerance_percent' => ['required', 'numeric', 'min:0', 'max:100'],
 

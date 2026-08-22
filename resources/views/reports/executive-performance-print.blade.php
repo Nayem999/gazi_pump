@@ -24,7 +24,7 @@
                 <th>Attendance</th>
                 <th>Visit Completion</th>
                 <th>GPS Verified</th>
-                <th>Sales Value</th>
+                <th>Order Value</th>
                 <th>Collections</th>
                 <th>Overall Achievement</th>
                 <th>Grade</th>
@@ -38,7 +38,7 @@
                     <td>{{ $row->attendance_rate }}%</td>
                     <td>{{ $row->visit_completion_rate }}%</td>
                     <td>{{ $row->gps_verified_rate }}%</td>
-                    <td>{{ number_format($row->total_sales_value, 2) }}</td>
+                    <td>{{ number_format($row->total_order_value, 2) }}</td>
                     <td>{{ number_format($row->total_collection_amount, 2) }}</td>
                     <td>{{ $row->overall_achievement_pct }}%</td>
                     <td>{{ $row->grade?->label() }}</td>

@@ -43,13 +43,13 @@
     </a>
 @endcan
 
-@canany(['customers.view'])
-    <div class="nav-section-title">Customer Management</div>
+@canany(['dealers.view'])
+    <div class="nav-section-title">Dealer Management</div>
 @endcanany
 
-@can('menu.customers')
-    <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'active' : '' }}">
-        <i class="ti ti-building-store icon-cyan"></i> Customers
+@can('menu.dealers')
+    <a href="{{ route('dealers.index') }}" class="nav-link {{ request()->routeIs('dealers.*') ? 'active' : '' }}">
+        <i class="ti ti-building-store icon-cyan"></i> Dealers
     </a>
 @endcan
 
@@ -99,17 +99,17 @@
 
 @can('menu.visits')
     <a href="{{ route('visits.index') }}" class="nav-link {{ request()->routeIs('visits.*') ? 'active' : '' }}">
-        <i class="ti ti-walk icon-teal"></i> Customer Visits
+        <i class="ti ti-walk icon-teal"></i> Dealer Visits
     </a>
 @endcan
 
-@canany(['menu.sales-entries', 'menu.collection-entries'])
-    <div class="nav-section-title">Sales Operations</div>
+@canany(['menu.orders', 'menu.collection-entries'])
+    <div class="nav-section-title">Order Operations</div>
 @endcanany
 
-@can('menu.sales-entries')
-    <a href="{{ route('sales-entries.index') }}" class="nav-link {{ request()->routeIs('sales-entries.*') ? 'active' : '' }}">
-        <i class="ti ti-receipt icon-green"></i> Sales Entry
+@can('menu.orders')
+    <a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}">
+        <i class="ti ti-receipt icon-green"></i> Orders
     </a>
 @endcan
 
@@ -129,7 +129,7 @@
     </a>
 @endcan
 
-@canany(['report.attendance', 'report.visits', 'report.sales', 'report.collections', 'report.territories'])
+@canany(['report.attendance', 'report.visits', 'report.order-performance', 'report.collections', 'report.territories'])
     <div class="nav-section-title">Reports</div>
 
     <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">

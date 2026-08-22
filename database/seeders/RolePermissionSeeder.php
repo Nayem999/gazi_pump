@@ -35,12 +35,12 @@ class RolePermissionSeeder extends Seeder
     private const REPORTS = [
         'attendance',
         'visits',
-        'sales',
+        'order-performance',
         'collections',
         'territories',
         'target-achievement',
         'executive-performance',
-        'customer-coverage',
+        'dealer-coverage',
         'gps',
     ];
 
@@ -58,8 +58,8 @@ class RolePermissionSeeder extends Seeder
         $this->createModulePermissions('permissions', withApi: false);
         $this->createModulePermissions('sales-teams');
         $this->createModulePermissions('territories');
-        $this->createModulePermissions('customers');
-        Permission::firstOrCreate(['name' => PermissionName::api('customers', ButtonAction::Add), 'guard_name' => 'web']);
+        $this->createModulePermissions('dealers');
+        Permission::firstOrCreate(['name' => PermissionName::api('dealers', ButtonAction::Add), 'guard_name' => 'web']);
         $this->createModulePermissions('product-categories');
         $this->createModulePermissions('products');
         $this->createModulePermissions('attendance');
@@ -70,8 +70,8 @@ class RolePermissionSeeder extends Seeder
         Permission::firstOrCreate(['name' => PermissionName::api('visit-plans', ButtonAction::Add), 'guard_name' => 'web']);
         $this->createModulePermissions('visits');
         Permission::firstOrCreate(['name' => PermissionName::api('visits', ButtonAction::Add), 'guard_name' => 'web']);
-        $this->createModulePermissions('sales-entries');
-        Permission::firstOrCreate(['name' => PermissionName::api('sales-entries', ButtonAction::Add), 'guard_name' => 'web']);
+        $this->createModulePermissions('orders');
+        Permission::firstOrCreate(['name' => PermissionName::api('orders', ButtonAction::Add), 'guard_name' => 'web']);
         $this->createModulePermissions('collection-entries');
         Permission::firstOrCreate(['name' => PermissionName::api('collection-entries', ButtonAction::Add), 'guard_name' => 'web']);
         $this->createModulePermissions('targets');
@@ -137,7 +137,7 @@ class RolePermissionSeeder extends Seeder
 
         $productModules = ['product-categories', 'products'];
 
-        foreach ([...$orgModules, 'customers', ...$productModules] as $module) {
+        foreach ([...$orgModules, 'dealers', ...$productModules] as $module) {
             $generalManagerPermissions[] = PermissionName::menu($module);
             $generalManagerPermissions[] = PermissionName::button($module, ButtonAction::View);
             $generalManagerPermissions[] = PermissionName::button($module, ButtonAction::Add);
@@ -173,12 +173,12 @@ class RolePermissionSeeder extends Seeder
             $generalManagerPermissions[] = PermissionName::button($module, ButtonAction::Print);
         }
 
-        $generalManagerPermissions[] = PermissionName::menu('sales-entries');
-        $generalManagerPermissions[] = PermissionName::button('sales-entries', ButtonAction::View);
-        $generalManagerPermissions[] = PermissionName::button('sales-entries', ButtonAction::Add);
-        $generalManagerPermissions[] = PermissionName::button('sales-entries', ButtonAction::Edit);
-        $generalManagerPermissions[] = PermissionName::button('sales-entries', ButtonAction::Export);
-        $generalManagerPermissions[] = PermissionName::button('sales-entries', ButtonAction::Print);
+        $generalManagerPermissions[] = PermissionName::menu('orders');
+        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::View);
+        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Add);
+        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Edit);
+        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Export);
+        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Print);
 
         $generalManagerPermissions[] = PermissionName::menu('collection-entries');
         $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::View);
@@ -243,10 +243,10 @@ class RolePermissionSeeder extends Seeder
                 PermissionName::menu('dashboard'),
                 PermissionName::menu('users'),
                 PermissionName::button('users', ButtonAction::View),
-                PermissionName::menu('customers'),
-                PermissionName::button('customers', ButtonAction::View),
-                PermissionName::button('customers', ButtonAction::Add),
-                PermissionName::button('customers', ButtonAction::Edit),
+                PermissionName::menu('dealers'),
+                PermissionName::button('dealers', ButtonAction::View),
+                PermissionName::button('dealers', ButtonAction::Add),
+                PermissionName::button('dealers', ButtonAction::Edit),
                 PermissionName::menu('attendance'),
                 PermissionName::button('attendance', ButtonAction::View),
                 PermissionName::button('attendance', ButtonAction::Export),
@@ -267,10 +267,10 @@ class RolePermissionSeeder extends Seeder
                 PermissionName::button('visits', ButtonAction::View),
                 PermissionName::button('visits', ButtonAction::Export),
                 PermissionName::button('visits', ButtonAction::Print),
-                PermissionName::menu('sales-entries'),
-                PermissionName::button('sales-entries', ButtonAction::View),
-                PermissionName::button('sales-entries', ButtonAction::Export),
-                PermissionName::button('sales-entries', ButtonAction::Print),
+                PermissionName::menu('orders'),
+                PermissionName::button('orders', ButtonAction::View),
+                PermissionName::button('orders', ButtonAction::Export),
+                PermissionName::button('orders', ButtonAction::Print),
                 PermissionName::menu('collection-entries'),
                 PermissionName::button('collection-entries', ButtonAction::View),
                 PermissionName::button('collection-entries', ButtonAction::Export),
@@ -306,11 +306,11 @@ class RolePermissionSeeder extends Seeder
 
         $salesExecutivePermissions = [
             PermissionName::menu('dashboard'),
-            PermissionName::menu('customers'),
-            PermissionName::button('customers', ButtonAction::View),
-            PermissionName::button('customers', ButtonAction::Add),
-            PermissionName::api('customers', ButtonAction::View),
-            PermissionName::api('customers', ButtonAction::Add),
+            PermissionName::menu('dealers'),
+            PermissionName::button('dealers', ButtonAction::View),
+            PermissionName::button('dealers', ButtonAction::Add),
+            PermissionName::api('dealers', ButtonAction::View),
+            PermissionName::api('dealers', ButtonAction::Add),
             PermissionName::api('attendance', ButtonAction::View),
             PermissionName::api('attendance', ButtonAction::Add),
             PermissionName::api('gps-logs', ButtonAction::View),
@@ -319,8 +319,8 @@ class RolePermissionSeeder extends Seeder
             PermissionName::api('visit-plans', ButtonAction::Add),
             PermissionName::api('visits', ButtonAction::View),
             PermissionName::api('visits', ButtonAction::Add),
-            PermissionName::api('sales-entries', ButtonAction::View),
-            PermissionName::api('sales-entries', ButtonAction::Add),
+            PermissionName::api('orders', ButtonAction::View),
+            PermissionName::api('orders', ButtonAction::Add),
             PermissionName::api('collection-entries', ButtonAction::View),
             PermissionName::api('collection-entries', ButtonAction::Add),
             PermissionName::api('targets', ButtonAction::View),

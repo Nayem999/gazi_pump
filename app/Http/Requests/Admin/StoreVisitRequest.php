@@ -27,7 +27,7 @@ class StoreVisitRequest extends FormRequest
     {
         return [
             'user_id' => ['required', 'integer', Rule::exists('users', 'id')],
-            'customer_id' => ['required', 'integer', Rule::exists('customers', 'id')],
+            'dealer_id' => ['required', 'integer', Rule::exists('dealers', 'id')],
             'visit_plan_id' => ['nullable', 'integer', Rule::exists('visit_plans', 'id')],
             'check_in_at' => ['required', 'date'],
             'check_out_at' => ['nullable', 'date', 'after:check_in_at'],

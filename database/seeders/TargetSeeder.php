@@ -12,7 +12,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * Assigns a current-month and previous-month target to every Sales
- * Executive — SalesEntrySeeder/CollectionEntrySeeder backfill the last 30
+ * Executive — OrderSeeder/CollectionEntrySeeder backfill the last 30
  * days, which typically spans both calendar months, so both targets get a
  * real, non-zero achievement computed immediately (no queue worker needed
  * for the demo data to look right after a fresh seed).
@@ -38,7 +38,7 @@ class TargetSeeder extends Seeder
                     // believable spread of grades rather than the low
                     // thousands-percent overachievement a small target
                     // would produce against real seeded sales volume.
-                    'sales_value_target' => fake()->randomFloat(2, 10000000, 40000000),
+                    'order_value_target' => fake()->randomFloat(2, 10000000, 40000000),
                     'collection_target' => fake()->randomFloat(2, 10000000, 40000000),
                     'quantity_target' => fake()->numberBetween(500, 2000),
                 ]);

@@ -21,8 +21,8 @@
             <tr>
                 <th>Executive</th>
                 <th>Period</th>
-                <th>Sales Target</th>
-                <th>Sales %</th>
+                <th>Order Target</th>
+                <th>Order %</th>
                 <th>Collection Target</th>
                 <th>Collection %</th>
                 <th>Qty Target</th>
@@ -36,8 +36,8 @@
                 <tr>
                     <td>{{ $target->user?->name }}</td>
                     <td>{{ $target->periodLabel() }}</td>
-                    <td>{{ number_format((float) $target->sales_value_target, 2) }}</td>
-                    <td>{{ $target->achievement ? number_format((float) $target->achievement->sales_pct, 1).'%' : '—' }}</td>
+                    <td>{{ number_format((float) $target->order_value_target, 2) }}</td>
+                    <td>{{ $target->achievement ? number_format((float) $target->achievement->order_pct, 1).'%' : '—' }}</td>
                     <td>{{ number_format((float) $target->collection_target, 2) }}</td>
                     <td>{{ $target->achievement ? number_format((float) $target->achievement->collection_pct, 1).'%' : '—' }}</td>
                     <td>{{ $target->quantity_target }}</td>

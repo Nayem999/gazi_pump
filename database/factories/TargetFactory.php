@@ -23,7 +23,7 @@ class TargetFactory extends Factory
             'user_id' => User::factory(),
             'month' => Carbon::now()->month,
             'year' => Carbon::now()->year,
-            'sales_value_target' => fake()->randomFloat(2, 500000, 2000000),
+            'order_value_target' => fake()->randomFloat(2, 500000, 2000000),
             'collection_target' => fake()->randomFloat(2, 300000, 1500000),
             'quantity_target' => fake()->numberBetween(50, 300),
             'notes' => fake()->optional()->sentence(),

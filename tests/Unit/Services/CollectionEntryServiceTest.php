@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use App\Models\Customer;
-use App\Models\SalesEntry;
+use App\Models\Dealer;
+use App\Models\Order;
 use App\Models\User;
 use App\Services\CollectionEntryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,28 +23,28 @@ class CollectionEntryServiceTest extends TestCase
 
     public function test_outstanding_balance_is_total_sold_minus_total_collected(): void
     {
-        $customer = Customer::factory()->create();
-        SalesEntry::factory()->create(['customer_id' => $customer->id, 'total_amount' => 1000]);
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $this->assertSame(1000.0, $this->service()->outstandingBalance($customer->id));
+        $this->assertSame(1000.0, $this->service()->outstandingBalance($dealer->id));
     }
 
-    public function test_a_customer_with_no_sales_has_zero_outstanding_balance(): void
+    public function test_a_dealer_with_no_sales_has_zero_outstanding_balance(): void
     {
-        $customer = Customer::factory()->create();
+        $dealer = Dealer::factory()->create();
 
-        $this->assertSame(0.0, $this->service()->outstandingBalance($customer->id));
+        $this->assertSame(0.0, $this->service()->outstandingBalance($dealer->id));
     }
 
     public function test_a_collection_within_the_outstanding_balance_is_allowed(): void
     {
         config(['sfa.collections.overpayment_tolerance_percent' => 10]);
-        $customer = Customer::factory()->create();
-        SalesEntry::factory()->create(['customer_id' => $customer->id, 'total_amount' => 1000]);
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
         $entry = $this->service()->create([
             'user_id' => User::factory()->create()->id,
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'collection_date' => now()->toDateString(),
             'amount' => 1000,
             'payment_method' => 'cash',
@@ -56,12 +56,12 @@ class CollectionEntryServiceTest extends TestCase
     public function test_a_collection_within_the_overpayment_tolerance_is_allowed(): void
     {
         config(['sfa.collections.overpayment_tolerance_percent' => 10]);
-        $customer = Customer::factory()->create();
-        SalesEntry::factory()->create(['customer_id' => $customer->id, 'total_amount' => 1000]);
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
         $entry = $this->service()->create([
             'user_id' => User::factory()->create()->id,
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'collection_date' => now()->toDateString(),
             'amount' => 1100,
             'payment_method' => 'cash',
@@ -73,29 +73,29 @@ class CollectionEntryServiceTest extends TestCase
     public function test_a_collection_beyond_the_overpayment_tolerance_is_rejected(): void
     {
         config(['sfa.collections.overpayment_tolerance_percent' => 10]);
-        $customer = Customer::factory()->create();
-        SalesEntry::factory()->create(['customer_id' => $customer->id, 'total_amount' => 1000]);
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
         $this->expectException(ValidationException::class);
 
         $this->service()->create([
             'user_id' => User::factory()->create()->id,
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'collection_date' => now()->toDateString(),
             'amount' => 1101,
             'payment_method' => 'cash',
         ]);
     }
 
-    public function test_a_collection_against_a_customer_with_no_outstanding_balance_is_rejected(): void
+    public function test_a_collection_against_a_dealer_with_no_outstanding_balance_is_rejected(): void
     {
-        $customer = Customer::factory()->create();
+        $dealer = Dealer::factory()->create();
 
         $this->expectException(ValidationException::class);
 
         $this->service()->create([
             'user_id' => User::factory()->create()->id,
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'collection_date' => now()->toDateString(),
             'amount' => 100,
             'payment_method' => 'cash',
@@ -105,12 +105,12 @@ class CollectionEntryServiceTest extends TestCase
     public function test_updating_an_entry_excludes_its_own_amount_from_the_outstanding_balance_calculation(): void
     {
         config(['sfa.collections.overpayment_tolerance_percent' => 10]);
-        $customer = Customer::factory()->create();
-        SalesEntry::factory()->create(['customer_id' => $customer->id, 'total_amount' => 1000]);
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
         $entry = $this->service()->create([
             'user_id' => User::factory()->create()->id,
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'collection_date' => now()->toDateString(),
             'amount' => 600,
             'payment_method' => 'cash',
@@ -121,7 +121,7 @@ class CollectionEntryServiceTest extends TestCase
         // 1000 - 0 (itself excluded) = 1000 outstanding, well within range.
         $updated = $this->service()->update($entry, [
             'user_id' => $entry->user_id,
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'collection_date' => now()->toDateString(),
             'amount' => 900,
             'payment_method' => 'cash',

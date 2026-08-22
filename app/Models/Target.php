@@ -19,7 +19,7 @@ class Target extends BaseModel
         'user_id',
         'month',
         'year',
-        'sales_value_target',
+        'order_value_target',
         'collection_target',
         'quantity_target',
         'notes',
@@ -30,7 +30,7 @@ class Target extends BaseModel
         return [
             'month' => 'integer',
             'year' => 'integer',
-            'sales_value_target' => 'decimal:2',
+            'order_value_target' => 'decimal:2',
             'collection_target' => 'decimal:2',
             'quantity_target' => 'integer',
         ];

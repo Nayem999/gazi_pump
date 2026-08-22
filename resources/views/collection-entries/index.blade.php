@@ -10,7 +10,7 @@
     <x-filter-bar :action="route('collection-entries.index')">
         <div class="col-md-3">
             <label class="form-label">Search</label>
-            <input type="text" name="search" class="form-control" placeholder="Customer name or code..." value="{{ $filters['search'] ?? '' }}">
+            <input type="text" name="search" class="form-control" placeholder="Dealer name or code..." value="{{ $filters['search'] ?? '' }}">
         </div>
         <div class="col-md-2">
             <label class="form-label">Executive</label>
@@ -56,7 +56,7 @@
                 <tr>
                     <th style="width:2rem"><input type="checkbox" id="selectAll" class="form-check-input"></th>
                     <th>Executive</th>
-                    <th>Customer</th>
+                    <th>Dealer</th>
                     <th>Collection Date</th>
                     <th>Amount</th>
                     <th>Method</th>
@@ -76,8 +76,8 @@
                         <div class="text-muted small">{{ $collectionEntry->user?->employee_id }}</div>
                     </td>
                     <td>
-                        {{ $collectionEntry->customer?->name }}
-                        <div class="text-muted small">{{ $collectionEntry->customer?->customer_code }}</div>
+                        {{ $collectionEntry->dealer?->name }}
+                        <div class="text-muted small">{{ $collectionEntry->dealer?->dealer_code }}</div>
                     </td>
                     <td>{{ $collectionEntry->collection_date->format('M d, Y') }}</td>
                     <td>{{ number_format((float) $collectionEntry->amount, 2) }}</td>
@@ -130,7 +130,7 @@
                         <x-item-card
                             icon="ti-cash"
                             icon-color="success"
-                            :title="$collectionEntry->customer?->name"
+                            :title="$collectionEntry->dealer?->name"
                             :subtitle="$collectionEntry->payment_method->label()"
                             :status-label="$collectionEntry->trashed() ? 'Trashed' : null"
                             status-color="danger"
@@ -195,7 +195,7 @@
                 <div class="mb-3">
                     <label class="form-label">Excel/CSV File</label>
                     <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.csv" required>
-                    <div class="form-text">Columns: employee_id, customer_code, collection_date, amount, payment_method, reference_no, remarks.</div>
+                    <div class="form-text">Columns: employee_id, dealer_code, collection_date, amount, payment_method, reference_no, remarks.</div>
                 </div>
             </form>
             <x-slot:footer>

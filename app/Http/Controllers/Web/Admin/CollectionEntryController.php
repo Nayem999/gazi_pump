@@ -11,7 +11,7 @@ use App\Http\Requests\Admin\StoreCollectionEntryRequest;
 use App\Http\Requests\Admin\UpdateCollectionEntryRequest;
 use App\Imports\CollectionEntriesImport;
 use App\Models\CollectionEntry;
-use App\Models\Customer;
+use App\Models\Dealer;
 use App\Models\User;
 use App\Services\CollectionEntryService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -29,10 +29,10 @@ class CollectionEntryController extends Controller
         $this->authorize('viewAny', CollectionEntry::class);
 
         return view('collection-entries.index', [
-            'collectionEntries' => $this->collectionEntries->paginate($request->only(['search', 'user_id', 'customer_id', 'payment_method', 'date_from', 'date_to', 'trashed']), 15),
+            'collectionEntries' => $this->collectionEntries->paginate($request->only(['search', 'user_id', 'dealer_id', 'payment_method', 'date_from', 'date_to', 'trashed']), 15),
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
             'paymentMethods' => PaymentMethod::cases(),
-            'filters' => $request->only(['search', 'user_id', 'customer_id', 'payment_method', 'date_from', 'date_to', 'trashed']),
+            'filters' => $request->only(['search', 'user_id', 'dealer_id', 'payment_method', 'date_from', 'date_to', 'trashed']),
         ]);
     }
 
@@ -42,7 +42,7 @@ class CollectionEntryController extends Controller
 
         return view('collection-entries.create', [
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
-            'customers' => Customer::orderBy('name')->get(),
+            'dealers' => Dealer::orderBy('name')->get(),
             'paymentMethods' => PaymentMethod::cases(),
             'outstandingBalances' => $this->outstandingBalances(),
         ]);
@@ -62,7 +62,7 @@ class CollectionEntryController extends Controller
         return view('collection-entries.edit', [
             'collectionEntry' => $collectionEntry,
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
-            'customers' => Customer::orderBy('name')->get(),
+            'dealers' => Dealer::orderBy('name')->get(),
             'paymentMethods' => PaymentMethod::cases(),
             'outstandingBalances' => $this->outstandingBalances(),
         ]);
@@ -130,7 +130,7 @@ class CollectionEntryController extends Controller
     {
         $this->authorize('export', CollectionEntry::class);
 
-        $collectionEntries = $this->collectionEntries->paginate($request->only(['search', 'user_id', 'customer_id', 'payment_method', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
+        $collectionEntries = $this->collectionEntries->paginate($request->only(['search', 'user_id', 'dealer_id', 'payment_method', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
 
         return Excel::download(new CollectionEntriesExport($collectionEntries), 'collection-entries-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -150,7 +150,7 @@ class CollectionEntryController extends Controller
     {
         $this->authorize('print', CollectionEntry::class);
 
-        $collectionEntries = $this->collectionEntries->paginate($request->only(['search', 'user_id', 'customer_id', 'payment_method', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
+        $collectionEntries = $this->collectionEntries->paginate($request->only(['search', 'user_id', 'dealer_id', 'payment_method', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
 
         return Pdf::loadView('collection-entries.print', ['collectionEntries' => $collectionEntries])
             ->stream('collection-entries-'.now()->format('Y-m-d-His').'.pdf');
@@ -161,8 +161,8 @@ class CollectionEntryController extends Controller
      */
     private function outstandingBalances(): array
     {
-        return Customer::all()->mapWithKeys(
-            fn (Customer $customer) => [$customer->id => $this->collectionEntries->outstandingBalance($customer->id)]
+        return Dealer::all()->mapWithKeys(
+            fn (Dealer $dealer) => [$dealer->id => $this->collectionEntries->outstandingBalance($dealer->id)]
         )->all();
     }
 }

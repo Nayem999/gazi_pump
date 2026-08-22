@@ -39,7 +39,7 @@ class TargetsImport implements ToModel, WithHeadingRow, WithValidation
         $target = Target::updateOrCreate(
             ['user_id' => $userId, 'month' => (int) $row['month'], 'year' => (int) $row['year']],
             [
-                'sales_value_target' => $row['sales_value_target'],
+                'order_value_target' => $row['order_value_target'],
                 'collection_target' => $row['collection_target'],
                 'quantity_target' => $row['quantity_target'],
                 'notes' => $row['notes'] ?? null,
@@ -61,7 +61,7 @@ class TargetsImport implements ToModel, WithHeadingRow, WithValidation
             'employee_id' => ['required', 'string', 'exists:users,employee_id'],
             'month' => ['required', 'integer', 'between:1,12'],
             'year' => ['required', 'integer', 'between:2020,2100'],
-            'sales_value_target' => ['required', 'numeric', 'min:1'],
+            'order_value_target' => ['required', 'numeric', 'min:1'],
             'collection_target' => ['required', 'numeric', 'min:1'],
             'quantity_target' => ['required', 'integer', 'min:1'],
         ];

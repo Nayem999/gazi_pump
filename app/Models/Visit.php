@@ -16,7 +16,7 @@ class Visit extends BaseModel
     protected $fillable = [
         'visit_plan_id',
         'user_id',
-        'customer_id',
+        'dealer_id',
         'check_in_at',
         'check_in_lat',
         'check_in_lng',
@@ -26,7 +26,7 @@ class Visit extends BaseModel
         'check_out_lng',
         'check_out_photo',
         'is_gps_verified',
-        'distance_from_customer_meters',
+        'distance_from_dealer_meters',
         'feedback',
     ];
 
@@ -40,7 +40,7 @@ class Visit extends BaseModel
             'check_out_lat' => 'decimal:7',
             'check_out_lng' => 'decimal:7',
             'is_gps_verified' => 'boolean',
-            'distance_from_customer_meters' => 'decimal:2',
+            'distance_from_dealer_meters' => 'decimal:2',
         ];
     }
 
@@ -49,9 +49,9 @@ class Visit extends BaseModel
         return $this->belongsTo(User::class);
     }
 
-    public function customer(): BelongsTo
+    public function dealer(): BelongsTo
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(Dealer::class);
     }
 
     public function visitPlan(): BelongsTo

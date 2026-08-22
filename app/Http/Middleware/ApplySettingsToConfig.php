@@ -41,7 +41,7 @@ class ApplySettingsToConfig
             'sfa.attendance.office_start_time' => $settings->attendance_office_start_time,
             'sfa.attendance.late_grace_minutes' => $settings->attendance_late_grace_minutes,
             'sfa.visits.gps_verification_radius_meters' => $settings->visit_gps_radius_meters,
-            'sfa.sales.max_discount_percent' => (float) $settings->sales_max_discount_percent,
+            'sfa.orders.max_discount_percent' => (float) $settings->order_max_discount_percent,
             'sfa.collections.overpayment_tolerance_percent' => (float) $settings->collection_overpayment_tolerance_percent,
             'sfa.targets.grade_thresholds' => [
                 'A' => $settings->target_grade_a_min,

@@ -21,8 +21,8 @@
             <tr>
                 <th>Executive</th>
                 <th>Territory</th>
-                <th>Sales Target</th>
-                <th>Sales Achieved</th>
+                <th>Order Target</th>
+                <th>Order Achieved</th>
                 <th>Collection Target</th>
                 <th>Collection Achieved</th>
                 <th>Overall %</th>
@@ -34,8 +34,8 @@
                 <tr>
                     <td>{{ $row->user?->name }}</td>
                     <td>{{ $row->user?->territory?->name }}</td>
-                    <td>{{ number_format($row->sales_target, 2) }}</td>
-                    <td>{{ number_format($row->sales_achieved, 2) }}</td>
+                    <td>{{ number_format($row->order_target, 2) }}</td>
+                    <td>{{ number_format($row->order_achieved, 2) }}</td>
                     <td>{{ number_format($row->collection_target, 2) }}</td>
                     <td>{{ number_format($row->collection_achieved, 2) }}</td>
                     <td>{{ $row->overall_pct }}%</td>

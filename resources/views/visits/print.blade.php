@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Customer Visits Report</title>
+    <title>Dealer Visits Report</title>
     <style>
         body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #1e293b; }
         h2 { margin-bottom: 2px; }
@@ -13,14 +13,14 @@
     </style>
 </head>
 <body>
-    <h2>{{ config('app.name') }} &mdash; Customer Visits Report</h2>
+    <h2>{{ config('app.name') }} &mdash; Dealer Visits Report</h2>
     <div class="meta">Generated {{ now()->format('M d, Y H:i') }} &mdash; {{ $visits->count() }} record(s)</div>
 
     <table>
         <thead>
             <tr>
                 <th>Executive</th>
-                <th>Customer</th>
+                <th>Dealer</th>
                 <th>Check In</th>
                 <th>Check Out</th>
                 <th>GPS Verified</th>
@@ -32,11 +32,11 @@
             @foreach ($visits as $visit)
                 <tr>
                     <td>{{ $visit->user?->name }}</td>
-                    <td>{{ $visit->customer?->name }}</td>
+                    <td>{{ $visit->dealer?->name }}</td>
                     <td>{{ $visit->check_in_at?->format('M d, Y H:i') }}</td>
                     <td>{{ $visit->check_out_at?->format('M d, Y H:i') }}</td>
                     <td>{{ match ($visit->is_gps_verified) { true => 'Yes', false => 'No', default => 'Unknown' } }}</td>
-                    <td>{{ $visit->distance_from_customer_meters }}</td>
+                    <td>{{ $visit->distance_from_dealer_meters }}</td>
                     <td>{{ $visit->feedback }}</td>
                 </tr>
             @endforeach

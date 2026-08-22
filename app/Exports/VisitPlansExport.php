@@ -27,7 +27,7 @@ class VisitPlansExport implements FromCollection, WithHeadings, WithMapping
      */
     public function headings(): array
     {
-        return ['Employee', 'Customer', 'Planned Date', 'Status', 'Notes'];
+        return ['Employee', 'Dealer', 'Planned Date', 'Status', 'Notes'];
     }
 
     /**
@@ -37,7 +37,7 @@ class VisitPlansExport implements FromCollection, WithHeadings, WithMapping
     {
         return [
             $visitPlan->user?->name,
-            $visitPlan->customer?->name,
+            $visitPlan->dealer?->name,
             $visitPlan->planned_date->toDateString(),
             $visitPlan->status->label(),
             $visitPlan->notes,

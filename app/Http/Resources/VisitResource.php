@@ -21,10 +21,10 @@ class VisitResource extends JsonResource
         return [
             'id' => $this->id,
             'visit_plan_id' => $this->visit_plan_id,
-            'customer' => $this->whenLoaded('customer', fn () => $this->customer ? [
-                'id' => $this->customer->id,
-                'name' => $this->customer->name,
-                'customer_code' => $this->customer->customer_code,
+            'dealer' => $this->whenLoaded('dealer', fn () => $this->dealer ? [
+                'id' => $this->dealer->id,
+                'name' => $this->dealer->name,
+                'dealer_code' => $this->dealer->dealer_code,
             ] : null),
             'check_in' => [
                 'at' => $this->check_in_at?->toIso8601String(),
@@ -39,7 +39,7 @@ class VisitResource extends JsonResource
                 'photo_url' => $this->checkOutPhotoUrl(),
             ]),
             'is_gps_verified' => $this->is_gps_verified,
-            'distance_from_customer_meters' => $this->distance_from_customer_meters !== null ? (float) $this->distance_from_customer_meters : null,
+            'distance_from_dealer_meters' => $this->distance_from_dealer_meters !== null ? (float) $this->distance_from_dealer_meters : null,
             'feedback' => $this->feedback,
         ];
     }

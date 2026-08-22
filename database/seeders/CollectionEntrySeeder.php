@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Models\CollectionEntry;
-use App\Models\Customer;
-use App\Models\SalesEntry;
+use App\Models\Dealer;
+use App\Models\Order;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
 /**
  * Backfills the last 30 days of collections against the outstanding balance
- * each customer already owes from SalesEntrySeeder — run after it for that
+ * each dealer already owes from OrderSeeder — run after it for that
  * reason. Balances are tracked in memory and decremented as collections are
- * generated so no customer is ever seeded into overpayment.
+ * generated so no dealer is ever seeded into overpayment.
  */
 class CollectionEntrySeeder extends Seeder
 {
@@ -24,19 +24,19 @@ class CollectionEntrySeeder extends Seeder
     public function run(): void
     {
         $executives = User::role('Sales Executive')->get();
-        $customersByTerritory = Customer::all()->groupBy('territory_id');
+        $dealersByTerritory = Dealer::all()->groupBy('territory_id');
 
-        $outstanding = SalesEntry::query()
-            ->selectRaw('customer_id, SUM(total_amount) as total')
-            ->groupBy('customer_id')
-            ->pluck('total', 'customer_id')
+        $outstanding = Order::query()
+            ->selectRaw('dealer_id, SUM(total_amount) as total')
+            ->groupBy('dealer_id')
+            ->pluck('total', 'dealer_id')
             ->map(fn ($total) => (float) $total)
             ->all();
 
         foreach ($executives as $executive) {
-            $pool = $customersByTerritory->get($executive->territory_id) ?? collect();
+            $pool = $dealersByTerritory->get($executive->territory_id) ?? collect();
             if ($pool->isEmpty()) {
-                $pool = Customer::inRandomOrder()->limit(5)->get();
+                $pool = Dealer::inRandomOrder()->limit(5)->get();
             }
 
             if ($pool->isEmpty()) {
@@ -48,8 +48,8 @@ class CollectionEntrySeeder extends Seeder
                 $collectionsToday = random_int(0, 2);
 
                 for ($i = 0; $i < $collectionsToday; $i++) {
-                    $customer = $pool->random();
-                    $balance = $outstanding[$customer->id] ?? 0.0;
+                    $dealer = $pool->random();
+                    $balance = $outstanding[$dealer->id] ?? 0.0;
 
                     // A balance below this is too small to make a realistic
                     // collection out of — round($balance * fraction, 2) could
@@ -59,11 +59,11 @@ class CollectionEntrySeeder extends Seeder
                     }
 
                     $amount = round($balance * (random_int(50, 100) / 100), 2);
-                    $outstanding[$customer->id] = $balance - $amount;
+                    $outstanding[$dealer->id] = $balance - $amount;
 
                     CollectionEntry::factory()->create([
                         'user_id' => $executive->id,
-                        'customer_id' => $customer->id,
+                        'dealer_id' => $dealer->id,
                         'collection_date' => $date->toDateString(),
                         'amount' => $amount,
                     ]);

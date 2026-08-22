@@ -30,7 +30,7 @@ class CustomerAccount extends Authenticatable
     use SoftDeletes;
 
     protected $fillable = [
-        'customer_id',
+        'dealer_id',
         'name',
         'email',
         'phone',
@@ -50,31 +50,31 @@ class CustomerAccount extends Authenticatable
         ];
     }
 
-    public function customer(): BelongsTo
+    public function dealer(): BelongsTo
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(Dealer::class);
     }
 
     /**
-     * Self-registered accounts aren't linked to a CRM Customer record at
-     * signup (customer_id starts null) — this resolves the link by email
+     * Self-registered accounts aren't linked to a CRM Dealer record at
+     * signup (dealer_id starts null) — this resolves the link by email
      * whenever one is missing, and persists it so the match only has to
-     * happen once per account. Returns null if no matching Customer exists.
+     * happen once per account. Returns null if no matching Dealer exists.
      */
-    public function resolveCustomer(): ?Customer
+    public function resolveCustomer(): ?Dealer
     {
-        if ($this->customer_id !== null) {
-            return $this->customer;
+        if ($this->dealer_id !== null) {
+            return $this->dealer;
         }
 
-        $customer = Customer::where('email', $this->email)->first();
+        $dealer = Dealer::where('email', $this->email)->first();
 
-        if ($customer) {
-            $this->forceFill(['customer_id' => $customer->id])->save();
-            $this->setRelation('customer', $customer);
+        if ($dealer) {
+            $this->forceFill(['dealer_id' => $dealer->id])->save();
+            $this->setRelation('dealer', $dealer);
         }
 
-        return $customer;
+        return $dealer;
     }
 
     public function inquiries(): HasMany

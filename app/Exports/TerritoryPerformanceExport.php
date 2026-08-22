@@ -26,7 +26,7 @@ class TerritoryPerformanceExport implements FromCollection, WithHeadings, WithMa
      */
     public function headings(): array
     {
-        return ['Territory', 'Executives', 'Total Sales Value', 'Total Collection Amount', 'Total Visits', 'GPS Verified Rate %'];
+        return ['Territory', 'Executives', 'Total Order Value', 'Total Collection Amount', 'Total Visits', 'GPS Verified Rate %'];
     }
 
     /**
@@ -37,7 +37,7 @@ class TerritoryPerformanceExport implements FromCollection, WithHeadings, WithMa
         return [
             $row->territory?->name,
             $row->executive_count,
-            (string) $row->total_sales_value,
+            (string) $row->total_order_value,
             (string) $row->total_collection_amount,
             $row->total_visits,
             (string) $row->gps_verified_rate,

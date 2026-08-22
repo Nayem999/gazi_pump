@@ -22,7 +22,7 @@ class CustomerAccountFactory extends Factory
     public function definition(): array
     {
         return [
-            'customer_id' => null,
+            'dealer_id' => null,
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'phone' => fake()->numerify('01#########'),

@@ -8,16 +8,16 @@ use App\Repositories\Contracts\AnnouncementRepositoryInterface;
 use App\Repositories\Contracts\AttendanceRepositoryInterface;
 use App\Repositories\Contracts\BrochureRepositoryInterface;
 use App\Repositories\Contracts\CollectionEntryRepositoryInterface;
-use App\Repositories\Contracts\CustomerRepositoryInterface;
+use App\Repositories\Contracts\DealerRepositoryInterface;
 use App\Repositories\Contracts\FaqRepositoryInterface;
 use App\Repositories\Contracts\GpsLogRepositoryInterface;
 use App\Repositories\Contracts\InquiryRepositoryInterface;
 use App\Repositories\Contracts\NewsRepositoryInterface;
+use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Repositories\Contracts\ProductCategoryRepositoryInterface;
 use App\Repositories\Contracts\ProductRepositoryInterface;
 use App\Repositories\Contracts\PromotionRepositoryInterface;
 use App\Repositories\Contracts\RoleRepositoryInterface;
-use App\Repositories\Contracts\SalesEntryRepositoryInterface;
 use App\Repositories\Contracts\SalesTeamRepositoryInterface;
 use App\Repositories\Contracts\ServiceCenterRepositoryInterface;
 use App\Repositories\Contracts\TargetRepositoryInterface;
@@ -30,16 +30,16 @@ use App\Repositories\Eloquent\AnnouncementRepository;
 use App\Repositories\Eloquent\AttendanceRepository;
 use App\Repositories\Eloquent\BrochureRepository;
 use App\Repositories\Eloquent\CollectionEntryRepository;
-use App\Repositories\Eloquent\CustomerRepository;
+use App\Repositories\Eloquent\DealerRepository;
 use App\Repositories\Eloquent\FaqRepository;
 use App\Repositories\Eloquent\GpsLogRepository;
 use App\Repositories\Eloquent\InquiryRepository;
 use App\Repositories\Eloquent\NewsRepository;
+use App\Repositories\Eloquent\OrderRepository;
 use App\Repositories\Eloquent\ProductCategoryRepository;
 use App\Repositories\Eloquent\ProductRepository;
 use App\Repositories\Eloquent\PromotionRepository;
 use App\Repositories\Eloquent\RoleRepository;
-use App\Repositories\Eloquent\SalesEntryRepository;
 use App\Repositories\Eloquent\SalesTeamRepository;
 use App\Repositories\Eloquent\ServiceCenterRepository;
 use App\Repositories\Eloquent\TargetRepository;
@@ -65,14 +65,14 @@ class RepositoryServiceProvider extends ServiceProvider
         RoleRepositoryInterface::class => RoleRepository::class,
         SalesTeamRepositoryInterface::class => SalesTeamRepository::class,
         TerritoryRepositoryInterface::class => TerritoryRepository::class,
-        CustomerRepositoryInterface::class => CustomerRepository::class,
+        DealerRepositoryInterface::class => DealerRepository::class,
         ProductCategoryRepositoryInterface::class => ProductCategoryRepository::class,
         ProductRepositoryInterface::class => ProductRepository::class,
         AttendanceRepositoryInterface::class => AttendanceRepository::class,
         GpsLogRepositoryInterface::class => GpsLogRepository::class,
         VisitPlanRepositoryInterface::class => VisitPlanRepository::class,
         VisitRepositoryInterface::class => VisitRepository::class,
-        SalesEntryRepositoryInterface::class => SalesEntryRepository::class,
+        OrderRepositoryInterface::class => OrderRepository::class,
         CollectionEntryRepositoryInterface::class => CollectionEntryRepository::class,
         TargetRepositoryInterface::class => TargetRepository::class,
         InquiryRepositoryInterface::class => InquiryRepository::class,

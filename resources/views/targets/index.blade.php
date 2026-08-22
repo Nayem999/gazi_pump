@@ -62,7 +62,7 @@
                     <th style="width:2rem"><input type="checkbox" id="selectAll" class="form-check-input"></th>
                     <th>Executive</th>
                     <th>Period</th>
-                    <th>Sales %</th>
+                    <th>Order %</th>
                     <th>Collection %</th>
                     <th>Qty %</th>
                     <th>Overall</th>
@@ -83,7 +83,7 @@
                         <div class="text-muted small">{{ $target->user?->employee_id }}</div>
                     </td>
                     <td>{{ $target->periodLabel() }}</td>
-                    <td>{{ $target->achievement ? number_format((float) $target->achievement->sales_pct, 1).'%' : '—' }}</td>
+                    <td>{{ $target->achievement ? number_format((float) $target->achievement->order_pct, 1).'%' : '—' }}</td>
                     <td>{{ $target->achievement ? number_format((float) $target->achievement->collection_pct, 1).'%' : '—' }}</td>
                     <td>{{ $target->achievement ? number_format((float) $target->achievement->quantity_pct, 1).'%' : '—' }}</td>
                     <td class="fw-semibold">{{ $target->achievement ? number_format((float) $target->achievement->overall_pct, 1).'%' : '—' }}</td>
@@ -150,7 +150,7 @@
                             :status-color="$target->trashed() ? 'danger' : ($target->achievement?->grade->badgeColor() ?? 'secondary')"
                         >
                             <x-slot:meta>
-                                <div>Sales: {{ $target->achievement ? number_format((float) $target->achievement->sales_pct, 1).'%' : '—' }}</div>
+                                <div>Order: {{ $target->achievement ? number_format((float) $target->achievement->order_pct, 1).'%' : '—' }}</div>
                                 <div>Collection: {{ $target->achievement ? number_format((float) $target->achievement->collection_pct, 1).'%' : '—' }}</div>
                                 <div>Qty: {{ $target->achievement ? number_format((float) $target->achievement->quantity_pct, 1).'%' : '—' }}</div>
                                 <div>Overall: {{ $target->achievement ? number_format((float) $target->achievement->overall_pct, 1).'%' : '—' }}</div>
@@ -213,7 +213,7 @@
                 <div class="mb-3">
                     <label class="form-label">Excel/CSV File</label>
                     <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.csv" required>
-                    <div class="form-text">Columns: employee_id, month, year, sales_value_target, collection_target, quantity_target, notes.</div>
+                    <div class="form-text">Columns: employee_id, month, year, order_value_target, collection_target, quantity_target, notes.</div>
                 </div>
             </form>
             <x-slot:footer>

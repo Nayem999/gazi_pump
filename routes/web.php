@@ -7,21 +7,21 @@ use App\Http\Controllers\Web\Admin\AnnouncementController;
 use App\Http\Controllers\Web\Admin\AttendanceController;
 use App\Http\Controllers\Web\Admin\BrochureController;
 use App\Http\Controllers\Web\Admin\CollectionEntryController;
-use App\Http\Controllers\Web\Admin\CustomerController;
 use App\Http\Controllers\Web\Admin\DashboardController;
+use App\Http\Controllers\Web\Admin\DealerController;
 use App\Http\Controllers\Web\Admin\FaqController;
 use App\Http\Controllers\Web\Admin\GpsLogController;
 use App\Http\Controllers\Web\Admin\InquiryController;
 use App\Http\Controllers\Web\Admin\LiveGpsController;
 use App\Http\Controllers\Web\Admin\NewsController;
 use App\Http\Controllers\Web\Admin\NotificationController;
+use App\Http\Controllers\Web\Admin\OrderController;
 use App\Http\Controllers\Web\Admin\PermissionController;
 use App\Http\Controllers\Web\Admin\ProductCategoryController;
 use App\Http\Controllers\Web\Admin\ProductController;
 use App\Http\Controllers\Web\Admin\PromotionController;
 use App\Http\Controllers\Web\Admin\ReportController;
 use App\Http\Controllers\Web\Admin\RoleController;
-use App\Http\Controllers\Web\Admin\SalesEntryController;
 use App\Http\Controllers\Web\Admin\SalesTeamController;
 use App\Http\Controllers\Web\Admin\ServiceCenterController;
 use App\Http\Controllers\Web\Admin\SettingsController;
@@ -135,7 +135,7 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
 
     $registerManagementRoutes('sales-teams', SalesTeamController::class);
     $registerManagementRoutes('territories', TerritoryController::class);
-    $registerManagementRoutes('customers', CustomerController::class, withShow: true);
+    $registerManagementRoutes('dealers', DealerController::class, withShow: true);
     $registerManagementRoutes('product-categories', ProductCategoryController::class);
     $registerManagementRoutes('products', ProductController::class);
 
@@ -210,7 +210,7 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
     });
 
     /**
-     * Customer Visits: same reasoning as Attendance — records mostly arrive
+     * Dealer Visits: same reasoning as Attendance — records mostly arrive
      * via the mobile check-in/out API, admins can also backfill/correct, but
      * there's no boolean status to toggle.
      */
@@ -232,26 +232,26 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
     });
 
     /**
-     * Sales Entry: a flat one-row-per-product sale record, entered mostly
+     * Order: a flat one-row-per-product order record, entered mostly
      * via the mobile API but backfillable by an admin. No boolean status to
      * toggle, so this gets its own route block instead of
      * $registerManagementRoutes.
      */
-    Route::prefix('sales-entries')->name('sales-entries.')->group(function (): void {
-        Route::get('/', [SalesEntryController::class, 'index'])->name('index');
-        Route::get('/create', [SalesEntryController::class, 'create'])->name('create');
-        Route::post('/', [SalesEntryController::class, 'store'])->name('store');
-        Route::get('/export', [SalesEntryController::class, 'export'])->name('export');
-        Route::post('/import', [SalesEntryController::class, 'import'])->name('import');
-        Route::get('/print', [SalesEntryController::class, 'print'])->name('print');
-        Route::post('/bulk-destroy', [SalesEntryController::class, 'bulkDestroy'])->name('bulk-destroy');
-        Route::post('/bulk-restore', [SalesEntryController::class, 'bulkRestore'])->name('bulk-restore');
-        Route::post('/{id}/restore', [SalesEntryController::class, 'restore'])->whereNumber('id')->name('restore');
-        Route::delete('/{id}/force', [SalesEntryController::class, 'forceDestroy'])->whereNumber('id')->name('force-destroy');
-        Route::get('/{sales_entry}', [SalesEntryController::class, 'show'])->name('show');
-        Route::get('/{sales_entry}/edit', [SalesEntryController::class, 'edit'])->name('edit');
-        Route::put('/{sales_entry}', [SalesEntryController::class, 'update'])->name('update');
-        Route::delete('/{sales_entry}', [SalesEntryController::class, 'destroy'])->name('destroy');
+    Route::prefix('orders')->name('orders.')->group(function (): void {
+        Route::get('/', [OrderController::class, 'index'])->name('index');
+        Route::get('/create', [OrderController::class, 'create'])->name('create');
+        Route::post('/', [OrderController::class, 'store'])->name('store');
+        Route::get('/export', [OrderController::class, 'export'])->name('export');
+        Route::post('/import', [OrderController::class, 'import'])->name('import');
+        Route::get('/print', [OrderController::class, 'print'])->name('print');
+        Route::post('/bulk-destroy', [OrderController::class, 'bulkDestroy'])->name('bulk-destroy');
+        Route::post('/bulk-restore', [OrderController::class, 'bulkRestore'])->name('bulk-restore');
+        Route::post('/{id}/restore', [OrderController::class, 'restore'])->whereNumber('id')->name('restore');
+        Route::delete('/{id}/force', [OrderController::class, 'forceDestroy'])->whereNumber('id')->name('force-destroy');
+        Route::get('/{order}', [OrderController::class, 'show'])->name('show');
+        Route::get('/{order}/edit', [OrderController::class, 'edit'])->name('edit');
+        Route::put('/{order}', [OrderController::class, 'update'])->name('update');
+        Route::delete('/{order}', [OrderController::class, 'destroy'])->name('destroy');
     });
 
     /**
@@ -316,9 +316,9 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
         Route::get('/visit-compliance/export', [ReportController::class, 'visitComplianceExport'])->name('visit-compliance.export');
         Route::get('/visit-compliance/print', [ReportController::class, 'visitCompliancePrint'])->name('visit-compliance.print');
 
-        Route::get('/sales-performance', [ReportController::class, 'salesPerformance'])->name('sales-performance');
-        Route::get('/sales-performance/export', [ReportController::class, 'salesPerformanceExport'])->name('sales-performance.export');
-        Route::get('/sales-performance/print', [ReportController::class, 'salesPerformancePrint'])->name('sales-performance.print');
+        Route::get('/order-performance', [ReportController::class, 'orderPerformance'])->name('order-performance');
+        Route::get('/order-performance/export', [ReportController::class, 'orderPerformanceExport'])->name('order-performance.export');
+        Route::get('/order-performance/print', [ReportController::class, 'orderPerformancePrint'])->name('order-performance.print');
 
         Route::get('/collection-summary', [ReportController::class, 'collectionSummary'])->name('collection-summary');
         Route::get('/collection-summary/export', [ReportController::class, 'collectionSummaryExport'])->name('collection-summary.export');
@@ -336,9 +336,9 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
         Route::get('/executive-performance/export', [ReportController::class, 'executivePerformanceExport'])->name('executive-performance.export');
         Route::get('/executive-performance/print', [ReportController::class, 'executivePerformancePrint'])->name('executive-performance.print');
 
-        Route::get('/customer-coverage', [ReportController::class, 'customerCoverage'])->name('customer-coverage');
-        Route::get('/customer-coverage/export', [ReportController::class, 'customerCoverageExport'])->name('customer-coverage.export');
-        Route::get('/customer-coverage/print', [ReportController::class, 'customerCoveragePrint'])->name('customer-coverage.print');
+        Route::get('/dealer-coverage', [ReportController::class, 'dealerCoverage'])->name('dealer-coverage');
+        Route::get('/dealer-coverage/export', [ReportController::class, 'dealerCoverageExport'])->name('dealer-coverage.export');
+        Route::get('/dealer-coverage/print', [ReportController::class, 'dealerCoveragePrint'])->name('dealer-coverage.print');
 
         Route::get('/gps-report', [ReportController::class, 'gpsReport'])->name('gps-report');
         Route::get('/gps-report/export', [ReportController::class, 'gpsReportExport'])->name('gps-report.export');

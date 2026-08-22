@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Api;
 
-use App\Models\Customer;
+use App\Models\Dealer;
 use App\Models\User;
 use App\Models\Visit;
 use Database\Seeders\RolePermissionSeeder;
@@ -43,15 +43,15 @@ class VisitTest extends TestCase
         $this->postJson('/api/v1/visits/check-in', [])->assertStatus(401);
     }
 
-    public function test_sales_executive_can_check_in_at_the_customers_location_and_is_gps_verified(): void
+    public function test_sales_executive_can_check_in_at_the_dealers_location_and_is_gps_verified(): void
     {
         Storage::fake('public');
         $executive = $this->executive();
-        $customer = Customer::factory()->create(['gps_lat' => 23.8103, 'gps_lng' => 90.4125]);
+        $dealer = Dealer::factory()->create(['gps_lat' => 23.8103, 'gps_lng' => 90.4125]);
 
         $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
             ->postJson('/api/v1/visits/check-in', [
-                'customer_id' => $customer->id,
+                'dealer_id' => $dealer->id,
                 'lat' => 23.8103,
                 'lng' => 90.4125,
                 'photo' => UploadedFile::fake()->image('storefront.jpg'),
@@ -64,15 +64,15 @@ class VisitTest extends TestCase
         Storage::disk('public')->assertExists($visit->check_in_photo);
     }
 
-    public function test_check_in_far_from_the_customer_is_flagged_unverified(): void
+    public function test_check_in_far_from_the_dealer_is_flagged_unverified(): void
     {
         Storage::fake('public');
         $executive = $this->executive();
-        $customer = Customer::factory()->create(['gps_lat' => 23.8103, 'gps_lng' => 90.4125]);
+        $dealer = Dealer::factory()->create(['gps_lat' => 23.8103, 'gps_lng' => 90.4125]);
 
         $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
             ->postJson('/api/v1/visits/check-in', [
-                'customer_id' => $customer->id,
+                'dealer_id' => $dealer->id,
                 'lat' => 23.9000,
                 'lng' => 90.5000,
                 'photo' => UploadedFile::fake()->image('storefront.jpg'),
@@ -82,15 +82,15 @@ class VisitTest extends TestCase
         $this->assertFalse((bool) $visit->is_gps_verified);
     }
 
-    public function test_check_in_against_a_customer_with_no_gps_pin_is_unknown_not_unverified(): void
+    public function test_check_in_against_a_dealer_with_no_gps_pin_is_unknown_not_unverified(): void
     {
         Storage::fake('public');
         $executive = $this->executive();
-        $customer = Customer::factory()->create(['gps_lat' => null, 'gps_lng' => null]);
+        $dealer = Dealer::factory()->create(['gps_lat' => null, 'gps_lng' => null]);
 
         $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
             ->postJson('/api/v1/visits/check-in', [
-                'customer_id' => $customer->id,
+                'dealer_id' => $dealer->id,
                 'lat' => 23.8103,
                 'lng' => 90.4125,
                 'photo' => UploadedFile::fake()->image('storefront.jpg'),
@@ -104,18 +104,18 @@ class VisitTest extends TestCase
     {
         Storage::fake('public');
         $executive = $this->executive();
-        $customer = Customer::factory()->create();
+        $dealer = Dealer::factory()->create();
         $headers = ['Authorization' => 'Bearer '.$this->tokenFor($executive)];
 
         $this->withHeaders($headers)->postJson('/api/v1/visits/check-in', [
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'lat' => 23.8103,
             'lng' => 90.4125,
             'photo' => UploadedFile::fake()->image('storefront.jpg'),
         ])->assertStatus(201);
 
         $this->withHeaders($headers)->postJson('/api/v1/visits/check-in', [
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'lat' => 23.8103,
             'lng' => 90.4125,
             'photo' => UploadedFile::fake()->image('storefront2.jpg'),
@@ -126,11 +126,11 @@ class VisitTest extends TestCase
     {
         Storage::fake('public');
         $executive = $this->executive();
-        $customer = Customer::factory()->create();
+        $dealer = Dealer::factory()->create();
         $headers = ['Authorization' => 'Bearer '.$this->tokenFor($executive)];
 
         $this->withHeaders($headers)->postJson('/api/v1/visits/check-in', [
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'lat' => 23.8103,
             'lng' => 90.4125,
             'photo' => UploadedFile::fake()->image('storefront.jpg'),

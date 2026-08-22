@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
-use App\Models\SalesEntry;
+use App\Models\Order;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -56,7 +56,7 @@ class ReportManagementTest extends TestCase
 
         $this->actingAs($executive)->get(route('reports.attendance-summary'))->assertForbidden();
         $this->actingAs($executive)->get(route('reports.visit-compliance'))->assertForbidden();
-        $this->actingAs($executive)->get(route('reports.sales-performance'))->assertForbidden();
+        $this->actingAs($executive)->get(route('reports.order-performance'))->assertForbidden();
         $this->actingAs($executive)->get(route('reports.collection-summary'))->assertForbidden();
         $this->actingAs($executive)->get(route('reports.territory-performance'))->assertForbidden();
     }
@@ -68,7 +68,7 @@ class ReportManagementTest extends TestCase
         $this->actingAs($manager)->get(route('reports.index'))->assertOk();
         $this->actingAs($manager)->get(route('reports.attendance-summary'))->assertOk();
         $this->actingAs($manager)->get(route('reports.visit-compliance'))->assertOk();
-        $this->actingAs($manager)->get(route('reports.sales-performance'))->assertOk();
+        $this->actingAs($manager)->get(route('reports.order-performance'))->assertOk();
         $this->actingAs($manager)->get(route('reports.collection-summary'))->assertOk();
         $this->actingAs($manager)->get(route('reports.territory-performance'))->assertOk();
     }
@@ -77,16 +77,16 @@ class ReportManagementTest extends TestCase
     {
         $manager = $this->territoryManager();
 
-        $this->actingAs($manager)->get(route('reports.sales-performance'))->assertOk();
+        $this->actingAs($manager)->get(route('reports.order-performance'))->assertOk();
     }
 
-    public function test_sales_performance_report_reflects_real_data(): void
+    public function test_order_performance_report_reflects_real_data(): void
     {
         $manager = $this->generalManager();
         $executive = $this->executive();
-        SalesEntry::factory()->create(['user_id' => $executive->id, 'sale_date' => now()->toDateString(), 'total_amount' => 5000]);
+        Order::factory()->create(['user_id' => $executive->id, 'order_date' => now()->toDateString(), 'total_amount' => 5000]);
 
-        $response = $this->actingAs($manager)->get(route('reports.sales-performance'));
+        $response = $this->actingAs($manager)->get(route('reports.order-performance'));
 
         $response->assertOk()->assertSee($executive->name)->assertSee('5,000.00');
     }
@@ -95,7 +95,7 @@ class ReportManagementTest extends TestCase
     {
         $manager = $this->generalManager();
 
-        $this->actingAs($manager)->get(route('reports.sales-performance.export'))
+        $this->actingAs($manager)->get(route('reports.order-performance.export'))
             ->assertOk()
             ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     }
@@ -104,7 +104,7 @@ class ReportManagementTest extends TestCase
     {
         $manager = $this->generalManager();
 
-        $this->actingAs($manager)->get(route('reports.sales-performance.print'))
+        $this->actingAs($manager)->get(route('reports.order-performance.print'))
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
     }

@@ -3,14 +3,14 @@
 @section('title', 'Visit Detail')
 
 @section('breadcrumb')
-    <li class="breadcrumb-item"><a href="{{ route('visits.index') }}">Customer Visits</a></li>
-    <li class="breadcrumb-item active">{{ $visit->customer->name }} &mdash; {{ $visit->check_in_at->format('M d, Y') }}</li>
+    <li class="breadcrumb-item"><a href="{{ route('visits.index') }}">Dealer Visits</a></li>
+    <li class="breadcrumb-item active">{{ $visit->dealer->name }} &mdash; {{ $visit->check_in_at->format('M d, Y') }}</li>
 @endsection
 
 @php
     $hasCheckInGps = $visit->check_in_lat !== null && $visit->check_in_lng !== null;
     $hasCheckOutGps = $visit->check_out_lat !== null && $visit->check_out_lng !== null;
-    $hasCustomerGps = $visit->customer->gps_lat !== null && $visit->customer->gps_lng !== null;
+    $hasDealerGps = $visit->dealer->gps_lat !== null && $visit->dealer->gps_lng !== null;
 @endphp
 
 @section('content')
@@ -19,8 +19,8 @@
             <div class="card text-center">
                 <div class="card-body">
                     <i class="ti ti-building-store display-1 text-secondary mb-2 d-block"></i>
-                    <h5 class="mb-0">{{ $visit->customer->name }}</h5>
-                    <div class="text-muted">{{ $visit->customer->customer_code }}</div>
+                    <h5 class="mb-0">{{ $visit->dealer->name }}</h5>
+                    <div class="text-muted">{{ $visit->dealer->dealer_code }}</div>
                     <div class="mt-2">
                         <span class="badge text-bg-{{ match ($visit->is_gps_verified) { true => 'success', false => 'danger', default => 'secondary' } }}">
                             {{ match ($visit->is_gps_verified) { true => 'GPS Verified', false => 'GPS Unverified', default => 'GPS Unknown' } }}
@@ -58,8 +58,8 @@
                         <dt class="col-sm-4">Check Out</dt>
                         <dd class="col-sm-8">{{ $visit->check_out_at?->format('M d, Y H:i') ?? '—' }}</dd>
 
-                        <dt class="col-sm-4">Distance from Customer</dt>
-                        <dd class="col-sm-8">{{ $visit->distance_from_customer_meters !== null ? number_format((float) $visit->distance_from_customer_meters, 1).' m' : '—' }}</dd>
+                        <dt class="col-sm-4">Distance from Dealer</dt>
+                        <dd class="col-sm-8">{{ $visit->distance_from_dealer_meters !== null ? number_format((float) $visit->distance_from_dealer_meters, 1).' m' : '—' }}</dd>
 
                         <dt class="col-sm-4">Feedback</dt>
                         <dd class="col-sm-8">{{ $visit->feedback ?? '—' }}</dd>
@@ -98,7 +98,7 @@
             <div class="card">
                 <div class="card-header bg-white">GPS Locations</div>
                 <div class="card-body">
-                    @if ($hasCheckInGps || $hasCheckOutGps || $hasCustomerGps)
+                    @if ($hasCheckInGps || $hasCheckOutGps || $hasDealerGps)
                         <div id="visitMap" style="height:320px;border-radius:.5rem"></div>
                     @else
                         <p class="text-muted mb-0">No GPS location recorded for this visit.</p>
@@ -109,17 +109,17 @@
     </div>
 @endsection
 
-@if ($hasCheckInGps || $hasCheckOutGps || $hasCustomerGps)
+@if ($hasCheckInGps || $hasCheckOutGps || $hasDealerGps)
     @push('scripts')
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 const points = [];
                 const map = window.L.map('visitMap');
 
-                @if ($hasCustomerGps)
-                    const customerLoc = [{{ $visit->customer->gps_lat }}, {{ $visit->customer->gps_lng }}];
-                    points.push(customerLoc);
-                    window.L.marker(customerLoc, { title: 'Customer' }).addTo(map).bindPopup('Registered Customer Location');
+                @if ($hasDealerGps)
+                    const dealerLoc = [{{ $visit->dealer->gps_lat }}, {{ $visit->dealer->gps_lng }}];
+                    points.push(dealerLoc);
+                    window.L.marker(dealerLoc, { title: 'Dealer' }).addTo(map).bindPopup('Registered Dealer Location');
                 @endif
 
                 @if ($hasCheckInGps)

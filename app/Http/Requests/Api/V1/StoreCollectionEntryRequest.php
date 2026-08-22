@@ -27,7 +27,7 @@ class StoreCollectionEntryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'customer_id' => ['required', 'integer', Rule::exists('customers', 'id')],
+            'dealer_id' => ['required', 'integer', Rule::exists('dealers', 'id')],
             'collection_date' => ['nullable', 'date'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'payment_method' => ['required', new Enum(PaymentMethod::class)],

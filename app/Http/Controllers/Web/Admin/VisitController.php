@@ -9,7 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreVisitRequest;
 use App\Http\Requests\Admin\UpdateVisitRequest;
 use App\Imports\VisitsImport;
-use App\Models\Customer;
+use App\Models\Dealer;
 use App\Models\User;
 use App\Models\Visit;
 use App\Services\VisitService;
@@ -28,9 +28,9 @@ class VisitController extends Controller
         $this->authorize('viewAny', Visit::class);
 
         return view('visits.index', [
-            'visits' => $this->visits->paginate($request->only(['search', 'user_id', 'customer_id', 'date_from', 'date_to', 'trashed']), 15),
+            'visits' => $this->visits->paginate($request->only(['search', 'user_id', 'dealer_id', 'date_from', 'date_to', 'trashed']), 15),
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
-            'filters' => $request->only(['search', 'user_id', 'customer_id', 'date_from', 'date_to', 'trashed']),
+            'filters' => $request->only(['search', 'user_id', 'dealer_id', 'date_from', 'date_to', 'trashed']),
         ]);
     }
 
@@ -40,7 +40,7 @@ class VisitController extends Controller
 
         return view('visits.create', [
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
-            'customers' => Customer::orderBy('name')->get(),
+            'dealers' => Dealer::orderBy('name')->get(),
         ]);
     }
 
@@ -55,7 +55,7 @@ class VisitController extends Controller
     {
         $this->authorize('view', $visit);
 
-        return view('visits.show', ['visit' => $visit->load(['user', 'customer', 'visitPlan'])]);
+        return view('visits.show', ['visit' => $visit->load(['user', 'dealer', 'visitPlan'])]);
     }
 
     public function edit(Visit $visit): View
@@ -65,7 +65,7 @@ class VisitController extends Controller
         return view('visits.edit', [
             'visit' => $visit,
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
-            'customers' => Customer::orderBy('name')->get(),
+            'dealers' => Dealer::orderBy('name')->get(),
         ]);
     }
 
@@ -131,7 +131,7 @@ class VisitController extends Controller
     {
         $this->authorize('export', Visit::class);
 
-        $visits = $this->visits->paginate($request->only(['search', 'user_id', 'customer_id', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
+        $visits = $this->visits->paginate($request->only(['search', 'user_id', 'dealer_id', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
 
         return Excel::download(new VisitsExport($visits), 'visits-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -151,7 +151,7 @@ class VisitController extends Controller
     {
         $this->authorize('print', Visit::class);
 
-        $visits = $this->visits->paginate($request->only(['search', 'user_id', 'customer_id', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
+        $visits = $this->visits->paginate($request->only(['search', 'user_id', 'dealer_id', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
 
         return Pdf::loadView('visits.print', ['visits' => $visits])
             ->stream('visits-'.now()->format('Y-m-d-His').'.pdf');

@@ -74,20 +74,20 @@
                     <label class="form-label">GPS Verification Radius (meters) <span class="text-danger">*</span></label>
                     <input type="number" name="visit_gps_radius_meters" class="form-control @error('visit_gps_radius_meters') is-invalid @enderror"
                            value="{{ old('visit_gps_radius_meters', $settings->visit_gps_radius_meters) }}" required>
-                    <div class="form-text">A check-in farther than this from the customer's pin is flagged unverified.</div>
+                    <div class="form-text">A check-in farther than this from the dealer's pin is flagged unverified.</div>
                     @error('visit_gps_radius_meters') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
             </div>
         </div>
 
         <div class="card mb-3">
-            <div class="card-header bg-white"><h5 class="mb-0">Sales &amp; Collections</h5></div>
+            <div class="card-header bg-white"><h5 class="mb-0">Orders &amp; Collections</h5></div>
             <div class="card-body row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Max Discount (%) <span class="text-danger">*</span></label>
-                    <input type="number" step="0.01" name="sales_max_discount_percent" class="form-control @error('sales_max_discount_percent') is-invalid @enderror"
-                           value="{{ old('sales_max_discount_percent', $settings->sales_max_discount_percent) }}" required>
-                    @error('sales_max_discount_percent') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    <input type="number" step="0.01" name="order_max_discount_percent" class="form-control @error('order_max_discount_percent') is-invalid @enderror"
+                           value="{{ old('order_max_discount_percent', $settings->order_max_discount_percent) }}" required>
+                    @error('order_max_discount_percent') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Collection Overpayment Tolerance (%) <span class="text-danger">*</span></label>

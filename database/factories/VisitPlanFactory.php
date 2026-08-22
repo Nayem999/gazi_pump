@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use App\Enums\VisitPlanStatus;
-use App\Models\Customer;
+use App\Models\Dealer;
 use App\Models\User;
 use App\Models\VisitPlan;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -23,7 +23,7 @@ class VisitPlanFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'customer_id' => Customer::factory(),
+            'dealer_id' => Dealer::factory(),
             'planned_date' => Carbon::today()->toDateString(),
             'status' => VisitPlanStatus::Planned,
             'notes' => fake()->optional()->sentence(),

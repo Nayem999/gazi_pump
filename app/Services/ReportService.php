@@ -7,10 +7,10 @@ namespace App\Services;
 use App\Models\Achievement;
 use App\Models\Attendance;
 use App\Models\CollectionEntry;
-use App\Models\Customer;
+use App\Models\Dealer;
 use App\Models\GpsLog;
-use App\Models\SalesEntry;
-use App\Models\SalesEntryItem;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Target;
 use App\Models\Territory;
 use App\Models\User;
@@ -153,39 +153,39 @@ class ReportService
     /**
      * @param  array{date_from?: string, date_to?: string, user_id?: string, territory_id?: string}  $filters
      */
-    public function salesPerformance(array $filters): Collection
+    public function orderPerformance(array $filters): Collection
     {
         ['from' => $from, 'to' => $to] = $this->dateRange($filters);
 
-        $rows = SalesEntry::query()
-            ->whereBetween('sale_date', [$from->toDateString(), $to->toDateString()])
+        $rows = Order::query()
+            ->whereBetween('order_date', [$from->toDateString(), $to->toDateString()])
             ->when($filters['user_id'] ?? null, fn (Builder $q, $userId) => $q->where('user_id', $userId))
             ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereHas(
                 'user', fn (Builder $u) => $u->where('territory_id', $territoryId)
             ))
-            ->selectRaw('user_id, COUNT(*) as sales_count, SUM(total_amount) as total_sales_value')
+            ->selectRaw('user_id, COUNT(*) as order_count, SUM(total_amount) as total_order_value')
             ->groupBy('user_id')
             ->get();
 
-        $quantityByUser = SalesEntryItem::query()
-            ->join('sales_entries', 'sales_entries.id', '=', 'sales_entry_items.sales_entry_id')
-            ->whereBetween('sales_entries.sale_date', [$from->toDateString(), $to->toDateString()])
-            ->when($filters['user_id'] ?? null, fn (Builder $q, $userId) => $q->where('sales_entries.user_id', $userId))
+        $quantityByUser = OrderItem::query()
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->whereBetween('orders.order_date', [$from->toDateString(), $to->toDateString()])
+            ->when($filters['user_id'] ?? null, fn (Builder $q, $userId) => $q->where('orders.user_id', $userId))
             ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereHas(
-                'salesEntry.user', fn (Builder $u) => $u->where('territory_id', $territoryId)
+                'order.user', fn (Builder $u) => $u->where('territory_id', $territoryId)
             ))
-            ->selectRaw('sales_entries.user_id as user_id, SUM(sales_entry_items.quantity) as total_quantity')
-            ->groupBy('sales_entries.user_id')
+            ->selectRaw('orders.user_id as user_id, SUM(order_items.quantity) as total_quantity')
+            ->groupBy('orders.user_id')
             ->pluck('total_quantity', 'user_id');
 
         $users = $this->usersFor($rows->pluck('user_id'));
 
         return $rows->map(fn ($row) => (object) [
             'user' => $users->get($row->user_id),
-            'sales_count' => (int) $row->sales_count,
+            'order_count' => (int) $row->order_count,
             'total_quantity' => (int) ($quantityByUser->get($row->user_id) ?? 0),
-            'total_sales_value' => (float) $row->total_sales_value,
-        ])->sortByDesc('total_sales_value')->values();
+            'total_order_value' => (float) $row->total_order_value,
+        ])->sortByDesc('total_order_value')->values();
     }
 
     /**
@@ -235,12 +235,12 @@ class ReportService
         $dateFrom = $from->toDateString();
         $dateTo = $to->toDateString();
 
-        $salesByTerritory = SalesEntry::query()
-            ->join('users', 'users.id', '=', 'sales_entries.user_id')
-            ->whereBetween('sales_entries.sale_date', [$dateFrom, $dateTo])
-            ->selectRaw('users.territory_id as territory_id, SUM(sales_entries.total_amount) as total_sales_value')
+        $orderValueByTerritory = Order::query()
+            ->join('users', 'users.id', '=', 'orders.user_id')
+            ->whereBetween('orders.order_date', [$dateFrom, $dateTo])
+            ->selectRaw('users.territory_id as territory_id, SUM(orders.total_amount) as total_order_value')
             ->groupBy('users.territory_id')
-            ->pluck('total_sales_value', 'territory_id');
+            ->pluck('total_order_value', 'territory_id');
 
         $collectionsByTerritory = CollectionEntry::query()
             ->join('users', 'users.id', '=', 'collection_entries.user_id')
@@ -273,7 +273,7 @@ class ReportService
             ->orderBy('name')
             ->get();
 
-        return $territories->map(function (Territory $territory) use ($salesByTerritory, $collectionsByTerritory, $visitsByTerritory, $executiveCounts) {
+        return $territories->map(function (Territory $territory) use ($orderValueByTerritory, $collectionsByTerritory, $visitsByTerritory, $executiveCounts) {
             $visit = $visitsByTerritory->get($territory->id);
             $gpsVerified = (int) ($visit->gps_verified_count ?? 0);
             $gpsUnverified = (int) ($visit->gps_unverified_count ?? 0);
@@ -282,12 +282,12 @@ class ReportService
             return (object) [
                 'territory' => $territory,
                 'executive_count' => (int) ($executiveCounts->get($territory->id) ?? 0),
-                'total_sales_value' => (float) ($salesByTerritory->get($territory->id) ?? 0),
+                'total_order_value' => (float) ($orderValueByTerritory->get($territory->id) ?? 0),
                 'total_collection_amount' => (float) ($collectionsByTerritory->get($territory->id) ?? 0),
                 'total_visits' => (int) ($visit->total_visits ?? 0),
                 'gps_verified_rate' => $gpsJudged > 0 ? round(($gpsVerified / $gpsJudged) * 100, 1) : 0.0,
             ];
-        })->sortByDesc('total_sales_value')->values();
+        })->sortByDesc('total_order_value')->values();
     }
 
     /**
@@ -312,9 +312,9 @@ class ReportService
             'user' => $target->user,
             'month' => $target->month,
             'year' => $target->year,
-            'sales_target' => (float) $target->sales_value_target,
-            'sales_achieved' => (float) ($target->achievement?->sales_achieved ?? 0),
-            'sales_pct' => (float) ($target->achievement?->sales_pct ?? 0),
+            'order_target' => (float) $target->order_value_target,
+            'order_achieved' => (float) ($target->achievement?->order_achieved ?? 0),
+            'order_pct' => (float) ($target->achievement?->order_pct ?? 0),
             'collection_target' => (float) $target->collection_target,
             'collection_achieved' => (float) ($target->achievement?->collection_achieved ?? 0),
             'collection_pct' => (float) ($target->achievement?->collection_pct ?? 0),
@@ -328,7 +328,7 @@ class ReportService
 
     /**
      * A per-executive scorecard for one month, combining metrics already
-     * computed by the other reports (attendance, visits, sales,
+     * computed by the other reports (attendance, visits, orders,
      * collections) with that same month's Target/Achievement — nothing new
      * is queried that isn't already exposed elsewhere, this just merges by
      * user_id into a single row per executive.
@@ -350,7 +350,7 @@ class ReportService
 
         $attendance = $this->attendanceSummary($dateFilters)->keyBy(fn ($row) => $row->user->id);
         $visits = $this->visitCompliance($dateFilters)->keyBy(fn ($row) => $row->user->id);
-        $sales = $this->salesPerformance($dateFilters)->keyBy(fn ($row) => $row->user->id);
+        $orders = $this->orderPerformance($dateFilters)->keyBy(fn ($row) => $row->user->id);
         $collections = $this->collectionSummary($dateFilters)->keyBy(fn ($row) => $row->user->id);
 
         $achievements = Achievement::query()
@@ -363,14 +363,14 @@ class ReportService
 
         $userIds = $attendance->keys()
             ->merge($visits->keys())
-            ->merge($sales->keys())
+            ->merge($orders->keys())
             ->merge($collections->keys())
             ->merge($achievements->keys())
             ->unique();
 
         $users = $this->usersFor($userIds);
 
-        return $userIds->map(function ($userId) use ($attendance, $visits, $sales, $collections, $achievements, $users) {
+        return $userIds->map(function ($userId) use ($attendance, $visits, $orders, $collections, $achievements, $users) {
             $achievement = $achievements->get($userId);
 
             return (object) [
@@ -378,7 +378,7 @@ class ReportService
                 'attendance_rate' => $attendance->get($userId)->attendance_rate ?? 0.0,
                 'visit_completion_rate' => $visits->get($userId)->completion_rate ?? 0.0,
                 'gps_verified_rate' => $visits->get($userId)->gps_verified_rate ?? 0.0,
-                'total_sales_value' => $sales->get($userId)->total_sales_value ?? 0.0,
+                'total_order_value' => $orders->get($userId)->total_order_value ?? 0.0,
                 'total_collection_amount' => $collections->get($userId)->total_amount ?? 0.0,
                 'overall_achievement_pct' => $achievement ? (float) $achievement->overall_pct : 0.0,
                 'grade' => $achievement?->grade,
@@ -387,31 +387,31 @@ class ReportService
     }
 
     /**
-     * Per-territory customer coverage: how many of that territory's
-     * customers received at least one visit in the period. Sorted
+     * Per-territory dealer coverage: how many of that territory's
+     * dealers received at least one visit in the period. Sorted
      * ascending by coverage rate — the least-covered territories (the most
      * actionable ones) surface first.
      *
      * @param  array{date_from?: string, date_to?: string, territory_id?: string}  $filters
      */
-    public function customerCoverage(array $filters): Collection
+    public function dealerCoverage(array $filters): Collection
     {
         ['from' => $from, 'to' => $to] = $this->dateRange($filters);
 
-        $totalsByTerritory = Customer::query()
+        $totalsByTerritory = Dealer::query()
             ->whereNotNull('territory_id')
             ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->where('territory_id', $territoryId))
-            ->selectRaw('territory_id, COUNT(*) as total_customers')
+            ->selectRaw('territory_id, COUNT(*) as total_dealers')
             ->groupBy('territory_id')
-            ->pluck('total_customers', 'territory_id');
+            ->pluck('total_dealers', 'territory_id');
 
         $visitedByTerritory = Visit::query()
-            ->join('customers', 'customers.id', '=', 'visits.customer_id')
+            ->join('dealers', 'dealers.id', '=', 'visits.dealer_id')
             ->whereBetween('visits.check_in_at', [$from, $to])
-            ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->where('customers.territory_id', $territoryId))
-            ->selectRaw('customers.territory_id as territory_id, COUNT(DISTINCT visits.customer_id) as visited_customers')
-            ->groupBy('customers.territory_id')
-            ->pluck('visited_customers', 'territory_id');
+            ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->where('dealers.territory_id', $territoryId))
+            ->selectRaw('dealers.territory_id as territory_id, COUNT(DISTINCT visits.dealer_id) as visited_dealers')
+            ->groupBy('dealers.territory_id')
+            ->pluck('visited_dealers', 'territory_id');
 
         $territoryIds = $totalsByTerritory->keys();
         $territories = Territory::query()->whereIn('id', $territoryIds)->get()->keyBy('id');
@@ -422,9 +422,9 @@ class ReportService
 
             return (object) [
                 'territory' => $territories->get($territoryId),
-                'total_customers' => $total,
-                'visited_customers' => $visited,
-                'not_visited_customers' => max(0, $total - $visited),
+                'total_dealers' => $total,
+                'visited_dealers' => $visited,
+                'not_visited_dealers' => max(0, $total - $visited),
                 'coverage_rate' => $total > 0 ? round(($visited / $total) * 100, 1) : 0.0,
             ];
         })->sortBy('coverage_rate')->values();

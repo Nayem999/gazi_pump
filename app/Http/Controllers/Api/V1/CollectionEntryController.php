@@ -17,7 +17,7 @@ use OpenApi\Attributes as OA;
 
 /**
  * Self-service field collection entry for the mobile app: a Sales Executive
- * records a payment received from a customer and pulls back their own
+ * records a payment received from a dealer and pulls back their own
  * collection history. Cross-rep collection reporting is an Admin Dashboard
  * concern (Module 9 web CRUD).
  */
@@ -28,14 +28,14 @@ class CollectionEntryController extends Controller
     #[OA\Post(
         path: '/collection-entries',
         tags: ['Collection Entries'],
-        summary: 'Record a payment collected from a customer',
+        summary: 'Record a payment collected from a dealer',
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['customer_id', 'amount', 'payment_method'],
+                required: ['dealer_id', 'amount', 'payment_method'],
                 properties: [
-                    new OA\Property(property: 'customer_id', type: 'integer'),
+                    new OA\Property(property: 'dealer_id', type: 'integer'),
                     new OA\Property(property: 'collection_date', type: 'string', format: 'date', nullable: true),
                     new OA\Property(property: 'amount', type: 'number', format: 'float'),
                     new OA\Property(property: 'payment_method', type: 'string', enum: ['cash', 'cheque', 'bank_transfer', 'mobile_banking']),
@@ -53,7 +53,7 @@ class CollectionEntryController extends Controller
     {
         $entry = $this->collectionEntries->recordCollection(
             $request->user(),
-            (int) $request->input('customer_id'),
+            (int) $request->input('dealer_id'),
             (float) $request->input('amount'),
             PaymentMethod::from($request->string('payment_method')->toString()),
             $request->input('reference_no'),
@@ -78,7 +78,7 @@ class CollectionEntryController extends Controller
     )]
     public function index(Request $request): JsonResponse
     {
-        $query = CollectionEntry::where('user_id', $request->user()->id)->with(['customer']);
+        $query = CollectionEntry::where('user_id', $request->user()->id)->with(['dealer']);
 
         if ($request->filled('date_from')) {
             $query->whereDate('collection_date', '>=', $request->string('date_from'));

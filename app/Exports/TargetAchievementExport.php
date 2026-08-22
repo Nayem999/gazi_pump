@@ -27,7 +27,7 @@ class TargetAchievementExport implements FromCollection, WithHeadings, WithMappi
     public function headings(): array
     {
         return [
-            'Executive', 'Period', 'Sales Target', 'Sales Achieved', 'Sales %',
+            'Executive', 'Period', 'Order Target', 'Order Achieved', 'Order %',
             'Collection Target', 'Collection Achieved', 'Collection %',
             'Quantity Target', 'Quantity Achieved', 'Quantity %', 'Overall %', 'Grade',
         ];
@@ -41,9 +41,9 @@ class TargetAchievementExport implements FromCollection, WithHeadings, WithMappi
         return [
             $row->user?->name,
             $row->year.'-'.str_pad((string) $row->month, 2, '0', STR_PAD_LEFT),
-            (string) $row->sales_target,
-            (string) $row->sales_achieved,
-            (string) $row->sales_pct,
+            (string) $row->order_target,
+            (string) $row->order_achieved,
+            (string) $row->order_pct,
             (string) $row->collection_target,
             (string) $row->collection_achieved,
             (string) $row->collection_pct,

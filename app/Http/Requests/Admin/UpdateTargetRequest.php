@@ -30,7 +30,7 @@ class UpdateTargetRequest extends FormRequest
             ],
             'month' => ['required', 'integer', 'between:1,12'],
             'year' => ['required', 'integer', 'between:2020,2100'],
-            'sales_value_target' => ['required', 'numeric', 'min:1'],
+            'order_value_target' => ['required', 'numeric', 'min:1'],
             'collection_target' => ['required', 'numeric', 'min:1'],
             'quantity_target' => ['required', 'integer', 'min:1'],
             'notes' => ['nullable', 'string', 'max:1000'],

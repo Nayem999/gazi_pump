@@ -8,9 +8,9 @@ use App\Enums\AttendanceStatus;
 use App\Enums\VisitPlanStatus;
 use App\Models\Attendance;
 use App\Models\CollectionEntry;
-use App\Models\Customer;
+use App\Models\Dealer;
 use App\Models\Product;
-use App\Models\SalesEntry;
+use App\Models\Order;
 use App\Models\Territory;
 use App\Models\User;
 use App\Models\Visit;
@@ -109,14 +109,14 @@ class ReportServiceTest extends TestCase
     public function test_visit_compliance_computes_completion_and_gps_verified_rates(): void
     {
         $user = User::factory()->create();
-        $customer = Customer::factory()->create();
+        $dealer = Dealer::factory()->create();
 
-        VisitPlan::factory()->create(['user_id' => $user->id, 'customer_id' => $customer->id, 'planned_date' => '2026-08-05', 'status' => VisitPlanStatus::Completed]);
-        VisitPlan::factory()->create(['user_id' => $user->id, 'customer_id' => $customer->id, 'planned_date' => '2026-08-06', 'status' => VisitPlanStatus::Completed]);
-        VisitPlan::factory()->create(['user_id' => $user->id, 'customer_id' => $customer->id, 'planned_date' => '2026-08-07', 'status' => VisitPlanStatus::Cancelled]);
+        VisitPlan::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'planned_date' => '2026-08-05', 'status' => VisitPlanStatus::Completed]);
+        VisitPlan::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'planned_date' => '2026-08-06', 'status' => VisitPlanStatus::Completed]);
+        VisitPlan::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'planned_date' => '2026-08-07', 'status' => VisitPlanStatus::Cancelled]);
 
-        Visit::factory()->create(['user_id' => $user->id, 'customer_id' => $customer->id, 'check_in_at' => Carbon::create(2026, 8, 5, 10), 'is_gps_verified' => true]);
-        Visit::factory()->create(['user_id' => $user->id, 'customer_id' => $customer->id, 'check_in_at' => Carbon::create(2026, 8, 6, 10), 'is_gps_verified' => false]);
+        Visit::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'check_in_at' => Carbon::create(2026, 8, 5, 10), 'is_gps_verified' => true]);
+        Visit::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'check_in_at' => Carbon::create(2026, 8, 6, 10), 'is_gps_verified' => false]);
 
         $rows = $this->service()->visitCompliance(['date_from' => '2026-08-01', 'date_to' => '2026-08-31']);
         $row = $rows->firstWhere('user.id', $user->id);
@@ -129,30 +129,30 @@ class ReportServiceTest extends TestCase
         $this->assertSame(50.0, $row->gps_verified_rate);
     }
 
-    public function test_sales_performance_sums_value_and_quantity_across_line_items(): void
+    public function test_order_performance_sums_value_and_quantity_across_line_items(): void
     {
         $user = User::factory()->create();
-        $customer = Customer::factory()->create();
+        $dealer = Dealer::factory()->create();
 
-        $entry = SalesEntry::factory()->create(['user_id' => $user->id, 'customer_id' => $customer->id, 'sale_date' => '2026-08-10', 'total_amount' => 1500]);
+        $entry = Order::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'order_date' => '2026-08-10', 'total_amount' => 1500]);
         $entry->items()->create(['product_id' => Product::factory()->create()->id, 'quantity' => 5, 'unit_price' => 200, 'discount_amount' => 0, 'total_amount' => 1000]);
         $entry->items()->create(['product_id' => Product::factory()->create()->id, 'quantity' => 5, 'unit_price' => 100, 'discount_amount' => 0, 'total_amount' => 500]);
 
-        $rows = $this->service()->salesPerformance(['date_from' => '2026-08-01', 'date_to' => '2026-08-31']);
+        $rows = $this->service()->orderPerformance(['date_from' => '2026-08-01', 'date_to' => '2026-08-31']);
         $row = $rows->firstWhere('user.id', $user->id);
 
-        $this->assertSame(1, $row->sales_count);
+        $this->assertSame(1, $row->order_count);
         $this->assertSame(10, $row->total_quantity);
-        $this->assertSame(1500.0, $row->total_sales_value);
+        $this->assertSame(1500.0, $row->total_order_value);
     }
 
     public function test_collection_summary_breaks_down_by_payment_method(): void
     {
         $user = User::factory()->create();
-        $customer = Customer::factory()->create();
+        $dealer = Dealer::factory()->create();
 
-        CollectionEntry::factory()->create(['user_id' => $user->id, 'customer_id' => $customer->id, 'collection_date' => '2026-08-10', 'amount' => 100, 'payment_method' => 'cash']);
-        CollectionEntry::factory()->create(['user_id' => $user->id, 'customer_id' => $customer->id, 'collection_date' => '2026-08-11', 'amount' => 200, 'payment_method' => 'cheque']);
+        CollectionEntry::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'collection_date' => '2026-08-10', 'amount' => 100, 'payment_method' => 'cash']);
+        CollectionEntry::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'collection_date' => '2026-08-11', 'amount' => 200, 'payment_method' => 'cheque']);
 
         $rows = $this->service()->collectionSummary(['date_from' => '2026-08-01', 'date_to' => '2026-08-31']);
         $row = $rows->firstWhere('user.id', $user->id);
@@ -164,23 +164,23 @@ class ReportServiceTest extends TestCase
         $this->assertSame(0.0, $row->bank_transfer_total);
     }
 
-    public function test_territory_performance_aggregates_sales_collections_and_visits_per_territory(): void
+    public function test_territory_performance_aggregates_orders_collections_and_visits_per_territory(): void
     {
         $territory = Territory::factory()->create();
         $user = User::factory()->create(['territory_id' => $territory->id]);
         $user->assignRole('Sales Executive');
-        $customer = Customer::factory()->create();
+        $dealer = Dealer::factory()->create();
 
-        SalesEntry::factory()->create(['user_id' => $user->id, 'customer_id' => $customer->id, 'sale_date' => '2026-08-05', 'total_amount' => 1000]);
-        CollectionEntry::factory()->create(['user_id' => $user->id, 'customer_id' => $customer->id, 'collection_date' => '2026-08-05', 'amount' => 400]);
-        Visit::factory()->create(['user_id' => $user->id, 'customer_id' => $customer->id, 'check_in_at' => Carbon::create(2026, 8, 5, 10), 'is_gps_verified' => true]);
+        Order::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'order_date' => '2026-08-05', 'total_amount' => 1000]);
+        CollectionEntry::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'collection_date' => '2026-08-05', 'amount' => 400]);
+        Visit::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'check_in_at' => Carbon::create(2026, 8, 5, 10), 'is_gps_verified' => true]);
 
         $rows = $this->service()->territoryPerformance(['date_from' => '2026-08-01', 'date_to' => '2026-08-31', 'territory_id' => $territory->id]);
         $row = $rows->first();
 
         $this->assertSame($territory->id, $row->territory->id);
         $this->assertSame(1, $row->executive_count);
-        $this->assertSame(1000.0, $row->total_sales_value);
+        $this->assertSame(1000.0, $row->total_order_value);
         $this->assertSame(400.0, $row->total_collection_amount);
         $this->assertSame(1, $row->total_visits);
         $this->assertSame(100.0, $row->gps_verified_rate);

@@ -21,7 +21,7 @@
         <thead>
             <tr>
                 <th>Executive</th>
-                <th>Customer</th>
+                <th>Dealer</th>
                 <th>Collection Date</th>
                 <th>Amount</th>
                 <th>Payment Method</th>
@@ -33,7 +33,7 @@
             @foreach ($collectionEntries as $collectionEntry)
                 <tr>
                     <td>{{ $collectionEntry->user?->name }}</td>
-                    <td>{{ $collectionEntry->customer?->name }}</td>
+                    <td>{{ $collectionEntry->dealer?->name }}</td>
                     <td>{{ $collectionEntry->collection_date->format('M d, Y') }}</td>
                     <td>{{ number_format((float) $collectionEntry->amount, 2) }}</td>
                     <td>{{ $collectionEntry->payment_method->label() }}</td>

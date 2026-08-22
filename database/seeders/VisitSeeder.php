@@ -6,7 +6,7 @@ namespace Database\Seeders;
 
 use App\Enums\VisitPlanStatus;
 use App\Helpers\DistanceCalculator;
-use App\Models\Customer;
+use App\Models\Dealer;
 use App\Models\User;
 use App\Models\Visit;
 use App\Models\VisitPlan;
@@ -14,7 +14,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
 /**
- * Backfills the last 7 weekdays of visit plans + the customer visits that
+ * Backfills the last 7 weekdays of visit plans + the dealer visits that
  * fulfill most of them, for every Sales Executive. Seeds both tables
  * together (rather than two separate seeders) since a fulfilling Visit must
  * reference an already-created VisitPlan.
@@ -28,7 +28,7 @@ class VisitSeeder extends Seeder
     public function run(): void
     {
         $executives = User::role('Sales Executive')->get();
-        $customersByTerritory = Customer::all()->groupBy('territory_id');
+        $dealersByTerritory = Dealer::all()->groupBy('territory_id');
 
         $day = Carbon::today();
         $days = [];
@@ -40,16 +40,16 @@ class VisitSeeder extends Seeder
         }
 
         foreach ($executives as $executive) {
-            $pool = $customersByTerritory->get($executive->territory_id) ?? collect();
+            $pool = $dealersByTerritory->get($executive->territory_id) ?? collect();
             if ($pool->isEmpty()) {
-                $pool = Customer::inRandomOrder()->limit(5)->get();
+                $pool = Dealer::inRandomOrder()->limit(5)->get();
             }
 
             foreach ($days as $date) {
-                foreach ($pool->random(min(2, $pool->count())) as $customer) {
+                foreach ($pool->random(min(2, $pool->count())) as $dealer) {
                     $plan = VisitPlan::factory()->create([
                         'user_id' => $executive->id,
-                        'customer_id' => $customer->id,
+                        'dealer_id' => $dealer->id,
                         'planned_date' => $date->toDateString(),
                         'status' => VisitPlanStatus::Planned,
                     ]);
@@ -57,7 +57,7 @@ class VisitSeeder extends Seeder
                     $roll = random_int(1, 100);
 
                     if ($roll <= 90) {
-                        $this->createVisit($executive, $customer, $date, $plan);
+                        $this->createVisit($executive, $dealer, $date, $plan);
                         $plan->update(['status' => VisitPlanStatus::Completed]);
                     } elseif ($roll <= 95) {
                         $plan->update(['status' => VisitPlanStatus::Cancelled]);
@@ -74,18 +74,18 @@ class VisitSeeder extends Seeder
         }
     }
 
-    private function createVisit(User $executive, Customer $customer, Carbon $date, ?VisitPlan $plan): void
+    private function createVisit(User $executive, Dealer $dealer, Carbon $date, ?VisitPlan $plan): void
     {
         $checkInAt = $date->copy()->setTime(random_int(9, 15), random_int(0, 59));
 
-        if ($customer->hasGps()) {
+        if ($dealer->hasGps()) {
             $verified = random_int(1, 100) <= 85;
             $jitter = $verified ? self::NEARBY_JITTER_DEGREES : self::FAR_JITTER_DEGREES;
-            $lat = (float) $customer->gps_lat + fake()->randomFloat(6, -$jitter, $jitter);
-            $lng = (float) $customer->gps_lng + fake()->randomFloat(6, -$jitter, $jitter);
+            $lat = (float) $dealer->gps_lat + fake()->randomFloat(6, -$jitter, $jitter);
+            $lng = (float) $dealer->gps_lng + fake()->randomFloat(6, -$jitter, $jitter);
             $distanceMeters = round(DistanceCalculator::haversineKm(
-                (float) $customer->gps_lat,
-                (float) $customer->gps_lng,
+                (float) $dealer->gps_lat,
+                (float) $dealer->gps_lng,
                 $lat,
                 $lng
             ) * 1000, 2);
@@ -99,7 +99,7 @@ class VisitSeeder extends Seeder
         Visit::factory()->create([
             'visit_plan_id' => $plan?->id,
             'user_id' => $executive->id,
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'check_in_at' => $checkInAt,
             'check_in_lat' => $lat,
             'check_in_lng' => $lng,
@@ -107,7 +107,7 @@ class VisitSeeder extends Seeder
             'check_out_lat' => $lat,
             'check_out_lng' => $lng,
             'is_gps_verified' => $verified,
-            'distance_from_customer_meters' => $distanceMeters,
+            'distance_from_dealer_meters' => $distanceMeters,
         ]);
     }
 }

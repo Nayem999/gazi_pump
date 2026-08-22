@@ -10,7 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreVisitPlanRequest;
 use App\Http\Requests\Admin\UpdateVisitPlanRequest;
 use App\Imports\VisitPlansImport;
-use App\Models\Customer;
+use App\Models\Dealer;
 use App\Models\User;
 use App\Models\VisitPlan;
 use App\Services\VisitPlanService;
@@ -42,7 +42,7 @@ class VisitPlanController extends Controller
 
         return view('visit-plans.create', [
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
-            'customers' => Customer::orderBy('name')->get(),
+            'dealers' => Dealer::orderBy('name')->get(),
             'statuses' => VisitPlanStatus::cases(),
         ]);
     }
@@ -61,7 +61,7 @@ class VisitPlanController extends Controller
         return view('visit-plans.edit', [
             'visitPlan' => $visitPlan,
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
-            'customers' => Customer::orderBy('name')->get(),
+            'dealers' => Dealer::orderBy('name')->get(),
             'statuses' => VisitPlanStatus::cases(),
         ]);
     }

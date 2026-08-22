@@ -26,7 +26,7 @@ class StoreVisitPlanRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'customer_id' => ['required', 'integer', Rule::exists('customers', 'id')],
+            'dealer_id' => ['required', 'integer', Rule::exists('dealers', 'id')],
             'planned_date' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];

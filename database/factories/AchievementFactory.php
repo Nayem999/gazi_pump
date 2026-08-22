@@ -20,17 +20,17 @@ class AchievementFactory extends Factory
      */
     public function definition(): array
     {
-        $salesPct = fake()->randomFloat(2, 0, 150);
+        $orderPct = fake()->randomFloat(2, 0, 150);
         $collectionPct = fake()->randomFloat(2, 0, 150);
         $quantityPct = fake()->randomFloat(2, 0, 150);
-        $overallPct = round(($salesPct + $collectionPct + $quantityPct) / 3, 2);
+        $overallPct = round(($orderPct + $collectionPct + $quantityPct) / 3, 2);
 
         return [
             'target_id' => Target::factory(),
-            'sales_achieved' => fake()->randomFloat(2, 0, 2000000),
+            'order_achieved' => fake()->randomFloat(2, 0, 2000000),
             'collection_achieved' => fake()->randomFloat(2, 0, 1500000),
             'quantity_achieved' => fake()->numberBetween(0, 300),
-            'sales_pct' => $salesPct,
+            'order_pct' => $orderPct,
             'collection_pct' => $collectionPct,
             'quantity_pct' => $quantityPct,
             'overall_pct' => $overallPct,

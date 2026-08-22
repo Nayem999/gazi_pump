@@ -25,10 +25,10 @@ class VisitPlanResource extends JsonResource
             'status_label' => $this->status->label(),
             'is_missed' => $this->isMissed(),
             'notes' => $this->notes,
-            'customer' => $this->whenLoaded('customer', fn () => $this->customer ? [
-                'id' => $this->customer->id,
-                'name' => $this->customer->name,
-                'customer_code' => $this->customer->customer_code,
+            'dealer' => $this->whenLoaded('dealer', fn () => $this->dealer ? [
+                'id' => $this->dealer->id,
+                'name' => $this->dealer->name,
+                'dealer_code' => $this->dealer->dealer_code,
             ] : null),
             'created_at' => $this->created_at?->toIso8601String(),
         ];

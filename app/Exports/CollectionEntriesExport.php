@@ -27,7 +27,7 @@ class CollectionEntriesExport implements FromCollection, WithHeadings, WithMappi
      */
     public function headings(): array
     {
-        return ['Executive', 'Customer', 'Collection Date', 'Amount', 'Payment Method', 'Reference No', 'Remarks'];
+        return ['Executive', 'Dealer', 'Collection Date', 'Amount', 'Payment Method', 'Reference No', 'Remarks'];
     }
 
     /**
@@ -37,7 +37,7 @@ class CollectionEntriesExport implements FromCollection, WithHeadings, WithMappi
     {
         return [
             $collectionEntry->user?->name,
-            $collectionEntry->customer?->name,
+            $collectionEntry->dealer?->name,
             $collectionEntry->collection_date->format('Y-m-d'),
             (string) $collectionEntry->amount,
             $collectionEntry->payment_method->label(),

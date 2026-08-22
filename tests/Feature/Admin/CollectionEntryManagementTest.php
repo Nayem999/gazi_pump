@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Feature\Admin;
 
 use App\Models\CollectionEntry;
-use App\Models\Customer;
-use App\Models\SalesEntry;
+use App\Models\Dealer;
+use App\Models\Order;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -62,14 +62,14 @@ class CollectionEntryManagementTest extends TestCase
     {
         $manager = $this->generalManager();
         $executive = $this->executive();
-        $customer = Customer::factory()->create();
-        SalesEntry::factory()->create(['customer_id' => $customer->id, 'total_amount' => 1000]);
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
         $this->actingAs($manager)->get(route('collection-entries.index'))->assertOk();
 
         $response = $this->actingAs($manager)->post(route('collection-entries.store'), [
             'user_id' => $executive->id,
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'collection_date' => Carbon::today()->toDateString(),
             'amount' => 600,
             'payment_method' => 'cash',
@@ -78,7 +78,7 @@ class CollectionEntryManagementTest extends TestCase
         $response->assertRedirect(route('collection-entries.index'));
         $this->assertDatabaseHas('collection_entries', [
             'user_id' => $executive->id,
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'amount' => 600,
         ]);
     }
@@ -88,12 +88,12 @@ class CollectionEntryManagementTest extends TestCase
         config(['sfa.collections.overpayment_tolerance_percent' => 10]);
         $manager = $this->generalManager();
         $executive = $this->executive();
-        $customer = Customer::factory()->create();
-        SalesEntry::factory()->create(['customer_id' => $customer->id, 'total_amount' => 1000]);
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
         $response = $this->actingAs($manager)->post(route('collection-entries.store'), [
             'user_id' => $executive->id,
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'collection_date' => Carbon::today()->toDateString(),
             'amount' => 2000,
             'payment_method' => 'cash',
@@ -106,13 +106,13 @@ class CollectionEntryManagementTest extends TestCase
     public function test_general_manager_can_update_a_collection_entry(): void
     {
         $manager = $this->generalManager();
-        $customer = Customer::factory()->create();
-        SalesEntry::factory()->create(['customer_id' => $customer->id, 'total_amount' => 1000]);
-        $collectionEntry = CollectionEntry::factory()->create(['customer_id' => $customer->id, 'amount' => 300]);
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+        $collectionEntry = CollectionEntry::factory()->create(['dealer_id' => $dealer->id, 'amount' => 300]);
 
         $this->actingAs($manager)->put(route('collection-entries.update', $collectionEntry), [
             'user_id' => $collectionEntry->user_id,
-            'customer_id' => $customer->id,
+            'dealer_id' => $dealer->id,
             'collection_date' => $collectionEntry->collection_date->toDateString(),
             'amount' => 500,
             'payment_method' => 'cheque',

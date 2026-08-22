@@ -42,7 +42,7 @@
                     <tr>
                         <th>Territory</th>
                         <th>Executives</th>
-                        <th>Total Sales Value</th>
+                        <th>Total Order Value</th>
                         <th>Total Collection Amount</th>
                         <th>Total Visits</th>
                         <th>GPS Verified Rate</th>
@@ -53,7 +53,7 @@
                         <tr>
                             <td>{{ $row->territory?->name }}</td>
                             <td>{{ $row->executive_count }}</td>
-                            <td class="fw-semibold">{{ number_format($row->total_sales_value, 2) }}</td>
+                            <td class="fw-semibold">{{ number_format($row->total_order_value, 2) }}</td>
                             <td>{{ number_format($row->total_collection_amount, 2) }}</td>
                             <td>{{ $row->total_visits }}</td>
                             <td>{{ $row->gps_verified_rate }}%</td>

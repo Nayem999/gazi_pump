@@ -54,8 +54,8 @@
                 <thead>
                     <tr>
                         <th>Executive</th>
-                        <th>Sales Target</th>
-                        <th>Sales Achieved</th>
+                        <th>Order Target</th>
+                        <th>Order Achieved</th>
                         <th>Collection Target</th>
                         <th>Collection Achieved</th>
                         <th>Overall %</th>
@@ -69,8 +69,8 @@
                                 {{ $row->user?->name }}
                                 <div class="text-muted small">{{ $row->user?->territory?->name ?? '—' }}</div>
                             </td>
-                            <td>{{ number_format($row->sales_target, 2) }}</td>
-                            <td>{{ number_format($row->sales_achieved, 2) }} <span class="text-muted small">({{ $row->sales_pct }}%)</span></td>
+                            <td>{{ number_format($row->order_target, 2) }}</td>
+                            <td>{{ number_format($row->order_achieved, 2) }} <span class="text-muted small">({{ $row->order_pct }}%)</span></td>
                             <td>{{ number_format($row->collection_target, 2) }}</td>
                             <td>{{ number_format($row->collection_achieved, 2) }} <span class="text-muted small">({{ $row->collection_pct }}%)</span></td>
                             <td class="fw-semibold">{{ $row->overall_pct }}%</td>

@@ -29,7 +29,7 @@ class TargetsExport implements FromCollection, WithHeadings, WithMapping
     {
         return [
             'Executive', 'Period',
-            'Sales Target', 'Sales Achieved', 'Sales %',
+            'Order Target', 'Order Achieved', 'Order %',
             'Collection Target', 'Collection Achieved', 'Collection %',
             'Qty Target', 'Qty Achieved', 'Qty %',
             'Overall %', 'Grade',
@@ -46,9 +46,9 @@ class TargetsExport implements FromCollection, WithHeadings, WithMapping
         return [
             $target->user?->name,
             $target->periodLabel(),
-            (string) $target->sales_value_target,
-            $achievement ? (string) $achievement->sales_achieved : '—',
-            $achievement ? (string) $achievement->sales_pct : '—',
+            (string) $target->order_value_target,
+            $achievement ? (string) $achievement->order_achieved : '—',
+            $achievement ? (string) $achievement->order_pct : '—',
             (string) $target->collection_target,
             $achievement ? (string) $achievement->collection_achieved : '—',
             $achievement ? (string) $achievement->collection_pct : '—',
