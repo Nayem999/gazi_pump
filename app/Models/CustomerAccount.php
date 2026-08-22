@@ -15,7 +15,7 @@ use Illuminate\Notifications\Notifiable;
 
 /**
  * The customer portal's login identity, authenticated via the 'customer'
- * guard — deliberately separate from App\Models\Customer (the CRM record
+ * guard — deliberately separate from App\Models\Dealer (the CRM record
  * sales staff manage) and from App\Models\User (staff/admin accounts).
  * No HasAudit/LogsActivity here: accounts are self-registered, so there's
  * no internal "creator" to stamp, and per-customer activity noise isn't

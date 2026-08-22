@@ -15,7 +15,7 @@ use OpenApi\Attributes as OA;
 
 /**
  * Read-only product catalog for the mobile app: browsing/searching products
- * to reference when entering a sale (Module 8) or, later, for the Customer
+ * to reference when entering an order (Module 8) or, later, for the Customer
  * Web Portal's product catalog (Module 17).
  */
 class ProductController extends Controller
