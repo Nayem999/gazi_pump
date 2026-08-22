@@ -36,7 +36,7 @@
                     <h6 class="mb-3">Profile Details</h6>
                     <dl class="row mb-0">
                         <dt class="col-sm-4">Phone</dt>
-                        <dd class="col-sm-8">{{ $dealer->phone }}</dd>
+                        <dd class="col-sm-8"><x-phone-actions :phone="$dealer->phone" /></dd>
 
                         <dt class="col-sm-4">Email</dt>
                         <dd class="col-sm-8">{{ $dealer->email ?? '—' }}</dd>

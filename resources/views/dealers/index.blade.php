@@ -72,9 +72,15 @@
                         @endif
                     </td>
                     <td>{{ $dealer->dealer_code }}</td>
-                    <td>{{ $dealer->name }}</td>
+                    <td>
+                        @if ($dealer->trashed())
+                            {{ $dealer->name }}
+                        @else
+                            <a href="{{ route('dealers.show', $dealer) }}">{{ $dealer->name }}</a>
+                        @endif
+                    </td>
                     <td><span class="badge text-bg-{{ $dealer->type->badgeColor() }}">{{ $dealer->type->label() }}</span></td>
-                    <td>{{ $dealer->phone }}</td>
+                    <td><x-phone-actions :phone="$dealer->phone" /></td>
                     <td>{{ $dealer->territory?->name ?? '—' }}</td>
                     <td>
                         @if ($dealer->trashed())
@@ -132,13 +138,14 @@
                             icon="ti-building-store"
                             icon-color="info"
                             :title="$dealer->name"
+                            :title-url="$dealer->trashed() ? null : route('dealers.show', $dealer)"
                             :subtitle="$dealer->dealer_code"
                             :status-label="$dealer->trashed() ? 'Trashed' : ($dealer->status ? 'Active' : 'Inactive')"
                             :status-color="$dealer->trashed() ? 'danger' : ($dealer->status ? 'success' : 'secondary')"
                         >
                             <x-slot:meta>
                                 <div><span class="badge text-bg-{{ $dealer->type->badgeColor() }}">{{ $dealer->type->label() }}</span></div>
-                                <div>Phone: {{ $dealer->phone }}</div>
+                                <div>Phone: <x-phone-actions :phone="$dealer->phone" /></div>
                                 <div>Territory: {{ $dealer->territory?->name ?? '—' }}</div>
                             </x-slot:meta>
                             <x-slot:checkbox>

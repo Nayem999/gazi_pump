@@ -3,6 +3,7 @@
     'iconColor' => 'primary',
     'image' => null,
     'title' => '',
+    'titleUrl' => null,
     'subtitle' => null,
     'statusLabel' => null,
     'statusColor' => 'secondary',
@@ -19,7 +20,13 @@
                 </div>
             @endif
             <div class="flex-grow-1 min-w-0">
-                <h6 class="mb-0 text-truncate" title="{{ $title }}">{{ $title }}</h6>
+                <h6 class="mb-0 text-truncate" title="{{ $title }}">
+                    @if ($titleUrl)
+                        <a href="{{ $titleUrl }}">{{ $title }}</a>
+                    @else
+                        {{ $title }}
+                    @endif
+                </h6>
                 @if ($subtitle)
                     <div class="text-muted small text-truncate">{{ $subtitle }}</div>
                 @endif

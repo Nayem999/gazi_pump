@@ -67,7 +67,11 @@
                         <div class="text-muted small">{{ $visit->user?->employee_id }}</div>
                     </td>
                     <td>
-                        {{ $visit->dealer?->name }}
+                        @if ($visit->dealer && ! $visit->dealer->trashed())
+                            <a href="{{ route('dealers.show', $visit->dealer) }}">{{ $visit->dealer->name }}</a>
+                        @else
+                            {{ $visit->dealer?->name }}
+                        @endif
                         <div class="text-muted small">{{ $visit->dealer?->dealer_code }}</div>
                     </td>
                     <td>{{ $visit->check_in_at?->format('M d, Y H:i') }}</td>
@@ -124,6 +128,7 @@
                             icon="ti-walk"
                             icon-color="{{ match ($visit->is_gps_verified) { true => 'success', false => 'danger', default => 'secondary' } }}"
                             :title="$visit->dealer?->name"
+                            :title-url="$visit->dealer && ! $visit->dealer->trashed() ? route('dealers.show', $visit->dealer) : null"
                             :subtitle="$visit->user?->name"
                             :status-label="$visit->trashed() ? 'Trashed' : match ($visit->is_gps_verified) { true => 'Verified', false => 'Unverified', default => 'Unknown' }"
                             :status-color="$visit->trashed() ? 'danger' : match ($visit->is_gps_verified) { true => 'success', false => 'danger', default => 'secondary' }"

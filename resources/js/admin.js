@@ -43,6 +43,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Copy-to-clipboard for any [data-copy] element (e.g. dealer phone
+    // numbers) — a small Swal toast confirms the copy instead of a full
+    // confirm-style dialog, since this isn't a decision the user needs to
+    // approve, just feedback that it happened.
+    document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[data-copy]');
+
+        if (!trigger) {
+            return;
+        }
+
+        event.preventDefault();
+
+        navigator.clipboard.writeText(trigger.dataset.copy).then(() => {
+            window.Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: 'Phone number copied.',
+                timer: 1500,
+                showConfirmButton: false,
+            });
+        });
+    });
+
     // DataTables' default error mode pops a blocking browser alert() for any
     // internal warning (e.g. its own Responsive extension misreads empty-table
     // placeholder rows as a column mismatch). That's never appropriate for an

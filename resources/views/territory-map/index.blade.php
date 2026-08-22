@@ -161,6 +161,31 @@
                 return Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
             }
 
+            function whatsappNumber(phone) {
+                const digits = String(phone || '').replace(/\D/g, '');
+                if (!digits) {
+                    return null;
+                }
+                if (digits.startsWith('880')) {
+                    return digits;
+                }
+                if (digits.startsWith('0')) {
+                    return '880' + digits.slice(1);
+                }
+                return digits;
+            }
+
+            function phoneActionsHtml(phone) {
+                if (!phone) {
+                    return '—';
+                }
+                const wa = whatsappNumber(phone);
+                const waLink = wa
+                    ? `<a href="https://wa.me/${wa}" target="_blank" rel="noopener" class="btn btn-sm btn-link p-0 text-success" title="Contact on WhatsApp"><i class="ti ti-brand-whatsapp"></i></a>`
+                    : '';
+                return `<span class="d-inline-flex align-items-center gap-1"><span>${phone}</span><button type="button" class="btn btn-sm btn-link p-0 text-secondary" data-copy="${phone}" title="Copy phone number"><i class="ti ti-copy"></i></button>${waLink}</span>`;
+            }
+
             function renderDetail(payload) {
                 const t = payload.territory;
                 const c = payload.dealers;
@@ -172,7 +197,7 @@
                         <td><a href="${dealer.url}">${dealer.name}</a></td>
                         <td>${dealer.code}</td>
                         <td>${dealer.type}</td>
-                        <td>${dealer.phone ?? '—'}</td>
+                        <td>${phoneActionsHtml(dealer.phone)}</td>
                     </tr>
                 `).join('');
 

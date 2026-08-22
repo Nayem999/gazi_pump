@@ -77,7 +77,11 @@
                         <div class="text-muted small">{{ $collectionEntry->user?->employee_id }}</div>
                     </td>
                     <td>
-                        {{ $collectionEntry->dealer?->name }}
+                        @if ($collectionEntry->dealer && ! $collectionEntry->dealer->trashed())
+                            <a href="{{ route('dealers.show', $collectionEntry->dealer) }}">{{ $collectionEntry->dealer->name }}</a>
+                        @else
+                            {{ $collectionEntry->dealer?->name }}
+                        @endif
                         <div class="text-muted small">{{ $collectionEntry->dealer?->dealer_code }}</div>
                     </td>
                     <td>{{ $collectionEntry->collection_date->format('M d, Y') }}</td>
@@ -132,6 +136,7 @@
                             icon="ti-cash"
                             icon-color="success"
                             :title="$collectionEntry->dealer?->name"
+                            :title-url="$collectionEntry->dealer && ! $collectionEntry->dealer->trashed() ? route('dealers.show', $collectionEntry->dealer) : null"
                             :subtitle="$collectionEntry->payment_method->label()"
                             :status-label="$collectionEntry->trashed() ? 'Trashed' : null"
                             status-color="danger"

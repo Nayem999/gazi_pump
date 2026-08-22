@@ -68,7 +68,11 @@
                         <div class="text-muted small">{{ $order->user?->employee_id }}</div>
                     </td>
                     <td>
-                        {{ $order->dealer?->name }}
+                        @if ($order->dealer && ! $order->dealer->trashed())
+                            <a href="{{ route('dealers.show', $order->dealer) }}">{{ $order->dealer->name }}</a>
+                        @else
+                            {{ $order->dealer?->name }}
+                        @endif
                         <div class="text-muted small">{{ $order->dealer?->dealer_code }}</div>
                     </td>
                     <td>
@@ -124,6 +128,7 @@
                             icon="ti-receipt"
                             icon-color="primary"
                             :title="$order->dealer?->name"
+                            :title-url="$order->dealer && ! $order->dealer->trashed() ? route('dealers.show', $order->dealer) : null"
                             :subtitle="$order->items->count().' item(s)'"
                             :status-label="$order->trashed() ? 'Trashed' : null"
                             status-color="danger"

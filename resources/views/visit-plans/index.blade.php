@@ -76,7 +76,11 @@
                         <div class="text-muted small">{{ $visitPlan->user?->employee_id }}</div>
                     </td>
                     <td>
-                        {{ $visitPlan->dealer?->name }}
+                        @if ($visitPlan->dealer && ! $visitPlan->dealer->trashed())
+                            <a href="{{ route('dealers.show', $visitPlan->dealer) }}">{{ $visitPlan->dealer->name }}</a>
+                        @else
+                            {{ $visitPlan->dealer?->name }}
+                        @endif
                         <div class="text-muted small">{{ $visitPlan->dealer?->dealer_code }}</div>
                     </td>
                     <td>{{ $visitPlan->planned_date->format('M d, Y') }}</td>
@@ -131,6 +135,7 @@
                             icon="ti-calendar-event"
                             icon-color="{{ $visitPlan->status->badgeColor() }}"
                             :title="$visitPlan->dealer?->name"
+                            :title-url="$visitPlan->dealer && ! $visitPlan->dealer->trashed() ? route('dealers.show', $visitPlan->dealer) : null"
                             :subtitle="$visitPlan->dealer?->dealer_code"
                             :status-label="$visitPlan->trashed() ? 'Trashed' : ($visitPlan->isMissed() ? 'Missed' : $visitPlan->status->label())"
                             :status-color="$visitPlan->trashed() ? 'danger' : ($visitPlan->isMissed() ? 'danger' : $visitPlan->status->badgeColor())"

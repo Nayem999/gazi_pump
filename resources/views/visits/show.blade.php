@@ -19,7 +19,13 @@
             <div class="card text-center">
                 <div class="card-body">
                     <i class="ti ti-building-store display-1 text-secondary mb-2 d-block"></i>
-                    <h5 class="mb-0">{{ $visit->dealer->name }}</h5>
+                    <h5 class="mb-0">
+                        @if (! $visit->dealer->trashed())
+                            <a href="{{ route('dealers.show', $visit->dealer) }}">{{ $visit->dealer->name }}</a>
+                        @else
+                            {{ $visit->dealer->name }}
+                        @endif
+                    </h5>
                     <div class="text-muted">{{ $visit->dealer->dealer_code }}</div>
                     <div class="mt-2">
                         <span class="badge text-bg-{{ match ($visit->is_gps_verified) { true => 'success', false => 'danger', default => 'secondary' } }}">

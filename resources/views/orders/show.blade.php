@@ -13,7 +13,13 @@
             <div class="card text-center">
                 <div class="card-body">
                     <i class="ti ti-building-store display-1 text-secondary mb-2 d-block"></i>
-                    <h5 class="mb-0">{{ $order->dealer->name }}</h5>
+                    <h5 class="mb-0">
+                        @if (! $order->dealer->trashed())
+                            <a href="{{ route('dealers.show', $order->dealer) }}">{{ $order->dealer->name }}</a>
+                        @else
+                            {{ $order->dealer->name }}
+                        @endif
+                    </h5>
                     <div class="text-muted">{{ $order->dealer->dealer_code }}</div>
                     <div class="mt-2">
                         <span class="badge text-bg-primary">{{ $order->items->count() }} item(s)</span>
