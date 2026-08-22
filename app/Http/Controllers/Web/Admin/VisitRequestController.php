@@ -22,8 +22,8 @@ class VisitRequestController extends Controller
         $this->authorize('viewAny', VisitRequest::class);
 
         return view('visit-requests.index', [
-            'visitRequests' => $this->visitRequests->paginate($request->only(['search', 'status']), 15),
-            'filters' => $request->only(['search', 'status']),
+            'visitRequests' => $this->visitRequests->paginate($request->only(['search', 'status', 'trashed']), 15),
+            'filters' => $request->only(['search', 'status', 'trashed']),
             'statuses' => VisitRequestStatus::cases(),
         ]);
     }

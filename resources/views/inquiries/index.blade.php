@@ -21,6 +21,7 @@
                 @endforeach
             </select>
         </div>
+        @include('partials.trashed-filter', ['filters' => $filters, 'colClass' => 'col-md-3'])
     </x-filter-bar>
 
     <x-data-table title="Inquiries" :paginator="$inquiries">
@@ -45,12 +46,20 @@
                 <td>{{ $inquiry->subject }}</td>
                 <td>{{ $inquiry->product?->name ?? '—' }}</td>
                 <td>{{ $inquiry->customerAccount?->name ?? 'Guest' }}</td>
-                <td><span class="badge text-bg-{{ $inquiry->status->badgeColor() }}">{{ $inquiry->status->label() }}</span></td>
+                <td>
+                    @if ($inquiry->trashed())
+                        <span class="badge text-bg-danger">Trashed</span>
+                    @else
+                        <span class="badge text-bg-{{ $inquiry->status->badgeColor() }}">{{ $inquiry->status->label() }}</span>
+                    @endif
+                </td>
                 <td>{{ $inquiry->created_at->format('M d, Y H:i') }}</td>
                 <td class="text-end">
-                    @can('view', $inquiry)
-                        <a href="{{ route('inquiries.show', $inquiry) }}" class="btn btn-outline-secondary btn-sm" title="View"><i class="ti ti-eye"></i></a>
-                    @endcan
+                    @if (! $inquiry->trashed())
+                        @can('view', $inquiry)
+                            <a href="{{ route('inquiries.show', $inquiry) }}" class="btn btn-outline-secondary btn-sm" title="View"><i class="ti ti-eye"></i></a>
+                        @endcan
+                    @endif
                 </td>
             </tr>
         @empty

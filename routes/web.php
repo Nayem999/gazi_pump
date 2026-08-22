@@ -106,7 +106,7 @@ $registerContentRoutes = function (string $uriPrefix, string $controller, string
     });
 };
 
-Route::middleware('auth')->group(function () use ($registerManagementRoutes, $registerContentRoutes): void {
+Route::middleware(['auth', 'active'])->group(function () use ($registerManagementRoutes, $registerContentRoutes): void {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

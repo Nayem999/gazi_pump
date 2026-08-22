@@ -27,6 +27,13 @@ class InquiryRepository extends BaseRepository implements InquiryRepositoryInter
                 });
             })
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->when($filters['trashed'] ?? null, function ($query, $trashed) {
+                match ($trashed) {
+                    'only' => $query->onlyTrashed(),
+                    'with' => $query->withTrashed(),
+                    default => null,
+                };
+            })
             ->orderByDesc('created_at')
             ->paginate($perPage)
             ->withQueryString();

@@ -2,6 +2,7 @@
 
 use App\Helpers\ApiResponse;
 use App\Http\Middleware\ApplySettingsToConfig;
+use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -32,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
+            'active' => EnsureUserIsActive::class,
         ]);
 
         // Applies to every request (web + api) — business rules read via

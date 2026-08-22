@@ -29,14 +29,7 @@
                 <option value="inactive" @selected(($filters['status'] ?? '') === 'inactive')>Inactive</option>
             </select>
         </div>
-        <div class="col-md-3">
-            <label class="form-label">Trashed</label>
-            <select name="trashed" class="form-select">
-                <option value="">Without Trashed</option>
-                <option value="with" @selected(($filters['trashed'] ?? '') === 'with')>With Trashed</option>
-                <option value="only" @selected(($filters['trashed'] ?? '') === 'only')>Only Trashed</option>
-            </select>
-        </div>
+        @include('partials.trashed-filter', ['filters' => $filters, 'colClass' => 'col-md-3'])
     </x-filter-bar>
 
     <form id="bulkForm" method="POST" action="{{ route('users.bulk-destroy') }}" data-confirm data-confirm-title="Delete selected users?">
@@ -115,6 +108,17 @@
                                     <a href="{{ route('users.show', $user) }}" class="btn btn-outline-secondary" title="View"><i class="ti ti-eye"></i></a>
                                 @endcan
                                 @can('update', $user)
+                                    @if ($user->id !== auth()->id())
+                                        <form method="POST" action="{{ route('users.toggle-status', $user) }}"
+                                            data-confirm
+                                            data-confirm-title="{{ $user->status ? 'Deactivate this user?' : 'Activate this user?' }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="btn btn-outline-{{ $user->status ? 'danger' : 'success' }}" title="{{ $user->status ? 'Deactivate' : 'Activate' }}">
+                                                <i class="ti ti-{{ $user->status ? 'ban' : 'user-check' }}"></i>
+                                            </button>
+                                        </form>
+                                    @endif
                                     <a href="{{ route('users.edit', $user) }}" class="btn btn-outline-primary" title="Edit"><i class="ti ti-pencil"></i></a>
                                 @endcan
                                 @can('delete', $user)
@@ -181,6 +185,17 @@
                                         <a href="{{ route('users.show', $user) }}" class="btn btn-outline-secondary" title="View"><i class="ti ti-eye"></i></a>
                                     @endcan
                                     @can('update', $user)
+                                        @if ($user->id !== auth()->id())
+                                            <form method="POST" action="{{ route('users.toggle-status', $user) }}"
+                                                data-confirm
+                                                data-confirm-title="{{ $user->status ? 'Deactivate this user?' : 'Activate this user?' }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-outline-{{ $user->status ? 'danger' : 'success' }}" title="{{ $user->status ? 'Deactivate' : 'Activate' }}">
+                                                    <i class="ti ti-{{ $user->status ? 'ban' : 'user-check' }}"></i>
+                                                </button>
+                                            </form>
+                                        @endif
                                         <a href="{{ route('users.edit', $user) }}" class="btn btn-outline-primary" title="Edit"><i class="ti ti-pencil"></i></a>
                                     @endcan
                                     @can('delete', $user)

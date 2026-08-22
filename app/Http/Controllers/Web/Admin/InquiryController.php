@@ -22,8 +22,8 @@ class InquiryController extends Controller
         $this->authorize('viewAny', Inquiry::class);
 
         return view('inquiries.index', [
-            'inquiries' => $this->inquiries->paginate($request->only(['search', 'status']), 15),
-            'filters' => $request->only(['search', 'status']),
+            'inquiries' => $this->inquiries->paginate($request->only(['search', 'status', 'trashed']), 15),
+            'filters' => $request->only(['search', 'status', 'trashed']),
             'statuses' => InquiryStatus::cases(),
         ]);
     }

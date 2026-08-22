@@ -21,6 +21,7 @@
                 @endforeach
             </select>
         </div>
+        @include('partials.trashed-filter', ['filters' => $filters, 'colClass' => 'col-md-3'])
     </x-filter-bar>
 
     <x-data-table title="Visit Requests" :paginator="$visitRequests">
@@ -40,12 +41,20 @@
                 <td>{{ $visitRequest->customerAccount?->name ?? '—' }}</td>
                 <td>{{ $visitRequest->preferred_date->format('M d, Y') }}</td>
                 <td>{{ \Illuminate\Support\Str::limit($visitRequest->address, 50) }}</td>
-                <td><span class="badge text-bg-{{ $visitRequest->status->badgeColor() }}">{{ $visitRequest->status->label() }}</span></td>
+                <td>
+                    @if ($visitRequest->trashed())
+                        <span class="badge text-bg-danger">Trashed</span>
+                    @else
+                        <span class="badge text-bg-{{ $visitRequest->status->badgeColor() }}">{{ $visitRequest->status->label() }}</span>
+                    @endif
+                </td>
                 <td>{{ $visitRequest->created_at->format('M d, Y H:i') }}</td>
                 <td class="text-end">
-                    @can('view', $visitRequest)
-                        <a href="{{ route('visit-requests.show', $visitRequest) }}" class="btn btn-outline-secondary btn-sm" title="View"><i class="ti ti-eye"></i></a>
-                    @endcan
+                    @if (! $visitRequest->trashed())
+                        @can('view', $visitRequest)
+                            <a href="{{ route('visit-requests.show', $visitRequest) }}" class="btn btn-outline-secondary btn-sm" title="View"><i class="ti ti-eye"></i></a>
+                        @endcan
+                    @endif
                 </td>
             </tr>
         @empty

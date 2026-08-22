@@ -39,7 +39,7 @@ class AttendanceController extends Controller
         $this->authorize('create', Attendance::class);
 
         return view('attendance.create', [
-            'users' => User::role('Sales Executive')->orderBy('name')->get(),
+            'users' => User::role('Sales Executive')->where('status', true)->orderBy('name')->get(),
             'statuses' => AttendanceStatus::cases(),
         ]);
     }

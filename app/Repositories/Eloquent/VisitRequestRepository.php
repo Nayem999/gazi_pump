@@ -21,6 +21,13 @@ class VisitRequestRepository extends BaseRepository implements VisitRequestRepos
             ->with('customerAccount')
             ->when($filters['search'] ?? null, fn ($query, $search) => $query->where('address', 'like', "%{$search}%"))
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->when($filters['trashed'] ?? null, function ($query, $trashed) {
+                match ($trashed) {
+                    'only' => $query->onlyTrashed(),
+                    'with' => $query->withTrashed(),
+                    default => null,
+                };
+            })
             ->orderByDesc('created_at')
             ->paginate($perPage)
             ->withQueryString();

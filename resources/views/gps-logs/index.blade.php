@@ -24,14 +24,7 @@
             <label class="form-label">Date</label>
             <input type="date" name="date" class="form-control" value="{{ $selectedDate }}">
         </div>
-        <div class="col-md-3">
-            <label class="form-label">Trashed</label>
-            <select name="trashed" class="form-select">
-                <option value="">Without Trashed</option>
-                <option value="with" @selected(($filters['trashed'] ?? '') === 'with')>With Trashed</option>
-                <option value="only" @selected(($filters['trashed'] ?? '') === 'only')>Only Trashed</option>
-            </select>
-        </div>
+        @include('partials.trashed-filter', ['filters' => $filters, 'colClass' => 'col-md-3'])
     </x-filter-bar>
 
     <div class="row g-3 mb-4">

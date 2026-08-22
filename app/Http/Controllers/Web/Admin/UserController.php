@@ -44,7 +44,7 @@ class UserController extends Controller
 
         return view('users.create', [
             'roles' => Role::all(),
-            'managers' => User::orderBy('name')->get(),
+            'managers' => User::where('status', true)->orderBy('name')->get(),
             'salesTeams' => SalesTeam::orderBy('name')->get(),
             'territories' => Territory::orderBy('name')->get(),
         ]);
@@ -73,7 +73,7 @@ class UserController extends Controller
         return view('users.edit', [
             'user' => $user->load('roles'),
             'roles' => Role::all(),
-            'managers' => User::where('id', '!=', $user->id)->orderBy('name')->get(),
+            'managers' => User::where('id', '!=', $user->id)->where('status', true)->orderBy('name')->get(),
             'salesTeams' => SalesTeam::orderBy('name')->get(),
             'territories' => Territory::orderBy('name')->get(),
         ]);
@@ -176,8 +176,12 @@ class UserController extends Controller
     {
         $this->authorize('update', $user);
 
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'You cannot deactivate your own account.');
+        }
+
         $this->users->update($user, ['status' => ! $user->status]);
 
-        return back()->with('success', 'User status updated.');
+        return back()->with('success', $user->status ? 'User activated successfully.' : 'User deactivated successfully.');
     }
 }

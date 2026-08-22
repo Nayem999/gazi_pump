@@ -20,14 +20,7 @@
                 <option value="inactive" @selected(($filters['status'] ?? '') === 'inactive')>Inactive</option>
             </select>
         </div>
-        <div class="col-md-3">
-            <label class="form-label">Trashed</label>
-            <select name="trashed" class="form-select">
-                <option value="">Without Trashed</option>
-                <option value="with" @selected(($filters['trashed'] ?? '') === 'with')>With Trashed</option>
-                <option value="only" @selected(($filters['trashed'] ?? '') === 'only')>Only Trashed</option>
-            </select>
-        </div>
+        @include('partials.trashed-filter', ['filters' => $filters, 'colClass' => 'col-md-3'])
     </x-filter-bar>
 
     <form id="bulkForm" method="POST" action="{{ route('promotions.bulk-destroy') }}" data-confirm data-confirm-title="Delete selected promotions?">
