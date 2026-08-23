@@ -6,7 +6,7 @@
 <div class="row g-3">
     <div class="col-md-6">
         <label class="form-label">Sales Executive <span class="text-danger">*</span></label>
-        <select name="user_id" class="form-select @error('user_id') is-invalid @enderror" required>
+        <select name="user_id" id="planExecutive" class="form-select @error('user_id') is-invalid @enderror" required>
             <option value="">— Select Executive —</option>
             @foreach ($executives as $executive)
                 <option value="{{ $executive->id }}" @selected((string) old('user_id', $visitPlan->user_id ?? '') === (string) $executive->id)>{{ $executive->name }} ({{ $executive->employee_id }})</option>
@@ -26,15 +26,49 @@
             </select>
             @error('dealer_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
-    @else
+
+        @php
+            $oldTerritoryId = old('territory_id', $visitPlan->territory_id ?? null);
+            $oldTerritory = (string) $oldTerritoryId === (string) ($visitPlan->territory_id ?? '')
+                ? $visitPlan->territory
+                : ($oldTerritoryId ? \App\Models\Territory::find($oldTerritoryId) : null);
+        @endphp
         <div class="col-md-6">
+            <label class="form-label">Territory</label>
+            <select name="territory_id" id="visitPlanTerritory" class="form-select @error('territory_id') is-invalid @enderror" data-ajax-url="{{ route('territories.options') }}">
+                <option value="">— Auto (from dealer) —</option>
+                @if ($oldTerritory)
+                    <option value="{{ $oldTerritory->id }}" selected>{{ $oldTerritory->name }}</option>
+                @endif
+            </select>
+            <div class="form-text">Leave blank to use the dealer's own territory automatically.</div>
+            @error('territory_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+    @else
+        {{--
+            Guided flow: Executive -> Territory (only the ones actually
+            assigned to that executive) -> picking a Territory auto-adds
+            every dealer in it below. The manual search box stays available
+            too, for adding dealers outside the picked territory (or when
+            the executive has none assigned yet).
+        --}}
+        <div class="col-md-6">
+            <label class="form-label">Territory</label>
+            <select name="territory_id" id="planTerritory" class="form-select @error('territory_id') is-invalid @enderror" disabled>
+                <option value="">— Select Executive First —</option>
+            </select>
+            <div class="form-text">Shows this executive's assigned territories; picking one adds all of its dealers below.</div>
+            @error('territory_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+
+        <div class="col-12">
             <label class="form-label">Dealer(s) <span class="text-danger">*</span></label>
             <div class="position-relative mb-2">
                 <input type="text" id="dealerSearchInput" class="form-control" placeholder="Type a dealer name or code to search and add..." autocomplete="off">
                 <div id="dealerSearchResults" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index:1000;max-height:260px;overflow-y:auto"></div>
             </div>
             <div id="dealerChips" class="d-flex flex-wrap gap-2"></div>
-            <div class="form-text">A separate visit plan is created for each dealer added.</div>
+            <div class="form-text">Picking a territory above adds every dealer in it — you can still add more, or remove any, individually. A separate visit plan is created for each dealer.</div>
             @error('dealer_ids') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
             @error('dealer_ids.*') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
         </div>
@@ -154,6 +188,35 @@
                     if (e.target.closest('[data-remove-dealer-chip]')) {
                         e.target.closest('[data-dealer-chip]').remove();
                     }
+                });
+
+                // Guided flow: Executive -> Territory (scoped to that
+                // executive's own assignments) -> picking a Territory
+                // auto-adds every dealer in it as a chip above. Additive,
+                // not a reset — it won't remove dealers already added
+                // manually or from a previously picked territory.
+                const executiveSelect = document.getElementById('planExecutive');
+                const territorySelect = document.getElementById('planTerritory');
+
+                window.initCascadingSelect(
+                    executiveSelect,
+                    territorySelect,
+                    '{{ route('territories.options') }}',
+                    'user_id',
+                    { placeholder: '— Select Territory —' }
+                );
+
+                window.$(territorySelect).on('change', function () {
+                    const territoryId = territorySelect.value;
+                    if (!territoryId) {
+                        return;
+                    }
+
+                    fetch(`${optionsUrl}?territory_id=${territoryId}`, { headers: { Accept: 'application/json' } })
+                        .then((r) => r.json())
+                        .then((items) => {
+                            items.forEach((item) => addChip(item.id, `${item.name} (${item.dealer_code})`));
+                        });
                 });
             });
         </script>

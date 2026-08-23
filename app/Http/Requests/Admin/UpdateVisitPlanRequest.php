@@ -24,6 +24,7 @@ class UpdateVisitPlanRequest extends FormRequest
         return [
             'user_id' => ['required', 'integer', Rule::exists('users', 'id')],
             'dealer_id' => ['required', 'integer', Rule::exists('dealers', 'id')],
+            'territory_id' => ['nullable', 'integer', Rule::exists('territories', 'id')],
             'planned_date' => ['required', 'date'],
             'status' => ['required', new Enum(VisitPlanStatus::class)],
             'notes' => ['nullable', 'string', 'max:1000'],

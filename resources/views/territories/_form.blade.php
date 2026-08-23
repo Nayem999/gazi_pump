@@ -110,9 +110,12 @@
             initCascadingSelect(geoDivision, geoDistrict, '{{ route('districts.options') }}', 'division_id', { placeholder: '— Select District —' });
             initCascadingSelect(geoDistrict, geoThana, '{{ route('thanas.options') }}', 'district_id', { placeholder: '— Select Thana —' });
 
-            geoDivision.addEventListener('change', function () {
+            // Bound through jQuery, not addEventListener — see the matching
+            // comment in dealers/_form.blade.php.
+            window.$(geoDivision).on('change', function () {
                 geoThana.innerHTML = '<option value="">— Select Thana —</option>';
                 geoThana.disabled = true;
+                window.refreshSelect2?.(geoThana);
             });
 
             const latInput = document.querySelector('input[name="center_lat"]');

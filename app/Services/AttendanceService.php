@@ -63,11 +63,14 @@ class AttendanceService extends BaseCrudService
             throw ValidationException::withMessages(['check_out' => 'You have already checked out today.']);
         }
 
+        $checkOutAt = Carbon::now();
+
         return $this->update($attendance, [
-            'check_out_at' => Carbon::now(),
+            'check_out_at' => $checkOutAt,
             'check_out_lat' => $lat,
             'check_out_lng' => $lng,
             'check_out_photo' => $photo->store('attendance', 'public'),
+            'status' => $this->isEarlyCheckout($checkOutAt) ? AttendanceStatus::HalfDay->value : $attendance->status->value,
         ]);
     }
 
@@ -91,5 +94,48 @@ class AttendanceService extends BaseCrudService
         }
 
         return [AttendanceStatus::Present, 0];
+    }
+
+    /**
+     * Checking out before the configured office end time downgrades the
+     * day to Half Day regardless of how the check-in was classified —
+     * leaving early matters independently of arriving on time.
+     */
+    private function isEarlyCheckout(Carbon $checkOutAt): bool
+    {
+        $officeEnd = Carbon::createFromTimeString((string) config('sfa.attendance.office_end_time'));
+        $checkOutTimeOnly = Carbon::createFromTimeString($checkOutAt->format('H:i:s'));
+
+        return $checkOutTimeOnly->lessThan($officeEnd);
+    }
+
+    /**
+     * True when $date falls on one of the configured weekend/off days —
+     * used to skip absence backfilling on non-working days.
+     */
+    public function isWeekendDay(Carbon $date): bool
+    {
+        return in_array($date->format('l'), (array) config('sfa.attendance.weekend_days'), true);
+    }
+
+    /**
+     * Backfills an Absent row for $user on $date, but only if no
+     * attendance entry exists at all for that day — an existing
+     * Present/Late/HalfDay/Absent row is left untouched, so this is safe
+     * to rerun.
+     */
+    public function markAbsentIfMissing(User $user, Carbon $date): ?Attendance
+    {
+        if ($this->attendances->findForUserAndDate($user->id, $date->toDateString())) {
+            return null;
+        }
+
+        return $this->create([
+            'user_id' => $user->id,
+            'date' => $date->toDateString(),
+            'status' => AttendanceStatus::Absent->value,
+            'late_minutes' => 0,
+            'remarks' => 'Auto-marked absent: no check-in recorded for this date.',
+        ]);
     }
 }

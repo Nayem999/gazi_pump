@@ -139,15 +139,22 @@
             initCascadingSelect(geoDistrict, geoThana, '{{ route('thanas.options') }}', 'district_id', { placeholder: '— Select Thana —' });
             initCascadingSelect(geoThana, geoTerritory, '{{ route('territories.options') }}', 'thana_id', { placeholder: '— None —' });
 
-            geoDivision.addEventListener('change', function () {
+            // Bound through jQuery, not addEventListener: once Select2 (see
+            // select2-init.js) attaches to these selects, it changes values
+            // via jQuery's own event system rather than dispatching a plain
+            // native "change" addEventListener would catch.
+            window.$(geoDivision).on('change', function () {
                 geoThana.innerHTML = '<option value="">— Select Thana —</option>';
                 geoThana.disabled = true;
                 geoTerritory.innerHTML = '<option value="">— None —</option>';
                 geoTerritory.disabled = true;
+                window.refreshSelect2?.(geoThana);
+                window.refreshSelect2?.(geoTerritory);
             });
-            geoDistrict.addEventListener('change', function () {
+            window.$(geoDistrict).on('change', function () {
                 geoTerritory.innerHTML = '<option value="">— None —</option>';
                 geoTerritory.disabled = true;
+                window.refreshSelect2?.(geoTerritory);
             });
 
             const latInput = document.getElementById('gpsLat');

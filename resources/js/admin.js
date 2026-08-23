@@ -15,7 +15,7 @@ function initCascadingSelect(parentEl, childEl, url, paramName, options = {}) {
     const placeholder = options.placeholder || '— Select —';
     const load = (parentValue, selectedChildValue) => {
         childEl.innerHTML = `<option value="">${placeholder}</option>`;
-        if (!parentValue) { childEl.disabled = true; return; }
+        if (!parentValue) { childEl.disabled = true; window.refreshSelect2?.(childEl); return; }
         childEl.disabled = false;
         fetch(`${url}?${paramName}=${encodeURIComponent(parentValue)}`, { headers: { Accept: 'application/json' } })
             .then((r) => r.json())
@@ -27,9 +27,23 @@ function initCascadingSelect(parentEl, childEl, url, paramName, options = {}) {
                     if (selectedChildValue && String(item.id) === String(selectedChildValue)) opt.selected = true;
                     childEl.appendChild(opt);
                 });
+                // Select2 (see select2-init.js) only re-renders in response to
+                // the underlying <select>'s native "change" event — it doesn't
+                // observe these injected <option>s on its own.
+                window.refreshSelect2?.(childEl);
             });
     };
-    parentEl.addEventListener('change', () => load(parentEl.value, null));
+    // Once select2-init.js attaches Select2 to parentEl, user interaction no
+    // longer dispatches a plain native "change" that addEventListener would
+    // catch — Select2 changes the value through jQuery's own event system
+    // instead. Binding through jQuery (when present) catches both that and
+    // genuine native changes, so this keeps working whether or not the
+    // element ends up Select2-ified.
+    if (window.$) {
+        window.$(parentEl).on('change', () => load(parentEl.value, null));
+    } else {
+        parentEl.addEventListener('change', () => load(parentEl.value, null));
+    }
     if (options.initialChildValue && parentEl.value) {
         load(parentEl.value, options.initialChildValue);
     }

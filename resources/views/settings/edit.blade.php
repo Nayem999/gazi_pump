@@ -51,18 +51,39 @@
         <div class="card mb-3">
             <div class="card-header"><h5 class="mb-0">Attendance</h5></div>
             <div class="card-body row g-3">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label class="form-label">Office Start Time <span class="text-danger">*</span></label>
                     <input type="time" name="attendance_office_start_time" class="form-control @error('attendance_office_start_time') is-invalid @enderror"
                            value="{{ old('attendance_office_start_time', $settings->attendance_office_start_time) }}" required>
                     @error('attendance_office_start_time') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
+                    <label class="form-label">Office End Time <span class="text-danger">*</span></label>
+                    <input type="time" name="attendance_office_end_time" class="form-control @error('attendance_office_end_time') is-invalid @enderror"
+                           value="{{ old('attendance_office_end_time', $settings->attendance_office_end_time) }}" required>
+                    @error('attendance_office_end_time') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-4">
                     <label class="form-label">Late Grace Period (minutes) <span class="text-danger">*</span></label>
                     <input type="number" name="attendance_late_grace_minutes" class="form-control @error('attendance_late_grace_minutes') is-invalid @enderror"
                            value="{{ old('attendance_late_grace_minutes', $settings->attendance_late_grace_minutes) }}" required>
                     <div class="form-text">Check-ins after start time + this grace period are marked Late.</div>
                     @error('attendance_late_grace_minutes') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Weekend / Off Day</label>
+                    <div class="d-flex flex-wrap gap-3">
+                        @foreach (\App\Enums\DayOfWeek::cases() as $day)
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="weekend-{{ $day->value }}" name="attendance_weekend_days[]" value="{{ $day->value }}"
+                                       @checked(collect(old('attendance_weekend_days', $settings->attendance_weekend_days))->contains($day->value))>
+                                <label class="form-check-label" for="weekend-{{ $day->value }}">{{ $day->value }}</label>
+                            </div>
+                        @endforeach
+                    </div>
+                    <div class="form-text">Days marked here are treated as non-working days for attendance.</div>
+                    @error('attendance_weekend_days') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                 </div>
             </div>
         </div>

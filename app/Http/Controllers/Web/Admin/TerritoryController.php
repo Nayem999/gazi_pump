@@ -166,6 +166,21 @@ class TerritoryController extends Controller
     {
         $this->authorize('viewAny', Territory::class);
 
+        /**
+         * Visit Plan create: once a Sales Executive is picked, only the
+         * territories actually assigned to them make sense to plan a visit
+         * in — no need for a limit here, this list is inherently small.
+         */
+        if ($request->integer('user_id')) {
+            return response()->json(
+                Territory::query()
+                    ->where('status', true)
+                    ->whereHas('users', fn ($query) => $query->where('users.id', $request->integer('user_id')))
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+            );
+        }
+
         if ($request->has('search')) {
             $search = trim((string) $request->string('search'));
 

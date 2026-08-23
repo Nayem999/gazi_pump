@@ -18,6 +18,7 @@ class VisitPlan extends BaseModel
     protected $fillable = [
         'user_id',
         'dealer_id',
+        'territory_id',
         'planned_date',
         'status',
         'notes',
@@ -39,6 +40,11 @@ class VisitPlan extends BaseModel
     public function dealer(): BelongsTo
     {
         return $this->belongsTo(Dealer::class);
+    }
+
+    public function territory(): BelongsTo
+    {
+        return $this->belongsTo(Territory::class);
     }
 
     public function visits(): HasMany

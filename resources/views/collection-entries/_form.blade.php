@@ -89,8 +89,14 @@
                 balancePreview.textContent = balance ? parseFloat(balance).toFixed(2) : '—';
             }
 
-            dealerSelect?.addEventListener('change', updateBalance);
-            updateBalance();
+            // Bound through jQuery, not addEventListener: Select2 (see
+            // select2-init.js) attaches to this select and changes its value
+            // via jQuery's own event system, which a plain addEventListener
+            // wouldn't catch.
+            if (dealerSelect) {
+                window.$(dealerSelect).on('change', updateBalance);
+                updateBalance();
+            }
         })();
     </script>
 @endpush

@@ -185,6 +185,21 @@ class DealerController extends Controller
     {
         $this->authorize('viewAny', Dealer::class);
 
+        /**
+         * Visit Plan create: once a Territory is picked, every dealer in it
+         * gets auto-added — this needs to be the complete list, not a
+         * capped search suggestion set.
+         */
+        if ($request->integer('territory_id')) {
+            return response()->json(
+                Dealer::query()
+                    ->where('status', true)
+                    ->where('territory_id', $request->integer('territory_id'))
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'dealer_code'])
+            );
+        }
+
         $search = trim((string) $request->string('search'));
 
         return response()->json(

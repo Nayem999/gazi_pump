@@ -53,4 +53,11 @@ class AttendanceServiceTest extends TestCase
         $this->assertSame(AttendanceStatus::Present, $status);
         $this->assertSame(0, $lateMinutes);
     }
+
+    public function test_is_weekend_day_matches_the_configured_weekend_days(): void
+    {
+        $this->assertTrue($this->service()->isWeekendDay(Carbon::parse('2026-08-21'))); // Friday
+        $this->assertTrue($this->service()->isWeekendDay(Carbon::parse('2026-08-22'))); // Saturday
+        $this->assertFalse($this->service()->isWeekendDay(Carbon::parse('2026-08-19'))); // Wednesday
+    }
 }

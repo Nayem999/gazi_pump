@@ -22,7 +22,9 @@ class Setting extends BaseModel
         'company_phone',
         'company_email',
         'attendance_office_start_time',
+        'attendance_office_end_time',
         'attendance_late_grace_minutes',
+        'attendance_weekend_days',
         'visit_gps_radius_meters',
         'order_max_discount_percent',
         'collection_overpayment_tolerance_percent',
@@ -40,6 +42,7 @@ class Setting extends BaseModel
     {
         return [
             'attendance_late_grace_minutes' => 'integer',
+            'attendance_weekend_days' => 'array',
             'visit_gps_radius_meters' => 'integer',
             'order_max_discount_percent' => 'decimal:2',
             'collection_overpayment_tolerance_percent' => 'decimal:2',
@@ -86,7 +89,9 @@ class Setting extends BaseModel
             'company_phone' => null,
             'company_email' => null,
             'attendance_office_start_time' => config('sfa.attendance.office_start_time'),
+            'attendance_office_end_time' => config('sfa.attendance.office_end_time'),
             'attendance_late_grace_minutes' => config('sfa.attendance.late_grace_minutes'),
+            'attendance_weekend_days' => config('sfa.attendance.weekend_days'),
             'visit_gps_radius_meters' => config('sfa.visits.gps_verification_radius_meters'),
             'order_max_discount_percent' => config('sfa.orders.max_discount_percent'),
             'collection_overpayment_tolerance_percent' => config('sfa.collections.overpayment_tolerance_percent'),

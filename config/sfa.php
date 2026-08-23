@@ -13,7 +13,13 @@ declare(strict_types=1);
 return [
     'attendance' => [
         'office_start_time' => env('SFA_OFFICE_START_TIME', '09:00'),
+        'office_end_time' => env('SFA_OFFICE_END_TIME', '18:00'),
         'late_grace_minutes' => (int) env('SFA_LATE_GRACE_MINUTES', 15),
+
+        // Bangladesh's standard government/private-sector weekend since the
+        // 2025 shift to a two-day week. Not yet consumed by any absence or
+        // reporting logic — see the Settings screen doc-comment.
+        'weekend_days' => ['Friday', 'Saturday'],
     ],
 
     'visits' => [

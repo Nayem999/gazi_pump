@@ -57,6 +57,7 @@
                     <th style="width:2rem"><input type="checkbox" id="selectAll" class="form-check-input"></th>
                     <th>Executive</th>
                     <th>Dealer</th>
+                    <th>Territory</th>
                     <th>Planned Date</th>
                     <th>Status</th>
                     <th>Notes</th>
@@ -85,6 +86,7 @@
                         <div class="text-muted small">{{ $visitPlan->dealer?->dealer_code }}</div>
                         <div class="small"><x-phone-actions :phone="$visitPlan->dealer?->phone" /></div>
                     </td>
+                    <td>{{ $visitPlan->territory?->name ?? '—' }}</td>
                     <td>{{ $visitPlan->planned_date->format('M d, Y') }}</td>
                     <td>
                         <span class="badge text-bg-{{ $visitPlan->status->badgeColor() }}">{{ $visitPlan->status->label() }}</span>
@@ -126,7 +128,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="text-center text-muted py-4">No visit plans found.</td>
+                    <td colspan="8" class="text-center text-muted py-4">No visit plans found.</td>
                 </tr>
             @endforelse
 
@@ -145,6 +147,7 @@
                             <x-slot:meta>
                                 <div>Executive: {{ $visitPlan->user?->name }} &middot; <x-phone-actions :phone="$visitPlan->user?->phone" /></div>
                                 <div>Dealer Phone: <x-phone-actions :phone="$visitPlan->dealer?->phone" /></div>
+                                <div>Territory: {{ $visitPlan->territory?->name ?? '—' }}</div>
                                 <div>Date: {{ $visitPlan->planned_date->format('M d, Y') }}</div>
                                 @if ($visitPlan->notes)
                                     <div>{{ \Illuminate\Support\Str::limit($visitPlan->notes, 60) }}</div>

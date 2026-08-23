@@ -62,9 +62,9 @@
                     <th style="width:2rem"><input type="checkbox" id="selectAll" class="form-check-input"></th>
                     <th>Executive</th>
                     <th>Period</th>
-                    <th>Order %</th>
-                    <th>Collection %</th>
-                    <th>Qty %</th>
+                    <th>Order Value (Achievement / Target)</th>
+                    <th>Collection (Achievement / Target)</th>
+                    <th>Quantity (Achievement / Target)</th>
                     <th>Overall</th>
                     <th>Grade</th>
                     <th class="text-end">Actions</th>
@@ -83,9 +83,24 @@
                         <div class="text-muted small">{{ $target->user?->employee_id }}</div>
                     </td>
                     <td>{{ $target->periodLabel() }}</td>
-                    <td>{{ $target->achievement ? number_format((float) $target->achievement->order_pct, 1).'%' : '—' }}</td>
-                    <td>{{ $target->achievement ? number_format((float) $target->achievement->collection_pct, 1).'%' : '—' }}</td>
-                    <td>{{ $target->achievement ? number_format((float) $target->achievement->quantity_pct, 1).'%' : '—' }}</td>
+                    <td>
+                        {{ number_format((float) ($target->achievement->order_achieved ?? 0), 2) }} / {{ number_format((float) $target->order_value_target, 2) }}
+                        @if ($target->achievement)
+                            <div class="text-muted small">{{ number_format((float) $target->achievement->order_pct, 1) }}%</div>
+                        @endif
+                    </td>
+                    <td>
+                        {{ number_format((float) ($target->achievement->collection_achieved ?? 0), 2) }} / {{ number_format((float) $target->collection_target, 2) }}
+                        @if ($target->achievement)
+                            <div class="text-muted small">{{ number_format((float) $target->achievement->collection_pct, 1) }}%</div>
+                        @endif
+                    </td>
+                    <td>
+                        {{ $target->achievement->quantity_achieved ?? 0 }} / {{ $target->quantity_target }}
+                        @if ($target->achievement)
+                            <div class="text-muted small">{{ number_format((float) $target->achievement->quantity_pct, 1) }}%</div>
+                        @endif
+                    </td>
                     <td class="fw-semibold">{{ $target->achievement ? number_format((float) $target->achievement->overall_pct, 1).'%' : '—' }}</td>
                     <td>
                         @if ($target->achievement)
@@ -116,10 +131,10 @@
                                 @endcan
                                 @can('update', $target)
                                     <a href="{{ route('targets.edit', $target) }}" class="btn btn-outline-primary" title="Edit"><i class="ti ti-pencil"></i></a>
-                                    <form method="POST" action="{{ route('targets.recalculate', $target) }}">
+                                    {{-- <form method="POST" action="{{ route('targets.recalculate', $target) }}">
                                         @csrf
                                         <button type="submit" class="btn btn-outline-info" title="Recalculate"><i class="ti ti-refresh"></i></button>
-                                    </form>
+                                    </form> --}}
                                 @endcan
                                 @can('delete', $target)
                                     <form method="POST" action="{{ route('targets.destroy', $target) }}" data-confirm data-confirm-title="Move this record to trash?">
@@ -150,9 +165,24 @@
                             :status-color="$target->trashed() ? 'danger' : ($target->achievement?->grade->badgeColor() ?? 'secondary')"
                         >
                             <x-slot:meta>
-                                <div>Order: {{ $target->achievement ? number_format((float) $target->achievement->order_pct, 1).'%' : '—' }}</div>
-                                <div>Collection: {{ $target->achievement ? number_format((float) $target->achievement->collection_pct, 1).'%' : '—' }}</div>
-                                <div>Qty: {{ $target->achievement ? number_format((float) $target->achievement->quantity_pct, 1).'%' : '—' }}</div>
+                                <div>
+                                    Order Value: {{ number_format((float) ($target->achievement->order_achieved ?? 0), 2) }} / {{ number_format((float) $target->order_value_target, 2) }}
+                                    @if ($target->achievement)
+                                        ({{ number_format((float) $target->achievement->order_pct, 1) }}%)
+                                    @endif
+                                </div>
+                                <div>
+                                    Collection: {{ number_format((float) ($target->achievement->collection_achieved ?? 0), 2) }} / {{ number_format((float) $target->collection_target, 2) }}
+                                    @if ($target->achievement)
+                                        ({{ number_format((float) $target->achievement->collection_pct, 1) }}%)
+                                    @endif
+                                </div>
+                                <div>
+                                    Quantity: {{ $target->achievement->quantity_achieved ?? 0 }} / {{ $target->quantity_target }}
+                                    @if ($target->achievement)
+                                        ({{ number_format((float) $target->achievement->quantity_pct, 1) }}%)
+                                    @endif
+                                </div>
                                 <div>Overall: {{ $target->achievement ? number_format((float) $target->achievement->overall_pct, 1).'%' : '—' }}</div>
                             </x-slot:meta>
                             <x-slot:checkbox>

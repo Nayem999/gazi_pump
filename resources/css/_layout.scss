@@ -292,6 +292,69 @@ body.admin-body {
     }
 }
 
+// select2-bootstrap-5-theme ships hardcoded light-theme colors with no idea
+// [data-bs-theme="dark"] exists — restyle its surfaces with the same tokens
+// the rest of the app's cards/dropdowns already use (these Bootstrap 5.3
+// variables are themselves theme-reactive, so this one block covers both
+// themes), and swap its default Bootstrap-blue "selected" highlight for the
+// app's own brand color.
+.select2-container--bootstrap-5 {
+    .select2-selection,
+    .select2-dropdown,
+    .select2-dropdown .select2-search .select2-search__field {
+        color: var(--bs-body-color);
+        background-color: var(--surface-bg);
+        border-color: var(--bs-border-color);
+    }
+
+    .select2-selection--single .select2-selection__rendered {
+        color: var(--bs-body-color);
+    }
+
+    .select2-selection__placeholder,
+    .select2-results__option.select2-results__message {
+        color: var(--bs-secondary-color);
+    }
+
+    .select2-results__option.select2-results__option--highlighted {
+        color: var(--bs-body-color);
+        background-color: var(--bs-tertiary-bg);
+    }
+
+    .select2-results__option.select2-results__option--selected,
+    .select2-results__option[aria-selected="true"]:not(.select2-results__option--highlighted) {
+        color: #fff;
+        background-color: $primary;
+    }
+
+    // Multi-select "chips" (e.g. the Territories field on Users) — the
+    // theme leaves these with no background and a hardcoded dark-gray
+    // (#212529) text color, which reads fine on its own light theme but is
+    // nearly invisible against this app's dark surfaces. Nested the same
+    // three levels deep as the theme's own rule (container > multiple >
+    // rendered > choice) so this actually wins on specificity, not just
+    // source order.
+    .select2-selection--multiple .select2-selection__rendered .select2-selection__choice {
+        color: var(--bs-body-color);
+        background-color: var(--bs-tertiary-bg);
+        border-color: var(--bs-border-color);
+    }
+}
+
+// The dropdown-arrow and clear/remove (x) icons are baked-in inline SVGs
+// with a hardcoded dark stroke/fill — invisible against the dark sidebar's
+// near-black surfaces, so dark mode needs its own lighter icon set.
+[data-bs-theme="dark"] .select2-container--bootstrap-5 {
+    .select2-selection--single {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    }
+
+    .select2-selection__clear,
+    .select2-selection__choice__remove {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23cbd5e1'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3e%3c/svg%3e") !important;
+    }
+}
+
 // Gradient-tinted focus ring on inputs/selects (filter bars, forms).
 .form-control:focus,
 .form-select:focus {

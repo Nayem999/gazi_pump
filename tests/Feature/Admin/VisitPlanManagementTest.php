@@ -6,6 +6,7 @@ namespace Tests\Feature\Admin;
 
 use App\Enums\VisitPlanStatus;
 use App\Models\Dealer;
+use App\Models\Territory;
 use App\Models\User;
 use App\Models\VisitPlan;
 use Database\Seeders\RolePermissionSeeder;
@@ -107,6 +108,75 @@ class VisitPlanManagementTest extends TestCase
         }
     }
 
+    /**
+     * A real browser form submits every field as a string (unlike this
+     * test's other cases, which pass PHP ints straight through Laravel's
+     * ->post() helper) — the territory resolution logic must tolerate that,
+     * not just already-cast native types.
+     */
+    public function test_creating_a_visit_plan_with_string_typed_form_input_still_resolves_the_territory(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $territory = Territory::factory()->create();
+        $dealer = Dealer::factory()->create(['territory_id' => $territory->id]);
+
+        $this->actingAs($manager)->post(route('visit-plans.store'), [
+            'user_id' => (string) $executive->id,
+            'dealer_ids' => [(string) $dealer->id],
+            'territory_id' => '',
+            'planned_date' => Carbon::tomorrow()->toDateString(),
+            'status' => VisitPlanStatus::Planned->value,
+        ])->assertRedirect(route('visit-plans.index'));
+
+        $this->assertDatabaseHas('visit_plans', [
+            'dealer_id' => $dealer->id,
+            'territory_id' => $territory->id,
+        ]);
+    }
+
+    public function test_creating_a_visit_plan_auto_fills_territory_from_the_dealer_when_none_is_chosen(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $territory = Territory::factory()->create();
+        $dealer = Dealer::factory()->create(['territory_id' => $territory->id]);
+
+        $this->actingAs($manager)->post(route('visit-plans.store'), [
+            'user_id' => $executive->id,
+            'dealer_ids' => [$dealer->id],
+            'planned_date' => Carbon::tomorrow()->toDateString(),
+            'status' => VisitPlanStatus::Planned->value,
+        ])->assertRedirect(route('visit-plans.index'));
+
+        $this->assertDatabaseHas('visit_plans', [
+            'dealer_id' => $dealer->id,
+            'territory_id' => $territory->id,
+        ]);
+    }
+
+    public function test_an_explicitly_chosen_territory_overrides_the_dealers_own_territory(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $dealersTerritory = Territory::factory()->create();
+        $chosenTerritory = Territory::factory()->create();
+        $dealer = Dealer::factory()->create(['territory_id' => $dealersTerritory->id]);
+
+        $this->actingAs($manager)->post(route('visit-plans.store'), [
+            'user_id' => $executive->id,
+            'dealer_ids' => [$dealer->id],
+            'territory_id' => $chosenTerritory->id,
+            'planned_date' => Carbon::tomorrow()->toDateString(),
+            'status' => VisitPlanStatus::Planned->value,
+        ])->assertRedirect(route('visit-plans.index'));
+
+        $this->assertDatabaseHas('visit_plans', [
+            'dealer_id' => $dealer->id,
+            'territory_id' => $chosenTerritory->id,
+        ]);
+    }
+
     public function test_general_manager_can_update_a_visit_plan(): void
     {
         $manager = $this->generalManager();
@@ -121,6 +191,27 @@ class VisitPlanManagementTest extends TestCase
         ])->assertRedirect(route('visit-plans.index'));
 
         $this->assertDatabaseHas('visit_plans', ['id' => $visitPlan->id, 'status' => 'cancelled']);
+    }
+
+    public function test_updating_a_visit_plans_dealer_re_derives_its_territory_when_none_is_chosen(): void
+    {
+        $manager = $this->generalManager();
+        $visitPlan = VisitPlan::factory()->create();
+        $territory = Territory::factory()->create();
+        $newDealer = Dealer::factory()->create(['territory_id' => $territory->id]);
+
+        $this->actingAs($manager)->put(route('visit-plans.update', $visitPlan), [
+            'user_id' => $visitPlan->user_id,
+            'dealer_id' => $newDealer->id,
+            'planned_date' => $visitPlan->planned_date->toDateString(),
+            'status' => VisitPlanStatus::Planned->value,
+        ])->assertRedirect(route('visit-plans.index'));
+
+        $this->assertDatabaseHas('visit_plans', [
+            'id' => $visitPlan->id,
+            'dealer_id' => $newDealer->id,
+            'territory_id' => $territory->id,
+        ]);
     }
 
     public function test_general_manager_cannot_delete_a_visit_plan(): void

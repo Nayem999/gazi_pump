@@ -39,7 +39,9 @@ class ApplySettingsToConfig
         config([
             'app.name' => $settings->company_name,
             'sfa.attendance.office_start_time' => $settings->attendance_office_start_time,
+            'sfa.attendance.office_end_time' => $settings->attendance_office_end_time,
             'sfa.attendance.late_grace_minutes' => $settings->attendance_late_grace_minutes,
+            'sfa.attendance.weekend_days' => $settings->attendance_weekend_days,
             'sfa.visits.gps_verification_radius_meters' => $settings->visit_gps_radius_meters,
             'sfa.orders.max_discount_percent' => (float) $settings->order_max_discount_percent,
             'sfa.collections.overpayment_tolerance_percent' => (float) $settings->collection_overpayment_tolerance_percent,

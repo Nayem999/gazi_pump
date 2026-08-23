@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\DayOfWeek;
 use App\Enums\PerformanceGrade;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -29,7 +30,11 @@ class UpdateSettingRequest extends FormRequest
             'company_email' => ['nullable', 'email', 'max:255'],
 
             'attendance_office_start_time' => ['required', 'date_format:H:i'],
+            'attendance_office_end_time' => ['required', 'date_format:H:i'],
             'attendance_late_grace_minutes' => ['required', 'integer', 'min:0', 'max:120'],
+
+            'attendance_weekend_days' => ['required', 'array', 'min:1'],
+            'attendance_weekend_days.*' => [Rule::enum(DayOfWeek::class)],
 
             'visit_gps_radius_meters' => ['required', 'integer', 'min:10', 'max:5000'],
 
@@ -64,6 +69,16 @@ class UpdateSettingRequest extends FormRequest
                 $validator->errors()->add(
                     'target_grade_a_min',
                     'Grade thresholds must be in descending order: A ≥ B ≥ C ≥ D.',
+                );
+            }
+
+            $officeStart = $this->input('attendance_office_start_time');
+            $officeEnd = $this->input('attendance_office_end_time');
+
+            if ($officeStart && $officeEnd && $officeEnd <= $officeStart) {
+                $validator->errors()->add(
+                    'attendance_office_end_time',
+                    'Office end time must be after office start time.',
                 );
             }
         });

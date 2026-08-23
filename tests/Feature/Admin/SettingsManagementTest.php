@@ -92,6 +92,38 @@ class SettingsManagementTest extends TestCase
         $this->assertSame(42, config('sfa.attendance.late_grace_minutes'));
     }
 
+    public function test_office_end_time_must_be_after_office_start_time(): void
+    {
+        $admin = $this->superAdmin();
+        $payload = $this->validPayload([
+            'attendance_office_start_time' => '18:00',
+            'attendance_office_end_time' => '09:00',
+        ]);
+
+        $this->actingAs($admin)->put(route('settings.update'), $payload)
+            ->assertSessionHasErrors('attendance_office_end_time');
+    }
+
+    public function test_at_least_one_weekend_day_is_required(): void
+    {
+        $admin = $this->superAdmin();
+        $payload = $this->validPayload(['attendance_weekend_days' => []]);
+
+        $this->actingAs($admin)->put(route('settings.update'), $payload)
+            ->assertSessionHasErrors('attendance_weekend_days');
+    }
+
+    public function test_super_admin_can_update_the_weekend_days_and_it_persists(): void
+    {
+        $admin = $this->superAdmin();
+        $payload = $this->validPayload(['attendance_weekend_days' => ['Friday']]);
+
+        $this->actingAs($admin)->put(route('settings.update'), $payload)
+            ->assertRedirect(route('settings.edit'));
+
+        $this->assertSame(['Friday'], Setting::current()->attendance_weekend_days);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -100,7 +132,9 @@ class SettingsManagementTest extends TestCase
         return array_merge([
             'company_name' => 'Gazi Pump SFA',
             'attendance_office_start_time' => '09:00',
+            'attendance_office_end_time' => '18:00',
             'attendance_late_grace_minutes' => 15,
+            'attendance_weekend_days' => ['Friday', 'Saturday'],
             'visit_gps_radius_meters' => 300,
             'order_max_discount_percent' => 20,
             'collection_overpayment_tolerance_percent' => 10,

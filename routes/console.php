@@ -22,3 +22,13 @@ Schedule::command('notifications:check-no-checkout')->dailyAt('22:00')->withoutO
 Schedule::command('notifications:check-low-performance')->monthlyOn(1, '06:00')->withoutOverlapping();
 Schedule::command('notifications:check-target-reminders')->dailyAt('07:00')->withoutOverlapping();
 Schedule::command('notifications:check-birthdays')->dailyAt('08:00')->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
+| Attendance Backfill
+|--------------------------------------------------------------------------
+| Runs just after midnight so yesterday has fully elapsed before anyone
+| with no attendance entry is marked Absent — never touches a day that
+| already has a row (manual, auto, or otherwise), so reruns are safe.
+*/
+Schedule::command('attendance:mark-absent')->dailyAt('00:30')->withoutOverlapping();

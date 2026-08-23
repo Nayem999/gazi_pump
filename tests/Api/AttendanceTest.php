@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Api;
 
+use App\Enums\AttendanceStatus;
 use App\Models\Attendance;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -22,6 +23,13 @@ class AttendanceTest extends TestCase
         parent::setUp();
 
         $this->seed(RolePermissionSeeder::class);
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
     }
 
     private function tokenFor(User $user): string
@@ -102,6 +110,54 @@ class AttendanceTest extends TestCase
 
         $attendance = Attendance::where('user_id', $executive->id)->firstOrFail();
         $this->assertNotNull($attendance->check_out_at);
+    }
+
+    public function test_checking_out_before_office_end_time_marks_half_day(): void
+    {
+        Storage::fake('public');
+        $executive = $this->executive();
+        $headers = ['Authorization' => 'Bearer '.$this->tokenFor($executive)];
+
+        Carbon::setTestNow(Carbon::parse('2026-08-19 09:00:00'));
+        $this->withHeaders($headers)->postJson('/api/v1/attendance/check-in', [
+            'lat' => 23.8103,
+            'lng' => 90.4125,
+            'photo' => UploadedFile::fake()->image('selfie.jpg'),
+        ])->assertStatus(201);
+
+        Carbon::setTestNow(Carbon::parse('2026-08-19 15:00:00'));
+        $this->withHeaders($headers)->postJson('/api/v1/attendance/check-out', [
+            'lat' => 23.8110,
+            'lng' => 90.4130,
+            'photo' => UploadedFile::fake()->image('selfie-out.jpg'),
+        ])->assertOk();
+
+        $attendance = Attendance::where('user_id', $executive->id)->firstOrFail();
+        $this->assertSame(AttendanceStatus::HalfDay, $attendance->status);
+    }
+
+    public function test_checking_out_after_office_end_time_keeps_the_check_in_status(): void
+    {
+        Storage::fake('public');
+        $executive = $this->executive();
+        $headers = ['Authorization' => 'Bearer '.$this->tokenFor($executive)];
+
+        Carbon::setTestNow(Carbon::parse('2026-08-19 09:00:00'));
+        $this->withHeaders($headers)->postJson('/api/v1/attendance/check-in', [
+            'lat' => 23.8103,
+            'lng' => 90.4125,
+            'photo' => UploadedFile::fake()->image('selfie.jpg'),
+        ])->assertStatus(201);
+
+        Carbon::setTestNow(Carbon::parse('2026-08-19 19:00:00'));
+        $this->withHeaders($headers)->postJson('/api/v1/attendance/check-out', [
+            'lat' => 23.8110,
+            'lng' => 90.4130,
+            'photo' => UploadedFile::fake()->image('selfie-out.jpg'),
+        ])->assertOk();
+
+        $attendance = Attendance::where('user_id', $executive->id)->firstOrFail();
+        $this->assertSame(AttendanceStatus::Present, $attendance->status);
     }
 
     public function test_cannot_check_out_before_checking_in(): void
