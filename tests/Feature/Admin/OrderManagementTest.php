@@ -7,6 +7,7 @@ namespace Tests\Feature\Admin;
 use App\Models\Dealer;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Territory;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -99,6 +100,24 @@ class OrderManagementTest extends TestCase
             'total_amount' => 550,
         ]);
         $this->assertDatabaseCount('order_items', 2);
+    }
+
+    public function test_the_territory_filter_only_returns_orders_for_dealers_in_that_territory(): void
+    {
+        $manager = $this->generalManager();
+        $territoryA = Territory::factory()->create();
+        $territoryB = Territory::factory()->create();
+        $dealerA = Dealer::factory()->create(['territory_id' => $territoryA->id]);
+        $dealerB = Dealer::factory()->create(['territory_id' => $territoryB->id]);
+
+        Order::factory()->create(['dealer_id' => $dealerA->id]);
+        Order::factory()->create(['dealer_id' => $dealerB->id]);
+
+        $response = $this->actingAs($manager)->get(route('orders.index', ['territory_id' => $territoryA->id]));
+
+        $response->assertOk();
+        $response->assertSee($dealerA->name);
+        $response->assertDontSee($dealerB->name);
     }
 
     public function test_a_discount_beyond_the_configured_cap_is_rejected(): void

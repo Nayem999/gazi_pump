@@ -9,6 +9,8 @@ use App\Models\Territory;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class DealerManagementTest extends TestCase
@@ -68,6 +70,25 @@ class DealerManagementTest extends TestCase
         $dealer = Dealer::where('dealer_code', 'CUST-TEST-01')->firstOrFail();
         $this->assertSame('dealer', $dealer->type->value);
         $this->assertEquals(23.8103, (float) $dealer->gps_lat);
+    }
+
+    public function test_super_admin_can_upload_a_dealer_photo(): void
+    {
+        Storage::fake('public');
+
+        $response = $this->actingAs($this->superAdmin())->post(route('dealers.store'), [
+            'dealer_code' => 'CUST-TEST-04',
+            'name' => 'Photo Dealer',
+            'type' => 'dealer',
+            'phone' => '01712345678',
+            'image' => UploadedFile::fake()->image('shop.jpg'),
+        ]);
+
+        $response->assertRedirect(route('dealers.index'));
+
+        $dealer = Dealer::where('dealer_code', 'CUST-TEST-04')->firstOrFail();
+        Storage::disk('public')->assertExists($dealer->image);
+        $this->assertNotNull($dealer->imageUrl());
     }
 
     public function test_invalid_gps_coordinates_are_rejected(): void

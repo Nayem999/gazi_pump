@@ -72,6 +72,7 @@
             <x-slot:thead>
                 <tr>
                     <th style="width:2rem"><input type="checkbox" id="selectAll" class="form-check-input"></th>
+                    <th>Photo</th>
                     <th>Code</th>
                     <th>Name</th>
                     <th>Type</th>
@@ -90,6 +91,13 @@
                     <td>
                         @if (! $dealer->trashed())
                             <input type="checkbox" name="ids[]" value="{{ $dealer->id }}" class="form-check-input row-checkbox">
+                        @endif
+                    </td>
+                    <td>
+                        @if ($dealer->image)
+                            <img src="{{ $dealer->imageUrl() }}" style="width:36px;height:36px;object-fit:cover" class="rounded">
+                        @else
+                            <i class="ti ti-building-store text-secondary fs-5"></i>
                         @endif
                     </td>
                     <td>{{ $dealer->dealer_code }}</td>
@@ -151,7 +159,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="11" class="text-center text-muted py-4">No dealers found.</td>
+                    <td colspan="12" class="text-center text-muted py-4">No dealers found.</td>
                 </tr>
             @endforelse
 
@@ -161,6 +169,7 @@
                         <x-item-card
                             icon="ti-building-store"
                             icon-color="info"
+                            :image="$dealer->image ? $dealer->imageUrl() : null"
                             :title="$dealer->name"
                             :title-url="$dealer->trashed() ? null : route('dealers.show', $dealer)"
                             :subtitle="$dealer->dealer_code"

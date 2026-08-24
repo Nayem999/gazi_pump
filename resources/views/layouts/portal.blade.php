@@ -6,6 +6,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', config('app.name'))</title>
     <meta name="description" content="@yield('meta_description', config('app.name') . ' - official customer portal')">
+    @if ($companyFaviconUrl ?? null)
+        <link rel="icon" href="{{ $companyFaviconUrl }}">
+    @endif
     <script>
         (function () {
             var stored = localStorage.getItem('theme');

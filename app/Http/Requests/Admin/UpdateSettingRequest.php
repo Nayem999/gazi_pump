@@ -25,6 +25,7 @@ class UpdateSettingRequest extends FormRequest
         return [
             'company_name' => ['required', 'string', 'max:255'],
             'company_logo' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:2048'],
+            'company_favicon' => ['nullable', 'mimes:ico,png,svg', 'max:512'],
             'company_address' => ['nullable', 'string', 'max:1000'],
             'company_phone' => ['nullable', 'string', 'max:20'],
             'company_email' => ['nullable', 'email', 'max:255'],

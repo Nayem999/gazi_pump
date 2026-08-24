@@ -7,6 +7,7 @@ namespace Tests\Feature\Admin;
 use App\Models\CollectionEntry;
 use App\Models\Dealer;
 use App\Models\Order;
+use App\Models\Territory;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -81,6 +82,24 @@ class CollectionEntryManagementTest extends TestCase
             'dealer_id' => $dealer->id,
             'amount' => 600,
         ]);
+    }
+
+    public function test_the_territory_filter_only_returns_collections_for_dealers_in_that_territory(): void
+    {
+        $manager = $this->generalManager();
+        $territoryA = Territory::factory()->create();
+        $territoryB = Territory::factory()->create();
+        $dealerA = Dealer::factory()->create(['territory_id' => $territoryA->id]);
+        $dealerB = Dealer::factory()->create(['territory_id' => $territoryB->id]);
+
+        CollectionEntry::factory()->create(['dealer_id' => $dealerA->id]);
+        CollectionEntry::factory()->create(['dealer_id' => $dealerB->id]);
+
+        $response = $this->actingAs($manager)->get(route('collection-entries.index', ['territory_id' => $territoryA->id]));
+
+        $response->assertOk();
+        $response->assertSee($dealerA->name);
+        $response->assertDontSee($dealerB->name);
     }
 
     public function test_a_collection_beyond_the_overpayment_tolerance_is_rejected(): void

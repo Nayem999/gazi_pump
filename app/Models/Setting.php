@@ -18,6 +18,7 @@ class Setting extends BaseModel
     protected $fillable = [
         'company_name',
         'company_logo',
+        'company_favicon',
         'company_address',
         'company_phone',
         'company_email',
@@ -85,6 +86,7 @@ class Setting extends BaseModel
         return [
             'company_name' => config('app.name'),
             'company_logo' => null,
+            'company_favicon' => null,
             'company_address' => null,
             'company_phone' => null,
             'company_email' => null,
@@ -109,6 +111,11 @@ class Setting extends BaseModel
     public function logoUrl(): ?string
     {
         return $this->company_logo ? asset('storage/'.$this->company_logo) : null;
+    }
+
+    public function faviconUrl(): ?string
+    {
+        return $this->company_favicon ? asset('storage/'.$this->company_favicon) : null;
     }
 
     /**

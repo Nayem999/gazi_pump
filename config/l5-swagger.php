@@ -56,9 +56,14 @@ return [
     'defaults' => [
         'routes' => [
             /*
-             * Route for accessing parsed swagger annotations.
+             * Route for accessing parsed swagger annotations. Deliberately
+             * not "docs" — the project root has a real docs/ folder
+             * (project markdown docs), and the root .htaccess's security
+             * rule blocks direct access to any real file/directory outside
+             * public/ before Laravel's router ever sees the request,
+             * returning a raw Apache 403 for a same-named route.
              */
-            'docs' => 'docs',
+            'docs' => 'swagger-docs',
 
             /*
              * Route for Oauth2 authentication callback.

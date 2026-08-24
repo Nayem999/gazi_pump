@@ -12,19 +12,20 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
 /**
- * Backfills the last 30 days of collections against the outstanding balance
- * each dealer already owes from OrderSeeder — run after it for that
- * reason. Balances are tracked in memory and decremented as collections are
- * generated so no dealer is ever seeded into overpayment.
+ * Seeds exactly 5 collections (one per sample dealer, run after OrderSeeder)
+ * against the outstanding balance each dealer owes, spread across the 2
+ * sample Sales Executives. Never collects more than what's outstanding.
  */
 class CollectionEntrySeeder extends Seeder
 {
-    private const DAYS = 30;
-
     public function run(): void
     {
-        $executives = User::role('Sales Executive')->with('territories')->get();
-        $dealersByTerritory = Dealer::all()->groupBy('territory_id');
+        $executives = User::role('Sales Executive')->orderBy('id')->get();
+        $dealers = Dealer::orderBy('id')->get();
+
+        if ($executives->isEmpty() || $dealers->isEmpty()) {
+            return;
+        }
 
         $outstanding = Order::query()
             ->selectRaw('dealer_id, SUM(total_amount) as total')
@@ -33,42 +34,22 @@ class CollectionEntrySeeder extends Seeder
             ->map(fn ($total) => (float) $total)
             ->all();
 
-        foreach ($executives as $executive) {
-            $pool = $executive->territories->flatMap(fn ($territory) => $dealersByTerritory->get($territory->id) ?? collect());
-            if ($pool->isEmpty()) {
-                $pool = Dealer::inRandomOrder()->limit(5)->get();
-            }
+        foreach ($dealers as $i => $dealer) {
+            $executive = $executives->get($i % $executives->count());
+            $balance = $outstanding[$dealer->id] ?? 0.0;
 
-            if ($pool->isEmpty()) {
+            if ($balance < 1.0) {
                 continue;
             }
 
-            for ($daysAgo = self::DAYS - 1; $daysAgo >= 0; $daysAgo--) {
-                $date = Carbon::today()->subDays($daysAgo);
-                $collectionsToday = random_int(0, 2);
+            $amount = round($balance * (random_int(50, 100) / 100), 2);
 
-                for ($i = 0; $i < $collectionsToday; $i++) {
-                    $dealer = $pool->random();
-                    $balance = $outstanding[$dealer->id] ?? 0.0;
-
-                    // A balance below this is too small to make a realistic
-                    // collection out of — round($balance * fraction, 2) could
-                    // otherwise land on 0.00 and seed a meaningless row.
-                    if ($balance < 1.0) {
-                        continue;
-                    }
-
-                    $amount = round($balance * (random_int(50, 100) / 100), 2);
-                    $outstanding[$dealer->id] = $balance - $amount;
-
-                    CollectionEntry::factory()->create([
-                        'user_id' => $executive->id,
-                        'dealer_id' => $dealer->id,
-                        'collection_date' => $date->toDateString(),
-                        'amount' => $amount,
-                    ]);
-                }
-            }
+            CollectionEntry::factory()->create([
+                'user_id' => $executive->id,
+                'dealer_id' => $dealer->id,
+                'collection_date' => Carbon::today()->subDays($i)->toDateString(),
+                'amount' => $amount,
+            ]);
         }
     }
 }

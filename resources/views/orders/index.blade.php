@@ -22,6 +22,15 @@
             </select>
         </div>
         <div class="col-md-2">
+            <label class="form-label">Territory</label>
+            <select name="territory_id" class="form-select">
+                <option value="">All</option>
+                @foreach ($territories as $territory)
+                    <option value="{{ $territory->id }}" @selected((string) ($filters['territory_id'] ?? '') === (string) $territory->id)>{{ $territory->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-2">
             <label class="form-label">From</label>
             <input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] ?? '' }}">
         </div>
@@ -49,6 +58,7 @@
                     <th style="width:2rem"><input type="checkbox" id="selectAll" class="form-check-input"></th>
                     <th>Executive</th>
                     <th>Dealer</th>
+                    <th>Territory</th>
                     <th>Items</th>
                     <th>Order Date</th>
                     <th>Total</th>
@@ -77,6 +87,7 @@
                         <div class="text-muted small">{{ $order->dealer?->dealer_code }}</div>
                         <div class="small"><x-phone-actions :phone="$order->dealer?->phone" /></div>
                     </td>
+                    <td>{{ $order->dealer?->territory?->name ?? '—' }}</td>
                     <td>
                         <span class="badge text-bg-secondary">{{ $order->items->count() }} item(s)</span>
                         <div class="text-muted small">{{ \Illuminate\Support\Str::limit($order->items->pluck('product.name')->filter()->implode(', '), 50) }}</div>
@@ -119,7 +130,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="text-center text-muted py-4">No orders found.</td>
+                    <td colspan="8" class="text-center text-muted py-4">No orders found.</td>
                 </tr>
             @endforelse
 
@@ -138,6 +149,7 @@
                             <x-slot:meta>
                                 <div>Executive: {{ $order->user?->name }} &middot; <x-phone-actions :phone="$order->user?->phone" /></div>
                                 <div>Dealer Phone: <x-phone-actions :phone="$order->dealer?->phone" /></div>
+                                <div>Territory: {{ $order->dealer?->territory?->name ?? '—' }}</div>
                                 <div>Date: {{ $order->order_date->format('M d, Y') }}</div>
                                 <div>{{ \Illuminate\Support\Str::limit($order->items->pluck('product.name')->filter()->implode(', '), 60) }}</div>
                                 <div>Total: {{ number_format((float) $order->total_amount, 2) }}</div>

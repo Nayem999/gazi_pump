@@ -29,6 +29,15 @@
                     @endif
                 </div>
                 <div class="col-md-6">
+                    <label class="form-label">Favicon</label>
+                    <input type="file" name="company_favicon" accept=".ico,.png,.svg" class="form-control @error('company_favicon') is-invalid @enderror">
+                    <div class="form-text">Browser tab icon. ICO, PNG, or SVG, up to 512KB.</div>
+                    @error('company_favicon') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    @if ($settings->faviconUrl())
+                        <img src="{{ $settings->faviconUrl() }}" class="mt-2 rounded" style="height:32px">
+                    @endif
+                </div>
+                <div class="col-md-6">
                     <label class="form-label">Phone</label>
                     <input type="text" name="company_phone" class="form-control @error('company_phone') is-invalid @enderror"
                            value="{{ old('company_phone', $settings->company_phone) }}">

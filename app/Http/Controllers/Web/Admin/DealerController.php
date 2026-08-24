@@ -51,7 +51,7 @@ class DealerController extends Controller
 
     public function store(StoreDealerRequest $request): RedirectResponse
     {
-        $this->dealers->create($request->validated());
+        $this->dealers->create($request->safe()->except('image'), $request->file('image'));
 
         return redirect()->route('dealers.index')->with('success', 'Dealer created successfully.');
     }
@@ -86,7 +86,7 @@ class DealerController extends Controller
 
     public function update(UpdateDealerRequest $request, Dealer $dealer): RedirectResponse
     {
-        $this->dealers->update($dealer, $request->validated());
+        $this->dealers->update($dealer, $request->safe()->except('image'), $request->file('image'));
 
         return redirect()->route('dealers.index')->with('success', 'Dealer updated successfully.');
     }

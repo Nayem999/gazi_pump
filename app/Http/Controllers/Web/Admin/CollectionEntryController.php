@@ -13,6 +13,7 @@ use App\Imports\CollectionEntriesImport;
 use App\Models\CollectionEntry;
 use App\Models\Dealer;
 use App\Models\Setting;
+use App\Models\Territory;
 use App\Models\User;
 use App\Services\CollectionEntryService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -29,12 +30,13 @@ class CollectionEntryController extends Controller
     {
         $this->authorize('viewAny', CollectionEntry::class);
 
-        $filters = $request->only(['search', 'user_id', 'dealer_id', 'payment_method', 'date_from', 'date_to', 'trashed']);
+        $filters = $request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'payment_method', 'date_from', 'date_to', 'trashed']);
 
         return view('collection-entries.index', [
             'collectionEntries' => $this->collectionEntries->paginate($filters, 15),
             'total' => $this->collectionEntries->total($filters),
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
+            'territories' => Territory::where('status', true)->orderBy('name')->get(),
             'paymentMethods' => PaymentMethod::cases(),
             'filters' => $filters,
         ]);
@@ -151,7 +153,7 @@ class CollectionEntryController extends Controller
     {
         $this->authorize('export', CollectionEntry::class);
 
-        $collectionEntries = $this->collectionEntries->paginate($request->only(['search', 'user_id', 'dealer_id', 'payment_method', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
+        $collectionEntries = $this->collectionEntries->paginate($request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'payment_method', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
 
         return Excel::download(new CollectionEntriesExport($collectionEntries), 'collection-entries-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -171,7 +173,7 @@ class CollectionEntryController extends Controller
     {
         $this->authorize('print', CollectionEntry::class);
 
-        $collectionEntries = $this->collectionEntries->paginate($request->only(['search', 'user_id', 'dealer_id', 'payment_method', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
+        $collectionEntries = $this->collectionEntries->paginate($request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'payment_method', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
 
         return Pdf::loadView('collection-entries.print', ['collectionEntries' => $collectionEntries])
             ->stream('collection-entries-'.now()->format('Y-m-d-His').'.pdf');

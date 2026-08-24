@@ -16,20 +16,24 @@ trait HasAudit
 {
     public static function bootHasAudit(): void
     {
+        // created_by/updated_by/deleted_by carry a foreign key to `users`,
+        // but Auth::user() can also resolve to a different guard's model
+        // (e.g. CustomerAccount on the customer portal) — stamping that
+        // model's id would violate the FK, so only a genuine User counts.
         static::creating(function ($model): void {
-            if (Auth::check() && ! $model->isDirty('created_by')) {
+            if ((Auth::user() instanceof User) && ! $model->isDirty('created_by')) {
                 $model->created_by = Auth::id();
             }
         });
 
         static::updating(function ($model): void {
-            if (Auth::check()) {
+            if (Auth::user() instanceof User) {
                 $model->updated_by = Auth::id();
             }
         });
 
         static::deleting(function ($model): void {
-            if (Auth::check() && method_exists($model, 'trashed')) {
+            if ((Auth::user() instanceof User) && method_exists($model, 'trashed')) {
                 $model->deleted_by = Auth::id();
                 $model->saveQuietly();
             }

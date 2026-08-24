@@ -19,7 +19,7 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
     public function paginateWithFilters(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         return $this->filtered($filters)
-            ->with(['user', 'dealer', 'items.product'])
+            ->with(['user', 'dealer.territory', 'items.product'])
             ->latest('order_date')
             ->paginate($perPage)
             ->withQueryString();
@@ -44,6 +44,9 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
             })
             ->when($filters['user_id'] ?? null, fn ($query, $userId) => $query->where('user_id', $userId))
             ->when($filters['dealer_id'] ?? null, fn ($query, $dealerId) => $query->where('dealer_id', $dealerId))
+            ->when($filters['territory_id'] ?? null, function ($query, $territoryId) {
+                $query->whereHas('dealer', fn ($q) => $q->where('territory_id', $territoryId));
+            })
             ->when($filters['product_id'] ?? null, function ($query, $productId) {
                 $query->whereHas('items', fn ($q) => $q->where('product_id', $productId));
             })

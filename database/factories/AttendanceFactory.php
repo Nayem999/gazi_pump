@@ -68,6 +68,18 @@ class AttendanceFactory extends Factory
         ]);
     }
 
+    public function halfDay(): static
+    {
+        return $this->state(function (array $attributes) {
+            $checkInAt = Carbon::parse($attributes['check_in_at']);
+
+            return [
+                'check_out_at' => $checkInAt->copy()->addHours(4),
+                'status' => AttendanceStatus::HalfDay,
+            ];
+        });
+    }
+
     public function notCheckedOut(): static
     {
         return $this->state(fn (array $attributes) => [

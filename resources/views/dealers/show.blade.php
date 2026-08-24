@@ -12,7 +12,11 @@
         <div class="col-md-4">
             <div class="card text-center">
                 <div class="card-body">
-                    <i class="ti ti-building-store display-1 text-secondary mb-2 d-block"></i>
+                    @if ($dealer->image)
+                        <img src="{{ $dealer->imageUrl() }}" class="rounded mb-2" style="width:96px;height:96px;object-fit:cover">
+                    @else
+                        <i class="ti ti-building-store display-1 text-secondary mb-2 d-block"></i>
+                    @endif
                     <h5 class="mb-0">{{ $dealer->name }}</h5>
                     <div class="text-muted">{{ $dealer->dealer_code }}</div>
                     <div class="mt-2">

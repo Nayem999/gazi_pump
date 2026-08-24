@@ -14,75 +14,57 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
 /**
- * Backfills the last 7 weekdays of visit plans + the dealer visits that
- * fulfill most of them, for every Sales Executive. Seeds both tables
- * together (rather than two separate seeders) since a fulfilling Visit must
- * reference an already-created VisitPlan.
+ * Seeds exactly 5 visit plans (one per sample dealer) and the 5 dealer
+ * visits that fulfill them, spread across the 2 sample Sales Executives.
+ * Seeds both tables together since a fulfilling Visit must reference an
+ * already-created VisitPlan.
  */
 class VisitSeeder extends Seeder
 {
     private const NEARBY_JITTER_DEGREES = 0.001; // ~100m
 
-    private const FAR_JITTER_DEGREES = 0.02; // ~2km, well outside the verification radius
-
     public function run(): void
     {
-        $executives = User::role('Sales Executive')->with('territories')->get();
-        $dealersByTerritory = Dealer::all()->groupBy('territory_id');
+        $executives = User::role('Sales Executive')->orderBy('id')->get();
+        $dealers = Dealer::orderBy('id')->get();
+
+        if ($executives->isEmpty() || $dealers->isEmpty()) {
+            return;
+        }
 
         $day = Carbon::today();
         $days = [];
-        while (count($days) < 7) {
+        while (count($days) < 5) {
             $day = $day->copy()->subDay();
             if (! $day->isWeekend()) {
                 $days[] = $day->copy();
             }
         }
 
-        foreach ($executives as $executive) {
-            $pool = $executive->territories->flatMap(fn ($territory) => $dealersByTerritory->get($territory->id) ?? collect());
-            if ($pool->isEmpty()) {
-                $pool = Dealer::inRandomOrder()->limit(5)->get();
-            }
+        foreach ($dealers as $i => $dealer) {
+            $executive = $executives->get($i % $executives->count());
+            $date = $days[$i];
 
-            foreach ($days as $date) {
-                foreach ($pool->random(min(2, $pool->count())) as $dealer) {
-                    $plan = VisitPlan::factory()->create([
-                        'user_id' => $executive->id,
-                        'dealer_id' => $dealer->id,
-                        'planned_date' => $date->toDateString(),
-                        'status' => VisitPlanStatus::Planned,
-                    ]);
+            $plan = VisitPlan::create([
+                'user_id' => $executive->id,
+                'dealer_id' => $dealer->id,
+                'territory_id' => $dealer->territory_id,
+                'planned_date' => $date->toDateString(),
+                'status' => VisitPlanStatus::Completed,
+            ]);
 
-                    $roll = random_int(1, 100);
-
-                    if ($roll <= 90) {
-                        $this->createVisit($executive, $dealer, $date, $plan);
-                        $plan->update(['status' => VisitPlanStatus::Completed]);
-                    } elseif ($roll <= 95) {
-                        $plan->update(['status' => VisitPlanStatus::Cancelled]);
-                    }
-                    // else: left "planned" on a past date -> displays as Missed.
-                }
-
-                // A couple of unplanned/ad-hoc visits too, not every module
-                // is plan-first in the field.
-                if ($pool->isNotEmpty() && random_int(1, 100) <= 30) {
-                    $this->createVisit($executive, $pool->random(), $date, null);
-                }
-            }
+            $this->createVisit($executive, $dealer, $date, $plan);
         }
     }
 
-    private function createVisit(User $executive, Dealer $dealer, Carbon $date, ?VisitPlan $plan): void
+    private function createVisit(User $executive, Dealer $dealer, Carbon $date, VisitPlan $plan): void
     {
         $checkInAt = $date->copy()->setTime(random_int(9, 15), random_int(0, 59));
 
         if ($dealer->hasGps()) {
-            $verified = random_int(1, 100) <= 85;
-            $jitter = $verified ? self::NEARBY_JITTER_DEGREES : self::FAR_JITTER_DEGREES;
-            $lat = (float) $dealer->gps_lat + fake()->randomFloat(6, -$jitter, $jitter);
-            $lng = (float) $dealer->gps_lng + fake()->randomFloat(6, -$jitter, $jitter);
+            $lat = (float) $dealer->gps_lat + fake()->randomFloat(6, -self::NEARBY_JITTER_DEGREES, self::NEARBY_JITTER_DEGREES);
+            $lng = (float) $dealer->gps_lng + fake()->randomFloat(6, -self::NEARBY_JITTER_DEGREES, self::NEARBY_JITTER_DEGREES);
+            $verified = true;
             $distanceMeters = round(DistanceCalculator::haversineKm(
                 (float) $dealer->gps_lat,
                 (float) $dealer->gps_lng,
@@ -97,7 +79,7 @@ class VisitSeeder extends Seeder
         }
 
         Visit::factory()->create([
-            'visit_plan_id' => $plan?->id,
+            'visit_plan_id' => $plan->id,
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'check_in_at' => $checkInAt,

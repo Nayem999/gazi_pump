@@ -65,4 +65,21 @@ class SettingsServiceTest extends TestCase
         Storage::disk('public')->assertMissing($firstPath);
         Storage::disk('public')->assertExists($secondPath);
     }
+
+    public function test_update_replaces_the_favicon_and_deletes_the_previous_file(): void
+    {
+        Storage::fake('public');
+
+        $first = UploadedFile::fake()->image('favicon1.png');
+        $this->service()->update([], null, $first);
+        $firstPath = Setting::current()->company_favicon;
+        Storage::disk('public')->assertExists($firstPath);
+
+        $second = UploadedFile::fake()->image('favicon2.png');
+        $this->service()->update([], null, $second);
+        $secondPath = Setting::current()->company_favicon;
+
+        Storage::disk('public')->assertMissing($firstPath);
+        Storage::disk('public')->assertExists($secondPath);
+    }
 }

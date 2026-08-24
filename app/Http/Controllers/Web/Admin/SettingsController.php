@@ -31,7 +31,11 @@ class SettingsController extends Controller
 
     public function update(UpdateSettingRequest $request): RedirectResponse
     {
-        $this->settings->update($request->safe()->except('company_logo'), $request->file('company_logo'));
+        $this->settings->update(
+            $request->safe()->except(['company_logo', 'company_favicon']),
+            $request->file('company_logo'),
+            $request->file('company_favicon'),
+        );
 
         return redirect()->route('settings.edit')->with('success', 'Settings updated successfully.');
     }

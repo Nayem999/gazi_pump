@@ -18,7 +18,7 @@ class SettingsService
     /**
      * @param  array<string, mixed>  $data
      */
-    public function update(array $data, ?UploadedFile $logo = null): Setting
+    public function update(array $data, ?UploadedFile $logo = null, ?UploadedFile $favicon = null): Setting
     {
         $settings = Setting::current();
 
@@ -27,6 +27,13 @@ class SettingsService
                 Storage::disk('public')->delete($settings->company_logo);
             }
             $data['company_logo'] = $logo->store('settings', 'public');
+        }
+
+        if ($favicon) {
+            if ($settings->company_favicon) {
+                Storage::disk('public')->delete($settings->company_favicon);
+            }
+            $data['company_favicon'] = $favicon->store('settings', 'public');
         }
 
         $settings->update($data);

@@ -98,6 +98,15 @@
         @error('address') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
+    <div class="col-md-6">
+        <label class="form-label">Photo</label>
+        <input type="file" name="image" accept="image/*" class="form-control @error('image') is-invalid @enderror">
+        @error('image') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @if (isset($dealer) && $dealer->imageUrl())
+            <img src="{{ $dealer->imageUrl() }}" class="mt-2 rounded" style="height:80px">
+        @endif
+    </div>
+
     <div class="col-12">
         <label class="form-label d-flex align-items-center justify-content-between">
             <span>GPS Location</span>

@@ -10,7 +10,7 @@
 @section('content')
     <div class="card">
         <div class="card-body">
-            <form method="POST" action="{{ route('dealers.update', $dealer) }}">
+            <form method="POST" action="{{ route('dealers.update', $dealer) }}" enctype="multipart/form-data">
                 @include('dealers._form')
             </form>
         </div>

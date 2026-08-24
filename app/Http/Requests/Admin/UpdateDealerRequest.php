@@ -28,6 +28,7 @@ class UpdateDealerRequest extends FormRequest
             'phone' => ['required', 'string', 'max:20'],
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:2048'],
             'gps_lat' => ['nullable', 'numeric', 'between:-90,90'],
             'gps_lng' => ['nullable', 'numeric', 'between:-180,180'],
             'territory_id' => ['nullable', 'integer', Rule::exists('territories', 'id')],

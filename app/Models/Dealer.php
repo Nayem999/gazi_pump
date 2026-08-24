@@ -22,6 +22,7 @@ class Dealer extends BaseModel
         'phone',
         'email',
         'address',
+        'image',
         'gps_lat',
         'gps_lng',
         'division_id',
@@ -69,5 +70,10 @@ class Dealer extends BaseModel
     public function hasGps(): bool
     {
         return $this->gps_lat !== null && $this->gps_lng !== null;
+    }
+
+    public function imageUrl(): ?string
+    {
+        return $this->image ? asset('storage/'.$this->image) : null;
     }
 }

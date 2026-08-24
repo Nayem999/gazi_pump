@@ -7,7 +7,9 @@ namespace App\Services;
 use App\Models\Territory;
 use App\Repositories\Contracts\DealerRepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Storage;
 
 class DealerService extends BaseCrudService
 {
@@ -32,9 +34,13 @@ class DealerService extends BaseCrudService
      *
      * @param  array<string, mixed>  $data
      */
-    public function create(array $data): Model
+    public function create(array $data, ?UploadedFile $image = null): Model
     {
         $data['status'] ??= true;
+
+        if ($image) {
+            $data['image'] = $image->store('dealers', 'public');
+        }
 
         return parent::create($this->withGeoFromTerritory($data));
     }
@@ -42,8 +48,15 @@ class DealerService extends BaseCrudService
     /**
      * @param  array<string, mixed>  $data
      */
-    public function update(Model $model, array $data): Model
+    public function update(Model $model, array $data, ?UploadedFile $image = null): Model
     {
+        if ($image) {
+            if ($model->image) {
+                Storage::disk('public')->delete($model->image);
+            }
+            $data['image'] = $image->store('dealers', 'public');
+        }
+
         return parent::update($model, $this->withGeoFromTerritory($data));
     }
 

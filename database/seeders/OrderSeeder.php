@@ -13,45 +13,28 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * Backfills the last 30 days of manual orders for every Sales
- * Executive, so the Order history view and the future Target/
- * Achievement engine (Phase 10) have realistic monthly volume right after a
- * fresh seed. Orders — unlike Attendance/GPS/Visits — happen any day of the
- * week, so weekends are not skipped here. Each order can cover 1-3 different
- * products, mirroring a real field rep selling a small basket per stop.
+ * Seeds exactly 5 orders (one per sample dealer, this month) spread across
+ * the 2 sample Sales Executives, each covering 1-3 different real products
+ * from ProductSeeder's catalog — mirrors a real field rep selling a small
+ * basket per stop.
  */
 class OrderSeeder extends Seeder
 {
-    private const DAYS = 30;
-
     public function run(): void
     {
-        $executives = User::role('Sales Executive')->with('territories')->get();
-        $dealersByTerritory = Dealer::all()->groupBy('territory_id');
+        $executives = User::role('Sales Executive')->orderBy('id')->get();
+        $dealers = Dealer::orderBy('id')->get();
         $products = Product::where('status', true)->get();
 
-        if ($products->isEmpty()) {
+        if ($executives->isEmpty() || $dealers->isEmpty() || $products->isEmpty()) {
             return;
         }
 
-        foreach ($executives as $executive) {
-            $pool = $executive->territories->flatMap(fn ($territory) => $dealersByTerritory->get($territory->id) ?? collect());
-            if ($pool->isEmpty()) {
-                $pool = Dealer::inRandomOrder()->limit(5)->get();
-            }
+        foreach ($dealers as $i => $dealer) {
+            $executive = $executives->get($i % $executives->count());
+            $date = Carbon::today()->subDays($i);
 
-            if ($pool->isEmpty()) {
-                continue;
-            }
-
-            for ($daysAgo = 0; $daysAgo < self::DAYS; $daysAgo++) {
-                $date = Carbon::today()->subDays($daysAgo);
-
-                $ordersToday = random_int(0, 4);
-                for ($i = 0; $i < $ordersToday; $i++) {
-                    $this->createOrder($executive, $pool->random(), $products, $date);
-                }
-            }
+            $this->createOrder($executive, $dealer, $products, $date);
         }
     }
 

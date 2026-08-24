@@ -69,5 +69,12 @@ class AppServiceProvider extends ServiceProvider
         View::composer(['layouts.admin', 'layouts.auth', 'layouts.portal'], function ($view): void {
             $view->with('companyLogoUrl', Setting::current()->logoUrl());
         });
+
+        // The uploaded favicon (Settings module) is rendered as a <link
+        // rel="icon"> on every top-level layout's <head>, replacing the
+        // browser's default /favicon.ico lookup site-wide.
+        View::composer(['layouts.admin', 'layouts.auth', 'layouts.portal', 'layouts.portal-account'], function ($view): void {
+            $view->with('companyFaviconUrl', Setting::current()->faviconUrl());
+        });
     }
 }

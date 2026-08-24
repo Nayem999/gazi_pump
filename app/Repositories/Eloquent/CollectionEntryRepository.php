@@ -19,7 +19,7 @@ class CollectionEntryRepository extends BaseRepository implements CollectionEntr
     public function paginateWithFilters(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         return $this->filtered($filters)
-            ->with(['user', 'dealer'])
+            ->with(['user', 'dealer.territory'])
             ->latest('collection_date')
             ->paginate($perPage)
             ->withQueryString();
@@ -40,6 +40,9 @@ class CollectionEntryRepository extends BaseRepository implements CollectionEntr
             })
             ->when($filters['user_id'] ?? null, fn ($query, $userId) => $query->where('user_id', $userId))
             ->when($filters['dealer_id'] ?? null, fn ($query, $dealerId) => $query->where('dealer_id', $dealerId))
+            ->when($filters['territory_id'] ?? null, function ($query, $territoryId) {
+                $query->whereHas('dealer', fn ($q) => $q->where('territory_id', $territoryId));
+            })
             ->when($filters['payment_method'] ?? null, fn ($query, $method) => $query->where('payment_method', $method))
             ->when($filters['date_from'] ?? null, fn ($query, $date) => $query->whereDate('collection_date', '>=', $date))
             ->when($filters['date_to'] ?? null, fn ($query, $date) => $query->whereDate('collection_date', '<=', $date))

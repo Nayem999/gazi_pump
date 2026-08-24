@@ -22,7 +22,7 @@ class OrderService extends BaseCrudService
     }
 
     /**
-     * @param  array{search?: string, user_id?: string, dealer_id?: string, product_id?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
+     * @param  array{search?: string, user_id?: string, dealer_id?: string, territory_id?: string, product_id?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
      */
     public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
     {
@@ -30,7 +30,7 @@ class OrderService extends BaseCrudService
     }
 
     /**
-     * @param  array{search?: string, user_id?: string, dealer_id?: string, product_id?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
+     * @param  array{search?: string, user_id?: string, dealer_id?: string, territory_id?: string, product_id?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
      */
     public function total(array $filters): float
     {

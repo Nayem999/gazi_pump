@@ -13,6 +13,7 @@ use App\Models\Dealer;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Setting;
+use App\Models\Territory;
 use App\Models\User;
 use App\Services\OrderService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -29,12 +30,13 @@ class OrderController extends Controller
     {
         $this->authorize('viewAny', Order::class);
 
-        $filters = $request->only(['search', 'user_id', 'dealer_id', 'product_id', 'date_from', 'date_to', 'trashed']);
+        $filters = $request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'product_id', 'date_from', 'date_to', 'trashed']);
 
         return view('orders.index', [
             'orders' => $this->orders->paginate($filters, 15),
             'total' => $this->orders->total($filters),
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
+            'territories' => Territory::where('status', true)->orderBy('name')->get(),
             'filters' => $filters,
         ]);
     }
@@ -150,7 +152,7 @@ class OrderController extends Controller
     {
         $this->authorize('export', Order::class);
 
-        $orders = $this->orders->paginate($request->only(['search', 'user_id', 'dealer_id', 'product_id', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
+        $orders = $this->orders->paginate($request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'product_id', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
 
         return Excel::download(new OrdersExport($orders), 'orders-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -170,7 +172,7 @@ class OrderController extends Controller
     {
         $this->authorize('print', Order::class);
 
-        $orders = $this->orders->paginate($request->only(['search', 'user_id', 'dealer_id', 'product_id', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
+        $orders = $this->orders->paginate($request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'product_id', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
 
         return Pdf::loadView('orders.print', ['orders' => $orders])
             ->stream('orders-'.now()->format('Y-m-d-His').'.pdf');
