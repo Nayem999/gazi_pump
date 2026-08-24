@@ -93,6 +93,12 @@
                     <td>{{ $log->battery_level !== null ? $log->battery_level.'%' : '—' }}</td>
                     <td class="text-end">
                         <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-secondary" title="View Location"
+                                    data-bs-toggle="modal" data-bs-target="#gpsLocationModal"
+                                    data-lat="{{ $log->lat }}" data-lng="{{ $log->lng }}"
+                                    data-time="{{ $log->recorded_at->format('M d, Y H:i:s') }}">
+                                <i class="ti ti-map-pin"></i>
+                            </button>
                             @if ($log->trashed())
                                 @can('restore', $log)
                                     <form method="POST" action="{{ route('gps-logs.restore', $log->id) }}">
@@ -147,6 +153,12 @@
                                 @endif
                             </x-slot:checkbox>
                             <x-slot:actions>
+                                <button type="button" class="btn btn-outline-secondary" title="View Location"
+                                        data-bs-toggle="modal" data-bs-target="#gpsLocationModal"
+                                        data-lat="{{ $log->lat }}" data-lng="{{ $log->lng }}"
+                                        data-time="{{ $log->recorded_at->format('M d, Y H:i:s') }}">
+                                    <i class="ti ti-map-pin"></i>
+                                </button>
                                 @if ($log->trashed())
                                     @can('restore', $log)
                                         <form method="POST" action="{{ route('gps-logs.restore', $log->id) }}">
@@ -185,15 +197,60 @@
             </div>
         @endcan
     </form>
+
+    <x-modal id="gpsLocationModal" title="Ping Location" size="lg">
+        <div class="mb-2 small text-muted" id="gpsLocationMeta"></div>
+        <div id="gpsLocationMap" style="height:350px;border-radius:.5rem"></div>
+    </x-modal>
 @endsection
+
+@push('scripts')
+    <script>
+        document.getElementById('selectAll')?.addEventListener('change', function () {
+            document.querySelectorAll('.row-checkbox').forEach((cb) => { cb.checked = this.checked; });
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const modalEl = document.getElementById('gpsLocationModal');
+            let locationMap = null;
+            let locationMarker = null;
+            let pendingLatLng = null;
+
+            modalEl.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const lat = parseFloat(button.dataset.lat);
+                const lng = parseFloat(button.dataset.lng);
+
+                document.getElementById('gpsLocationMeta').textContent = `${button.dataset.time} — ${lat}, ${lng}`;
+                pendingLatLng = [lat, lng];
+            });
+
+            modalEl.addEventListener('shown.bs.modal', function () {
+                if (! pendingLatLng) {
+                    return;
+                }
+
+                if (! locationMap) {
+                    locationMap = window.L.map('gpsLocationMap').setView(pendingLatLng, 16);
+                    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; OpenStreetMap contributors',
+                        maxZoom: 19,
+                    }).addTo(locationMap);
+                    locationMarker = window.L.marker(pendingLatLng).addTo(locationMap);
+                } else {
+                    locationMap.setView(pendingLatLng, 16);
+                    locationMarker.setLatLng(pendingLatLng);
+                }
+
+                locationMap.invalidateSize();
+            });
+        });
+    </script>
+@endpush
 
 @if ($points->isNotEmpty())
     @push('scripts')
         <script>
-            document.getElementById('selectAll')?.addEventListener('change', function () {
-                document.querySelectorAll('.row-checkbox').forEach((cb) => { cb.checked = this.checked; });
-            });
-
             document.addEventListener('DOMContentLoaded', function () {
                 const points = @json($points);
                 const map = window.L.map('gpsRouteMap');
@@ -213,14 +270,6 @@
                     attribution: '&copy; OpenStreetMap contributors',
                     maxZoom: 19,
                 }).addTo(map);
-            });
-        </script>
-    @endpush
-@else
-    @push('scripts')
-        <script>
-            document.getElementById('selectAll')?.addEventListener('change', function () {
-                document.querySelectorAll('.row-checkbox').forEach((cb) => { cb.checked = this.checked; });
             });
         </script>
     @endpush

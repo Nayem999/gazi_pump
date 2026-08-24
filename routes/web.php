@@ -21,6 +21,7 @@ use App\Http\Controllers\Web\Admin\OrderController;
 use App\Http\Controllers\Web\Admin\PermissionController;
 use App\Http\Controllers\Web\Admin\ProductCategoryController;
 use App\Http\Controllers\Web\Admin\ProductController;
+use App\Http\Controllers\Web\Admin\ProfileController;
 use App\Http\Controllers\Web\Admin\PromotionController;
 use App\Http\Controllers\Web\Admin\ReportController;
 use App\Http\Controllers\Web\Admin\RoleController;
@@ -113,6 +114,9 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     Route::prefix('users')->name('users.')->group(function (): void {
         Route::get('/', [UserController::class, 'index'])->name('index');
@@ -441,15 +445,15 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
     $registerContentRoutes('cms/brochures', BrochureController::class, 'brochures');
 });
 
-
 Route::get('/clear', function () {
     Artisan::call('cache:clear');
     Artisan::call('route:clear');
     // Artisan::call('optimize');
     // Artisan::call('route:cache');
     Artisan::call('view:clear');
+
     // Artisan::call('config:cache');
-    // Artisan::call('storage:link');
+    Artisan::call('storage:link');
     // Artisan::call('migrate --force');
     return '<h1>Routes and Cache Cleared Successfully! </h1>';
 });

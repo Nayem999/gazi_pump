@@ -1,9 +1,90 @@
 {{-- Each module appends its own nav-link (and nav-section-title, if it starts a new group)
-     here as it is built. Every link is gated by its menu permission. --}}
+     here as it is built. Every link is gated by its menu permission.
+     Section order: Order Operations, Performance, Field Operations, GIS,
+     Reports, Access Control, Organization, Dealer Management, Product
+     Management, Customer Portal, Communication, System. --}}
 
 <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
     <i class="ti ti-gauge icon-blue"></i> Dashboard
 </a>
+
+@canany(['menu.orders', 'menu.collection-entries'])
+    <div class="nav-section-title">Order Operations</div>
+@endcanany
+
+@can('menu.orders')
+    <a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}">
+        <i class="ti ti-receipt icon-green"></i> Orders
+    </a>
+@endcan
+
+@can('menu.collection-entries')
+    <a href="{{ route('collection-entries.index') }}" class="nav-link {{ request()->routeIs('collection-entries.*') ? 'active' : '' }}">
+        <i class="ti ti-cash icon-amber"></i> Collection Entry
+    </a>
+@endcan
+
+@canany(['menu.targets'])
+    <div class="nav-section-title">Performance</div>
+@endcanany
+
+@can('menu.targets')
+    <a href="{{ route('targets.index') }}" class="nav-link {{ request()->routeIs('targets.*') ? 'active' : '' }}">
+        <i class="ti ti-target-arrow icon-orange"></i> Targets
+    </a>
+@endcan
+
+@canany(['menu.attendance', 'menu.gps-logs', 'menu.live-gps', 'menu.visit-plans', 'menu.visits'])
+    <div class="nav-section-title">Field Operations</div>
+@endcanany
+
+@can('menu.attendance')
+    <a href="{{ route('attendance.index') }}" class="nav-link {{ request()->routeIs('attendance.*') ? 'active' : '' }}">
+        <i class="ti ti-calendar-check icon-green"></i> Attendance
+    </a>
+@endcan
+
+@can('menu.gps-logs')
+    <a href="{{ route('gps-logs.index') }}" class="nav-link {{ request()->routeIs('gps-logs.*') ? 'active' : '' }}">
+        <i class="ti ti-route icon-cyan"></i> GPS Tracking
+    </a>
+@endcan
+
+@can('menu.live-gps')
+    <a href="{{ route('live-gps.index') }}" class="nav-link {{ request()->routeIs('live-gps.*') ? 'active' : '' }}">
+        <i class="ti ti-radar-2 icon-red"></i> Live GPS Dashboard
+    </a>
+@endcan
+
+@can('menu.visit-plans')
+    <a href="{{ route('visit-plans.index') }}" class="nav-link {{ request()->routeIs('visit-plans.*') ? 'active' : '' }}">
+        <i class="ti ti-calendar-event icon-purple"></i> Visit Plans
+    </a>
+@endcan
+
+@can('menu.visits')
+    <a href="{{ route('visits.index') }}" class="nav-link {{ request()->routeIs('visits.*') ? 'active' : '' }}">
+        <i class="ti ti-walk icon-teal"></i> Dealer Visits
+    </a>
+@endcan
+
+@canany(['menu.territory-map'])
+    <div class="nav-section-title">GIS</div>
+@endcanany
+
+@can('menu.territory-map')
+    <a href="{{ route('territory-map.index') }}" class="nav-link {{ request()->routeIs('territory-map.*') ? 'active' : '' }}">
+        <i class="ti ti-map-2 icon-blue"></i> Territory Map
+    </a>
+@endcan
+
+@canany(['report.attendance', 'report.visits', 'report.order-performance', 'report.collections', 'report.territories'])
+    <div class="nav-section-title">Reports</div>
+
+    <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+        <i class="ti ti-report-analytics icon-indigo"></i> Reports
+    </a>
+@endcanany
 
 @canany(['users.view', 'roles.view', 'permissions.view'])
     <div class="nav-section-title">Access Control</div>
@@ -69,100 +150,6 @@
     </a>
 @endcan
 
-@canany(['menu.attendance', 'menu.gps-logs', 'menu.live-gps', 'menu.visit-plans', 'menu.visits'])
-    <div class="nav-section-title">Field Operations</div>
-@endcanany
-
-@can('menu.attendance')
-    <a href="{{ route('attendance.index') }}" class="nav-link {{ request()->routeIs('attendance.*') ? 'active' : '' }}">
-        <i class="ti ti-calendar-check icon-green"></i> Attendance
-    </a>
-@endcan
-
-@can('menu.gps-logs')
-    <a href="{{ route('gps-logs.index') }}" class="nav-link {{ request()->routeIs('gps-logs.*') ? 'active' : '' }}">
-        <i class="ti ti-route icon-cyan"></i> GPS Tracking
-    </a>
-@endcan
-
-@can('menu.live-gps')
-    <a href="{{ route('live-gps.index') }}" class="nav-link {{ request()->routeIs('live-gps.*') ? 'active' : '' }}">
-        <i class="ti ti-radar-2 icon-red"></i> Live GPS Dashboard
-    </a>
-@endcan
-
-@can('menu.visit-plans')
-    <a href="{{ route('visit-plans.index') }}" class="nav-link {{ request()->routeIs('visit-plans.*') ? 'active' : '' }}">
-        <i class="ti ti-calendar-event icon-purple"></i> Visit Plans
-    </a>
-@endcan
-
-@can('menu.visits')
-    <a href="{{ route('visits.index') }}" class="nav-link {{ request()->routeIs('visits.*') ? 'active' : '' }}">
-        <i class="ti ti-walk icon-teal"></i> Dealer Visits
-    </a>
-@endcan
-
-@canany(['menu.orders', 'menu.collection-entries'])
-    <div class="nav-section-title">Order Operations</div>
-@endcanany
-
-@can('menu.orders')
-    <a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}">
-        <i class="ti ti-receipt icon-green"></i> Orders
-    </a>
-@endcan
-
-@can('menu.collection-entries')
-    <a href="{{ route('collection-entries.index') }}" class="nav-link {{ request()->routeIs('collection-entries.*') ? 'active' : '' }}">
-        <i class="ti ti-cash icon-amber"></i> Collection Entry
-    </a>
-@endcan
-
-@canany(['menu.targets'])
-    <div class="nav-section-title">Performance</div>
-@endcanany
-
-@can('menu.targets')
-    <a href="{{ route('targets.index') }}" class="nav-link {{ request()->routeIs('targets.*') ? 'active' : '' }}">
-        <i class="ti ti-target-arrow icon-orange"></i> Targets
-    </a>
-@endcan
-
-@canany(['report.attendance', 'report.visits', 'report.order-performance', 'report.collections', 'report.territories'])
-    <div class="nav-section-title">Reports</div>
-
-    <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
-        <i class="ti ti-report-analytics icon-indigo"></i> Reports
-    </a>
-@endcanany
-
-@canany(['menu.territory-map'])
-    <div class="nav-section-title">GIS</div>
-@endcanany
-
-@can('menu.territory-map')
-    <a href="{{ route('territory-map.index') }}" class="nav-link {{ request()->routeIs('territory-map.*') ? 'active' : '' }}">
-        <i class="ti ti-map-2 icon-blue"></i> Territory Map
-    </a>
-@endcan
-
-@canany(['menu.notifications', 'menu.announcements'])
-    <div class="nav-section-title">Communication</div>
-@endcanany
-
-@can('menu.notifications')
-    <a href="{{ route('notifications.index') }}" class="nav-link {{ request()->routeIs('notifications.*') ? 'active' : '' }}">
-        <i class="ti ti-bell icon-amber"></i> Notifications
-    </a>
-@endcan
-
-@can('menu.announcements')
-    <a href="{{ route('announcements.index') }}" class="nav-link {{ request()->routeIs('announcements.*') ? 'active' : '' }}">
-        <i class="ti ti-speakerphone icon-pink"></i> Announcements
-    </a>
-@endcan
-
 @canany(['menu.inquiries', 'menu.visit-requests', 'menu.news', 'menu.promotions', 'menu.faqs', 'menu.service-centers', 'menu.brochures'])
     <div class="nav-section-title">Customer Portal</div>
 @endcanany
@@ -206,6 +193,22 @@
 @can('menu.brochures')
     <a href="{{ route('brochures.index') }}" class="nav-link {{ request()->routeIs('brochures.*') ? 'active' : '' }}">
         <i class="ti ti-file-type-pdf icon-red"></i> Brochures
+    </a>
+@endcan
+
+@canany(['menu.notifications', 'menu.announcements'])
+    <div class="nav-section-title">Communication</div>
+@endcanany
+
+@can('menu.notifications')
+    <a href="{{ route('notifications.index') }}" class="nav-link {{ request()->routeIs('notifications.*') ? 'active' : '' }}">
+        <i class="ti ti-bell icon-amber"></i> Notifications
+    </a>
+@endcan
+
+@can('menu.announcements')
+    <a href="{{ route('announcements.index') }}" class="nav-link {{ request()->routeIs('announcements.*') ? 'active' : '' }}">
+        <i class="ti ti-speakerphone icon-pink"></i> Announcements
     </a>
 @endcan
 

@@ -60,7 +60,7 @@
                         <span class="d-none d-sm-inline">{{ auth()->user()->name ?? 'Guest' }}</span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#"><i class="ti ti-user me-2"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="{{ route('profile.edit') }}"><i class="ti ti-user me-2"></i>Profile</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
                             <form method="POST" action="{{ route('logout') }}">
