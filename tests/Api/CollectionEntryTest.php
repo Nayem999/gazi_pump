@@ -10,7 +10,9 @@ use App\Models\Order;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class CollectionEntryTest extends TestCase
@@ -61,6 +63,48 @@ class CollectionEntryTest extends TestCase
         $entry = CollectionEntry::where('user_id', $executive->id)->firstOrFail();
         $this->assertSame('600.00', (string) $entry->amount);
         $this->assertSame('mobile_banking', $entry->payment_method->value);
+    }
+
+    public function test_recording_a_cheque_collection_without_an_image_is_rejected(): void
+    {
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries', [
+                'dealer_id' => $dealer->id,
+                'amount' => 600,
+                'payment_method' => 'cheque',
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonValidationErrors('cheque_image');
+    }
+
+    public function test_sales_executive_can_upload_a_cheque_image_when_recording_a_cheque_collection(): void
+    {
+        Storage::fake('public');
+
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries', [
+                'dealer_id' => $dealer->id,
+                'amount' => 600,
+                'payment_method' => 'cheque',
+                'reference_no' => 'CHQ-9001',
+                'cheque_image' => UploadedFile::fake()->image('cheque.jpg'),
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.cheque_image_url', fn ($url) => is_string($url));
+
+        $entry = CollectionEntry::where('reference_no', 'CHQ-9001')->firstOrFail();
+        Storage::disk('public')->assertExists($entry->cheque_image);
     }
 
     public function test_a_collection_beyond_the_overpayment_tolerance_is_rejected(): void

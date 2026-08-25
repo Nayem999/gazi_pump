@@ -44,6 +44,9 @@
         <tr><th>Amount</th><td>{{ number_format((float) $collectionEntry->amount, 2) }}</td></tr>
         <tr><th>Payment Method</th><td>{{ $collectionEntry->payment_method->label() }}</td></tr>
         <tr><th>Reference No.</th><td>{{ $collectionEntry->reference_no ?? '—' }}</td></tr>
+        @if ($collectionEntry->chequeImagePath())
+            <tr><th>Cheque Image</th><td><img src="{{ $collectionEntry->chequeImagePath() }}" style="height:120px"></td></tr>
+        @endif
         <tr><th>Remarks</th><td>{{ $collectionEntry->remarks ?? '—' }}</td></tr>
     </table>
 </body>

@@ -67,6 +67,15 @@
                         <dt class="col-sm-4">Reference No.</dt>
                         <dd class="col-sm-8">{{ $collectionEntry->reference_no ?? '—' }}</dd>
 
+                        @if ($collectionEntry->chequeImageUrl())
+                            <dt class="col-sm-4">Cheque Image</dt>
+                            <dd class="col-sm-8">
+                                <a href="{{ $collectionEntry->chequeImageUrl() }}" target="_blank">
+                                    <img src="{{ $collectionEntry->chequeImageUrl() }}" class="rounded" style="height:100px">
+                                </a>
+                            </dd>
+                        @endif
+
                         <dt class="col-sm-4">Remarks</dt>
                         <dd class="col-sm-8">{{ $collectionEntry->remarks ?? '—' }}</dd>
 

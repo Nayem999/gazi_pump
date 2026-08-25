@@ -13,6 +13,7 @@ use App\Repositories\Contracts\DistrictRepositoryInterface;
 use App\Repositories\Contracts\DivisionRepositoryInterface;
 use App\Repositories\Contracts\FaqRepositoryInterface;
 use App\Repositories\Contracts\GpsLogRepositoryInterface;
+use App\Repositories\Contracts\HolidayRepositoryInterface;
 use App\Repositories\Contracts\InquiryRepositoryInterface;
 use App\Repositories\Contracts\NewsRepositoryInterface;
 use App\Repositories\Contracts\OrderRepositoryInterface;
@@ -38,6 +39,7 @@ use App\Repositories\Eloquent\DistrictRepository;
 use App\Repositories\Eloquent\DivisionRepository;
 use App\Repositories\Eloquent\FaqRepository;
 use App\Repositories\Eloquent\GpsLogRepository;
+use App\Repositories\Eloquent\HolidayRepository;
 use App\Repositories\Eloquent\InquiryRepository;
 use App\Repositories\Eloquent\NewsRepository;
 use App\Repositories\Eloquent\OrderRepository;
@@ -91,6 +93,7 @@ class RepositoryServiceProvider extends ServiceProvider
         FaqRepositoryInterface::class => FaqRepository::class,
         ServiceCenterRepositoryInterface::class => ServiceCenterRepository::class,
         BrochureRepositoryInterface::class => BrochureRepository::class,
+        HolidayRepositoryInterface::class => HolidayRepository::class,
     ];
 
     public function register(): void

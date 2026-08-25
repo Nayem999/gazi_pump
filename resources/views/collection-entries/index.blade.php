@@ -104,6 +104,11 @@
                         @if ($collectionEntry->reference_no)
                             <div class="text-muted small">{{ $collectionEntry->reference_no }}</div>
                         @endif
+                        @if ($collectionEntry->chequeImageUrl())
+                            <a href="{{ $collectionEntry->chequeImageUrl() }}" target="_blank" title="View cheque image" class="d-inline-block mt-1">
+                                <img src="{{ $collectionEntry->chequeImageUrl() }}" style="width:28px;height:28px;object-fit:cover" class="rounded">
+                            </a>
+                        @endif
                     </td>
                     <td class="text-end">
                         <div class="btn-group btn-group-sm">
@@ -163,6 +168,9 @@
                                 <div>Territory: {{ $collectionEntry->dealer?->territory?->name ?? '—' }}</div>
                                 <div>Date: {{ $collectionEntry->collection_date->format('M d, Y') }}</div>
                                 <div>Amount: {{ number_format((float) $collectionEntry->amount, 2) }}</div>
+                                @if ($collectionEntry->chequeImageUrl())
+                                    <div><a href="{{ $collectionEntry->chequeImageUrl() }}" target="_blank">View cheque image</a></div>
+                                @endif
                             </x-slot:meta>
                             <x-slot:checkbox>
                                 @if (! $collectionEntry->trashed())

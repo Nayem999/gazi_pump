@@ -29,6 +29,10 @@ class ProductResource extends JsonResource
                 'id' => $this->category->id,
                 'name' => $this->category->name,
             ] : null),
+            'sales_team' => $this->whenLoaded('salesTeam', fn () => $this->salesTeam ? [
+                'id' => $this->salesTeam->id,
+                'name' => $this->salesTeam->name,
+            ] : null),
             'status' => (bool) $this->status,
         ];
     }

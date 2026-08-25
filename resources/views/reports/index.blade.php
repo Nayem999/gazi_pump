@@ -133,9 +133,23 @@
                 </a>
             </div>
         @endcan
+
+        @can('report.dealer-ledger')
+            <div class="col-md-6 col-lg-4">
+                <a href="{{ route('reports.dealer-ledger') }}" class="card h-100 hover-lift text-decoration-none">
+                    <div class="card-body">
+                        <div class="stat-card-icon bg-danger-subtle text-danger mb-3" style="width:48px;height:48px;font-size:1.25rem">
+                            <i class="ti ti-file-invoice"></i>
+                        </div>
+                        <h6 class="mb-1 text-body">Dealer &amp; Ledger Report</h6>
+                        <p class="text-muted small mb-0">Every dealer's outstanding due amount, with a per-dealer ledger statement.</p>
+                    </div>
+                </a>
+            </div>
+        @endcan
     </div>
 
-    @canany(['report.attendance', 'report.visits', 'report.order-performance', 'report.collections', 'report.territories', 'report.target-achievement', 'report.executive-performance', 'report.dealer-coverage', 'report.gps'])
+    @canany(['report.attendance', 'report.visits', 'report.order-performance', 'report.collections', 'report.territories', 'report.target-achievement', 'report.executive-performance', 'report.dealer-coverage', 'report.gps', 'report.dealer-ledger'])
     @else
         <div class="text-center text-muted py-5">
             <i class="ti ti-lock display-4 d-block mb-2"></i>

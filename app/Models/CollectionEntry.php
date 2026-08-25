@@ -21,6 +21,7 @@ class CollectionEntry extends BaseModel
         'amount',
         'payment_method',
         'reference_no',
+        'cheque_image',
         'remarks',
     ];
 
@@ -41,5 +42,26 @@ class CollectionEntry extends BaseModel
     public function dealer(): BelongsTo
     {
         return $this->belongsTo(Dealer::class);
+    }
+
+    public function chequeImageUrl(): ?string
+    {
+        return $this->cheque_image ? asset('storage/'.$this->cheque_image) : null;
+    }
+
+    /**
+     * A local filesystem path to the cheque image, for PDF generation —
+     * DomPDF's remote-file fetching is disabled (config/dompdf.php), so a
+     * public asset() URL can't be embedded, only a path within its chroot.
+     */
+    public function chequeImagePath(): ?string
+    {
+        if (! $this->cheque_image) {
+            return null;
+        }
+
+        $path = storage_path('app/public/'.$this->cheque_image);
+
+        return is_file($path) ? $path : null;
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\User;
 use App\Repositories\Contracts\ProductRepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
@@ -18,11 +19,11 @@ class ProductService extends BaseCrudService
     }
 
     /**
-     * @param  array{search?: string, category_id?: string, status?: string, trashed?: string}  $filters
+     * @param  array{search?: string, category_id?: string, sales_team_id?: string, status?: string, trashed?: string}  $filters
      */
-    public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
+    public function paginate(array $filters, int $perPage = 15, ?User $viewer = null): LengthAwarePaginator
     {
-        return $this->products->paginateWithFilters($filters, $perPage);
+        return $this->products->paginateWithFilters($filters, $perPage, $viewer);
     }
 
     /**

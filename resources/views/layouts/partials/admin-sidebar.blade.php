@@ -78,7 +78,7 @@
     </a>
 @endcan
 
-@canany(['report.attendance', 'report.visits', 'report.order-performance', 'report.collections', 'report.territories'])
+@canany(['report.attendance', 'report.visits', 'report.order-performance', 'report.collections', 'report.territories', 'report.dealer-ledger'])
     <div class="nav-section-title">Reports</div>
 
     <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
@@ -212,13 +212,19 @@
     </a>
 @endcan
 
-@canany(['menu.activity-log', 'menu.settings'])
+@canany(['menu.activity-log', 'menu.holidays', 'menu.settings'])
     <div class="nav-section-title">System</div>
 @endcanany
 
 @can('menu.activity-log')
     <a href="{{ route('activity-log.index') }}" class="nav-link {{ request()->routeIs('activity-log.*') ? 'active' : '' }}">
         <i class="ti ti-history icon-indigo"></i> Activity Log
+    </a>
+@endcan
+
+@can('menu.holidays')
+    <a href="{{ route('holidays.index') }}" class="nav-link {{ request()->routeIs('holidays.*') ? 'active' : '' }}">
+        <i class="ti ti-calendar-event icon-red"></i> Holidays
     </a>
 @endcan
 

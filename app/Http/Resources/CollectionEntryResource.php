@@ -30,6 +30,7 @@ class CollectionEntryResource extends JsonResource
             'payment_method' => $this->payment_method->value,
             'payment_method_label' => $this->payment_method->label(),
             'reference_no' => $this->reference_no,
+            'cheque_image_url' => $this->chequeImageUrl(),
             'remarks' => $this->remarks,
             'created_at' => $this->created_at?->toIso8601String(),
         ];

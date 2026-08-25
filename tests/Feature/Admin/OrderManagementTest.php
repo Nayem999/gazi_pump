@@ -7,6 +7,7 @@ namespace Tests\Feature\Admin;
 use App\Models\Dealer;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\SalesTeam;
 use App\Models\Territory;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -216,5 +217,41 @@ class OrderManagementTest extends TestCase
 
         $this->actingAs($manager)->get(route('orders.index'))->assertOk();
         $this->actingAs($manager)->get(route('orders.create'))->assertForbidden();
+    }
+
+    public function test_order_form_product_options_are_filtered_to_the_viewers_sales_team(): void
+    {
+        $teamA = SalesTeam::factory()->create();
+        $teamB = SalesTeam::factory()->create();
+
+        $ownTeamProduct = Product::factory()->create(['sales_team_id' => $teamA->id, 'name' => 'Own Team Product']);
+        $otherTeamProduct = Product::factory()->create(['sales_team_id' => $teamB->id, 'name' => 'Other Team Product']);
+        $teamLessProduct = Product::factory()->create(['sales_team_id' => null, 'name' => 'Team Less Product']);
+
+        $manager = User::factory()->create(['sales_team_id' => $teamA->id]);
+        $manager->assignRole('General Manager');
+
+        $response = $this->actingAs($manager)->get(route('orders.create'));
+
+        $response->assertOk()
+            ->assertSee($ownTeamProduct->name)
+            ->assertSee($teamLessProduct->name)
+            ->assertDontSee($otherTeamProduct->name);
+    }
+
+    public function test_editing_an_order_keeps_its_existing_product_even_if_outside_the_viewers_team(): void
+    {
+        $teamA = SalesTeam::factory()->create();
+        $teamB = SalesTeam::factory()->create();
+
+        $otherTeamProduct = Product::factory()->create(['sales_team_id' => $teamB->id, 'name' => 'Other Team Product']);
+        $order = $this->orderWithItem($otherTeamProduct);
+
+        $manager = User::factory()->create(['sales_team_id' => $teamA->id]);
+        $manager->assignRole('General Manager');
+
+        $this->actingAs($manager)->get(route('orders.edit', $order))
+            ->assertOk()
+            ->assertSee($otherTeamProduct->name);
     }
 }

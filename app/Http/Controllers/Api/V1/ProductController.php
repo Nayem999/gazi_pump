@@ -41,7 +41,7 @@ class ProductController extends Controller
         $filters = $request->only(['search', 'category_id']);
         $filters['status'] = 'active';
 
-        $products = $this->products->paginate($filters, (int) $request->integer('per_page', 20));
+        $products = $this->products->paginate($filters, (int) $request->integer('per_page', 20), $request->user());
 
         return ApiResponse::success(
             ProductResource::collection($products->items()),
@@ -68,6 +68,6 @@ class ProductController extends Controller
     {
         $this->authorize('view', $product);
 
-        return ApiResponse::success(new ProductResource($product->load('category')));
+        return ApiResponse::success(new ProductResource($product->load(['category', 'salesTeam'])));
     }
 }

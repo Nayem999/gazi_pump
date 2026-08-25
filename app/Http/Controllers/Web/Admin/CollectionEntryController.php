@@ -73,7 +73,7 @@ class CollectionEntryController extends Controller
 
     public function store(StoreCollectionEntryRequest $request): RedirectResponse
     {
-        $this->collectionEntries->create($request->validated());
+        $this->collectionEntries->create($request->safe()->except('cheque_image'), $request->file('cheque_image'));
 
         return redirect()->route('collection-entries.index')->with('success', 'Collection recorded successfully.');
     }
@@ -93,7 +93,7 @@ class CollectionEntryController extends Controller
 
     public function update(UpdateCollectionEntryRequest $request, CollectionEntry $collectionEntry): RedirectResponse
     {
-        $this->collectionEntries->update($collectionEntry, $request->validated());
+        $this->collectionEntries->update($collectionEntry, $request->safe()->except('cheque_image'), $request->file('cheque_image'));
 
         return redirect()->route('collection-entries.index')->with('success', 'Collection updated successfully.');
     }

@@ -100,7 +100,12 @@
 
 @push('scripts')
     <script>
-        (function () {
+        // Wrapped in DOMContentLoaded: this inline script runs synchronously
+        // as the parser reaches it, but window.$ (jQuery, needed by the
+        // product select's Select2 change binding below) is only defined
+        // once the deferred module bundle (app.js) finishes executing —
+        // which happens at/before DOMContentLoaded, not before.
+        document.addEventListener('DOMContentLoaded', function () {
             const itemsBody = document.getElementById('itemsBody');
             const addItemBtn = document.getElementById('addItemBtn');
             const grandTotalPreview = document.getElementById('grandTotalPreview');
@@ -141,7 +146,12 @@
                     productSelect.value = item.product_id;
                 }
 
-                productSelect.addEventListener('change', function () {
+                // Bound through jQuery, not addEventListener: window.initSelect2()
+                // below attaches Select2 to this row's product select, which
+                // (like every other Select2 field in this app) changes its
+                // value via jQuery's own event system rather than dispatching
+                // a plain native "change" addEventListener would catch.
+                window.$(productSelect).on('change', function () {
                     const option = productSelect.options[productSelect.selectedIndex];
                     const price = option?.dataset.price;
                     if (price && !unitPriceInput.value) {
@@ -155,6 +165,10 @@
                     tr.remove();
                     recalculate();
                 });
+
+                // Newly inserted after the page's initial Select2 scan, so it
+                // needs its own pass — see select2-init.js.
+                window.initSelect2?.();
 
                 return tr;
             }
@@ -194,6 +208,6 @@
             }
 
             recalculate();
-        })();
+        });
     </script>
 @endpush

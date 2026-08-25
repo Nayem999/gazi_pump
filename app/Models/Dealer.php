@@ -67,6 +67,11 @@ class Dealer extends BaseModel
         return $this->hasMany(Order::class);
     }
 
+    public function collectionEntries(): HasMany
+    {
+        return $this->hasMany(CollectionEntry::class);
+    }
+
     public function hasGps(): bool
     {
         return $this->gps_lat !== null && $this->gps_lng !== null;

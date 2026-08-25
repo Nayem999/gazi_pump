@@ -10,8 +10,10 @@ use App\Models\Order;
 use App\Models\User;
 use App\Repositories\Contracts\CollectionEntryRepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class CollectionEntryService extends BaseCrudService
@@ -40,9 +42,13 @@ class CollectionEntryService extends BaseCrudService
     /**
      * @param  array<string, mixed>  $data
      */
-    public function create(array $data): Model
+    public function create(array $data, ?UploadedFile $chequeImage = null): Model
     {
         $this->validateAmount((int) $data['dealer_id'], (float) $data['amount']);
+
+        if ($chequeImage) {
+            $data['cheque_image'] = $chequeImage->store('collection-entries', 'public');
+        }
 
         return parent::create($data);
     }
@@ -50,9 +56,16 @@ class CollectionEntryService extends BaseCrudService
     /**
      * @param  array<string, mixed>  $data
      */
-    public function update(Model $model, array $data): Model
+    public function update(Model $model, array $data, ?UploadedFile $chequeImage = null): Model
     {
         $this->validateAmount((int) $data['dealer_id'], (float) $data['amount'], excludeCollectionId: $model->id);
+
+        if ($chequeImage) {
+            if ($model->cheque_image) {
+                Storage::disk('public')->delete($model->cheque_image);
+            }
+            $data['cheque_image'] = $chequeImage->store('collection-entries', 'public');
+        }
 
         return parent::update($model, $data);
     }
@@ -69,6 +82,7 @@ class CollectionEntryService extends BaseCrudService
         ?string $referenceNo,
         ?string $remarks,
         ?string $collectionDate,
+        ?UploadedFile $chequeImage = null,
     ): CollectionEntry {
         /** @var CollectionEntry $entry */
         $entry = $this->create([
@@ -79,7 +93,7 @@ class CollectionEntryService extends BaseCrudService
             'payment_method' => $paymentMethod->value,
             'reference_no' => $referenceNo,
             'remarks' => $remarks,
-        ]);
+        ], $chequeImage);
 
         return $entry;
     }

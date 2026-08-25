@@ -27,7 +27,7 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping
      */
     public function headings(): array
     {
-        return ['SKU', 'Name', 'Category', 'Price', 'Status'];
+        return ['SKU', 'Name', 'Category', 'Sales Team', 'Price', 'Status'];
     }
 
     /**
@@ -39,6 +39,7 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping
             $product->sku,
             $product->name,
             $product->category?->name,
+            $product->salesTeam?->name,
             $product->price,
             $product->status ? 'Active' : 'Inactive',
         ];

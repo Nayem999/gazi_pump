@@ -10,7 +10,7 @@
 @section('content')
     <div class="card">
         <div class="card-body">
-            <form method="POST" action="{{ route('collection-entries.store') }}">
+            <form method="POST" action="{{ route('collection-entries.store') }}" enctype="multipart/form-data">
                 @include('collection-entries._form')
             </form>
         </div>

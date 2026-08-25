@@ -7,6 +7,7 @@ namespace Tests\Unit\Actions;
 use App\Actions\MarkAbsentAttendanceAction;
 use App\Enums\AttendanceStatus;
 use App\Models\Attendance;
+use App\Models\Holiday;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -81,6 +82,36 @@ class MarkAbsentAttendanceActionTest extends TestCase
 
         $this->assertSame(0, $count);
         $this->assertDatabaseCount('attendances', 0);
+    }
+
+    public function test_it_skips_a_recorded_government_holiday_entirely(): void
+    {
+        $this->executive();
+        $date = Carbon::parse('2026-08-20'); // Thursday — an ordinary working day, but a holiday below
+
+        Holiday::factory()->create(['date' => $date->toDateString(), 'status' => true]);
+
+        $count = $this->action()($date);
+
+        $this->assertSame(0, $count);
+        $this->assertDatabaseCount('attendances', 0);
+    }
+
+    public function test_an_inactive_holiday_is_not_skipped(): void
+    {
+        $executive = $this->executive();
+        $date = Carbon::parse('2026-08-20');
+
+        Holiday::factory()->create(['date' => $date->toDateString(), 'status' => false]);
+
+        $count = $this->action()($date);
+
+        $this->assertSame(1, $count);
+        $this->assertDatabaseHas('attendances', [
+            'user_id' => $executive->id,
+            'date' => $date->toDateString(),
+            'status' => AttendanceStatus::Absent->value,
+        ]);
     }
 
     public function test_it_ignores_inactive_users(): void

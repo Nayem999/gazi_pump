@@ -16,6 +16,18 @@
     </div>
 
     <div class="col-md-6">
+        <label class="form-label">Sales Team</label>
+        <select name="sales_team_id" class="form-select @error('sales_team_id') is-invalid @enderror">
+            <option value="">— All Teams —</option>
+            @foreach ($salesTeams as $salesTeam)
+                <option value="{{ $salesTeam->id }}" @selected((string) old('sales_team_id', $product->sales_team_id ?? '') === (string) $salesTeam->id)>{{ $salesTeam->name }}</option>
+            @endforeach
+        </select>
+        <div class="form-text">Restricts this product to executives under this team. Leave blank to make it visible to every team.</div>
+        @error('sales_team_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+
+    <div class="col-md-6">
         <label class="form-label">Name <span class="text-danger">*</span></label>
         <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
                value="{{ old('name', $product->name ?? '') }}" required>

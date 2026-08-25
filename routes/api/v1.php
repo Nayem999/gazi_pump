@@ -45,6 +45,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
     Route::get('/dealers', [DealerController::class, 'index']);
     Route::post('/dealers', [DealerController::class, 'store']);
     Route::get('/dealers/{dealer}', [DealerController::class, 'show']);
+    Route::get('/dealers/{dealer}/outstanding-balance', [DealerController::class, 'outstandingBalance']);
 
     Route::get('/products', [ProductController::class, 'index']);
     Route::get('/products/{product}', [ProductController::class, 'show']);

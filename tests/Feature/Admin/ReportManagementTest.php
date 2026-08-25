@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
+use App\Models\CollectionEntry;
+use App\Models\Dealer;
 use App\Models\Order;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -105,6 +107,70 @@ class ReportManagementTest extends TestCase
         $manager = $this->generalManager();
 
         $this->actingAs($manager)->get(route('reports.order-performance.print'))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_sales_executive_has_no_access_to_the_dealer_ledger_report(): void
+    {
+        $executive = $this->executive();
+
+        $this->actingAs($executive)->get(route('reports.dealer-ledger'))->assertForbidden();
+    }
+
+    public function test_dealer_ledger_summary_shows_every_dealer_with_its_due_amount(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create(['name' => 'Sunrise Traders']);
+
+        Order::factory()->create(['user_id' => $executive->id, 'dealer_id' => $dealer->id, 'total_amount' => 10000]);
+        CollectionEntry::factory()->create(['user_id' => $executive->id, 'dealer_id' => $dealer->id, 'amount' => 4000, 'payment_method' => 'cash']);
+
+        $response = $this->actingAs($manager)->get(route('reports.dealer-ledger'));
+
+        $response->assertOk()->assertSee('Sunrise Traders')->assertSee('6,000.00');
+    }
+
+    public function test_dealer_ledger_detail_shows_a_running_balance(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create(['name' => 'Sunrise Traders']);
+
+        Order::factory()->create([
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'order_date' => now()->subDays(5)->toDateString(),
+            'total_amount' => 10000,
+        ]);
+        CollectionEntry::factory()->create([
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'collection_date' => now()->subDays(2)->toDateString(),
+            'amount' => 4000,
+            'payment_method' => 'cash',
+        ]);
+
+        $response = $this->actingAs($manager)->get(route('reports.dealer-ledger.show', $dealer));
+
+        $response->assertOk()->assertSee('10,000.00')->assertSee('4,000.00')->assertSee('6,000.00');
+    }
+
+    public function test_dealer_ledger_report_can_be_exported_and_printed(): void
+    {
+        $manager = $this->generalManager();
+        $dealer = Dealer::factory()->create();
+
+        $this->actingAs($manager)->get(route('reports.dealer-ledger.export'))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+        $this->actingAs($manager)->get(route('reports.dealer-ledger.print'))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $this->actingAs($manager)->get(route('reports.dealer-ledger.show-print', $dealer))
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
     }

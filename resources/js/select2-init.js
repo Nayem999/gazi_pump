@@ -9,6 +9,14 @@
  * form using these same field names picks this up automatically — no
  * per-view opt-in needed.
  *
+ * `select.product-select` is matched by class, not `name`, because the
+ * Order form's line-item product pickers are indexed array fields
+ * (`items[0][product_id]`, `items[1][product_id]`, ...) with no fixed name
+ * — and they're built dynamically after this file's initial DOMContentLoaded
+ * scan, so orders/_form.blade.php calls window.initSelect2() again itself
+ * each time it inserts a new row (safe to call repeatedly: already-attached
+ * selects are skipped below).
+ *
  * A select carrying `data-ajax-url` (e.g. Territory on the Visit Plan form,
  * or the Territories multi-select on the Users form — both search across
  * 5,000+ rows) gets Select2's remote-search mode instead of the plain
@@ -33,6 +41,7 @@ function initSelect2() {
         'select[name="manager_id"]',
         'select[name="user_id"]',
         'select[name="causer_id"]',
+        'select.product-select',
         '#geoDivision',
         '#geoDistrict',
         '#geoThana',
@@ -86,6 +95,11 @@ function initSelect2() {
         window.$(this).select2(config);
     });
 }
+
+// Exposed so views that inject new <select> elements after the initial
+// DOMContentLoaded scan (e.g. the Order form's dynamic product rows) can
+// re-run this to pick them up — already-attached selects are skipped above.
+window.initSelect2 = initSelect2;
 
 // Exposed so admin.js's cascading-select helper can ask Select2 to redraw a
 // child <select> after swapping its <option>s via plain DOM — Select2 only

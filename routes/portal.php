@@ -24,6 +24,7 @@ use App\Http\Controllers\Web\Portal\FaqController;
 use App\Http\Controllers\Web\Portal\HomeController;
 use App\Http\Controllers\Web\Portal\InquiryController;
 use App\Http\Controllers\Web\Portal\NewsController;
+use App\Http\Controllers\Web\Portal\PaymentController;
 use App\Http\Controllers\Web\Portal\ProductController;
 use App\Http\Controllers\Web\Portal\ProfileController;
 use App\Http\Controllers\Web\Portal\PromotionController;
@@ -91,6 +92,8 @@ Route::name('portal.')->group(function (): void {
 
         Route::get('/purchases', [PurchaseController::class, 'index'])->name('purchases.index');
         Route::get('/purchases/{salesEntry}', [PurchaseController::class, 'show'])->name('purchases.show');
+
+        Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
 
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');

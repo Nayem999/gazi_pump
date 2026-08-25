@@ -11,6 +11,7 @@ use App\Http\Requests\Admin\UpdateProductRequest;
 use App\Imports\ProductsImport;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\SalesTeam;
 use App\Services\ProductService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
@@ -27,9 +28,10 @@ class ProductController extends Controller
         $this->authorize('viewAny', Product::class);
 
         return view('products.index', [
-            'products' => $this->products->paginate($request->only(['search', 'category_id', 'status', 'trashed']), 15),
+            'products' => $this->products->paginate($request->only(['search', 'category_id', 'sales_team_id', 'status', 'trashed']), 15, $request->user()),
             'categories' => ProductCategory::orderBy('name')->get(),
-            'filters' => $request->only(['search', 'category_id', 'status', 'trashed']),
+            'salesTeams' => SalesTeam::where('status', true)->orderBy('name')->get(),
+            'filters' => $request->only(['search', 'category_id', 'sales_team_id', 'status', 'trashed']),
         ]);
     }
 
@@ -39,6 +41,7 @@ class ProductController extends Controller
 
         return view('products.create', [
             'categories' => ProductCategory::orderBy('name')->get(),
+            'salesTeams' => SalesTeam::where('status', true)->orderBy('name')->get(),
         ]);
     }
 
@@ -56,6 +59,7 @@ class ProductController extends Controller
         return view('products.edit', [
             'product' => $product,
             'categories' => ProductCategory::orderBy('name')->get(),
+            'salesTeams' => SalesTeam::where('status', true)->orderBy('name')->get(),
         ]);
     }
 
@@ -121,7 +125,7 @@ class ProductController extends Controller
     {
         $this->authorize('export', Product::class);
 
-        $products = $this->products->paginate($request->only(['search', 'category_id', 'status', 'trashed']), PHP_INT_MAX)->getCollection();
+        $products = $this->products->paginate($request->only(['search', 'category_id', 'sales_team_id', 'status', 'trashed']), PHP_INT_MAX, $request->user())->getCollection();
 
         return Excel::download(new ProductsExport($products), 'products-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -141,7 +145,7 @@ class ProductController extends Controller
     {
         $this->authorize('print', Product::class);
 
-        $products = $this->products->paginate($request->only(['search', 'category_id', 'status', 'trashed']), PHP_INT_MAX)->getCollection();
+        $products = $this->products->paginate($request->only(['search', 'category_id', 'sales_team_id', 'status', 'trashed']), PHP_INT_MAX, $request->user())->getCollection();
 
         return Pdf::loadView('products.print', ['products' => $products])
             ->stream('products-'.now()->format('Y-m-d-His').'.pdf');

@@ -22,6 +22,7 @@ class StoreProductRequest extends FormRequest
     {
         return [
             'category_id' => ['required', 'integer', Rule::exists('product_categories', 'id')],
+            'sales_team_id' => ['nullable', 'integer', Rule::exists('sales_teams', 'id')],
             'name' => ['required', 'string', 'max:255'],
             'sku' => ['required', 'string', 'max:100', 'unique:products,sku'],
             'price' => ['required', 'numeric', 'min:0'],

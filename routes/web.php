@@ -13,6 +13,7 @@ use App\Http\Controllers\Web\Admin\DistrictController;
 use App\Http\Controllers\Web\Admin\DivisionController;
 use App\Http\Controllers\Web\Admin\FaqController;
 use App\Http\Controllers\Web\Admin\GpsLogController;
+use App\Http\Controllers\Web\Admin\HolidayController;
 use App\Http\Controllers\Web\Admin\InquiryController;
 use App\Http\Controllers\Web\Admin\LiveGpsController;
 use App\Http\Controllers\Web\Admin\NewsController;
@@ -142,6 +143,7 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
     Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
 
     $registerManagementRoutes('sales-teams', SalesTeamController::class);
+    $registerManagementRoutes('holidays', HolidayController::class);
     $registerManagementRoutes('territories', TerritoryController::class);
     $registerManagementRoutes('divisions', DivisionController::class);
     $registerManagementRoutes('districts', DistrictController::class);
@@ -362,6 +364,15 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
         Route::get('/gps-report', [ReportController::class, 'gpsReport'])->name('gps-report');
         Route::get('/gps-report/export', [ReportController::class, 'gpsReportExport'])->name('gps-report.export');
         Route::get('/gps-report/print', [ReportController::class, 'gpsReportPrint'])->name('gps-report.print');
+
+        // Literal segments ('export', 'print') must stay registered before
+        // the '{dealer}' wildcard below, or Laravel would try to resolve
+        // them as a dealer id instead.
+        Route::get('/dealer-ledger', [ReportController::class, 'dealerLedgerSummary'])->name('dealer-ledger');
+        Route::get('/dealer-ledger/export', [ReportController::class, 'dealerLedgerSummaryExport'])->name('dealer-ledger.export');
+        Route::get('/dealer-ledger/print', [ReportController::class, 'dealerLedgerSummaryPrint'])->name('dealer-ledger.print');
+        Route::get('/dealer-ledger/{dealer}', [ReportController::class, 'dealerLedger'])->name('dealer-ledger.show');
+        Route::get('/dealer-ledger/{dealer}/print', [ReportController::class, 'dealerLedgerPrint'])->name('dealer-ledger.show-print');
     });
 
     /**
@@ -454,6 +465,7 @@ Route::get('/clear', function () {
 
     // Artisan::call('config:cache');
     Artisan::call('storage:link');
+
     // Artisan::call('migrate --force');
     return '<h1>Routes and Cache Cleared Successfully! </h1>';
 });

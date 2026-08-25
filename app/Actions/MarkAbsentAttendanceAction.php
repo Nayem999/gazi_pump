@@ -6,25 +6,29 @@ namespace App\Actions;
 
 use App\Models\User;
 use App\Services\AttendanceService;
+use App\Services\HolidayService;
 use Illuminate\Support\Carbon;
 
 /**
  * Backfills an Absent attendance row for every active Sales Executive who
  * has no attendance entry at all for $date. Skipped entirely on a
- * configured weekend/off day, since a missing entry there is expected, not
- * a no-show. Defaults to yesterday so the full day has already elapsed —
- * an executive who checks in late on the day this runs is never
- * retroactively marked absent.
+ * configured weekend/off day or a recorded government holiday, since a
+ * missing entry there is expected, not a no-show. Defaults to yesterday so
+ * the full day has already elapsed — an executive who checks in late on the
+ * day this runs is never retroactively marked absent.
  */
 class MarkAbsentAttendanceAction
 {
-    public function __construct(private readonly AttendanceService $attendances) {}
+    public function __construct(
+        private readonly AttendanceService $attendances,
+        private readonly HolidayService $holidays,
+    ) {}
 
     public function __invoke(?Carbon $date = null): int
     {
         $date ??= Carbon::yesterday();
 
-        if ($this->attendances->isWeekendDay($date)) {
+        if ($this->attendances->isWeekendDay($date) || $this->holidays->isHoliday($date)) {
             return 0;
         }
 

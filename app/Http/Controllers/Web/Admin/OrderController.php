@@ -41,14 +41,14 @@ class OrderController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('create', Order::class);
 
         return view('orders.create', [
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
             'dealers' => Dealer::orderBy('name')->get(),
-            'products' => Product::where('status', true)->orderBy('name')->get(),
+            'products' => Product::where('status', true)->visibleTo($request->user())->orderBy('name')->get(),
         ]);
     }
 
@@ -78,15 +78,24 @@ class OrderController extends Controller
             ->stream('order-'.$order->id.'-'.now()->format('Y-m-d-His').'.pdf');
     }
 
-    public function edit(Order $order): View
+    public function edit(Request $request, Order $order): View
     {
         $this->authorize('update', $order);
 
+        $order->load('items');
+
         return view('orders.edit', [
-            'order' => $order->load('items'),
+            'order' => $order,
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
             'dealers' => Dealer::orderBy('name')->get(),
-            'products' => Product::where('status', true)->orderBy('name')->get(),
+            // Team-scoped like create(), but also keeps whatever products
+            // this order already has on it — otherwise re-editing an order
+            // placed before a product's team changed (or before the item's
+            // own product left the executive's team) would drop that line's
+            // selection silently.
+            'products' => Product::where('status', true)->visibleTo($request->user())
+                ->orWhereIn('id', $order->items->pluck('product_id'))
+                ->orderBy('name')->get(),
         ]);
     }
 

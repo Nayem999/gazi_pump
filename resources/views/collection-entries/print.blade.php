@@ -26,6 +26,7 @@
                 <th>Amount</th>
                 <th>Payment Method</th>
                 <th>Reference No</th>
+                <th>Cheque Image</th>
                 <th>Remarks</th>
             </tr>
         </thead>
@@ -38,6 +39,13 @@
                     <td>{{ number_format((float) $collectionEntry->amount, 2) }}</td>
                     <td>{{ $collectionEntry->payment_method->label() }}</td>
                     <td>{{ $collectionEntry->reference_no }}</td>
+                    <td>
+                        @if ($collectionEntry->chequeImagePath())
+                            <img src="{{ $collectionEntry->chequeImagePath() }}" style="height:40px">
+                        @else
+                            —
+                        @endif
+                    </td>
                     <td>{{ $collectionEntry->remarks }}</td>
                 </tr>
             @endforeach
@@ -46,7 +54,7 @@
             <tr>
                 <td colspan="3">Grand Total</td>
                 <td>{{ number_format((float) $collectionEntries->sum('amount'), 2) }}</td>
-                <td colspan="3"></td>
+                <td colspan="4"></td>
             </tr>
         </tfoot>
     </table>

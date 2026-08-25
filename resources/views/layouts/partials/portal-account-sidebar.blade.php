@@ -5,6 +5,9 @@
     <a href="{{ route('portal.purchases.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('portal.purchases.*') ? 'active' : '' }}">
         <i class="ti ti-shopping-cart me-2 text-success"></i>Purchases
     </a>
+    <a href="{{ route('portal.payments.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('portal.payments.*') ? 'active' : '' }}">
+        <i class="ti ti-cash me-2 text-amber"></i>Payments
+    </a>
     <a href="{{ route('portal.profile.edit') }}" class="list-group-item list-group-item-action {{ request()->routeIs('portal.profile.*') ? 'active' : '' }}">
         <i class="ti ti-user-circle me-2 text-info"></i>My Profile
     </a>

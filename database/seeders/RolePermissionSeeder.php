@@ -42,6 +42,7 @@ class RolePermissionSeeder extends Seeder
         'executive-performance',
         'dealer-coverage',
         'gps',
+        'dealer-ledger',
     ];
 
     public function run(): void
@@ -57,6 +58,7 @@ class RolePermissionSeeder extends Seeder
         $this->createModulePermissions('roles');
         $this->createModulePermissions('permissions', withApi: false);
         $this->createModulePermissions('sales-teams');
+        $this->createModulePermissions('holidays', withApi: false);
         $this->createModulePermissions('territories');
         $this->createModulePermissions('divisions');
         $this->createModulePermissions('districts');
@@ -122,7 +124,7 @@ class RolePermissionSeeder extends Seeder
     {
         Role::findByName('Super Admin', 'web')->syncPermissions(Permission::all());
 
-        $orgModules = ['sales-teams', 'territories', 'divisions', 'districts', 'thanas'];
+        $orgModules = ['sales-teams', 'holidays', 'territories', 'divisions', 'districts', 'thanas'];
 
         $generalManagerPermissions = [
             PermissionName::menu('dashboard'),

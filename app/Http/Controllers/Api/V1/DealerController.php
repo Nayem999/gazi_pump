@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\StoreDealerRequest;
 use App\Http\Resources\DealerResource;
 use App\Models\Dealer;
+use App\Services\CollectionEntryService;
 use App\Services\DealerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,10 @@ use OpenApi\Attributes as OA;
  */
 class DealerController extends Controller
 {
-    public function __construct(private readonly DealerService $dealers) {}
+    public function __construct(
+        private readonly DealerService $dealers,
+        private readonly CollectionEntryService $collectionEntries,
+    ) {}
 
     #[OA\Get(
         path: '/dealers',
@@ -109,5 +113,23 @@ class DealerController extends Controller
         $dealer = $this->dealers->create($data);
 
         return ApiResponse::success(new DealerResource($dealer), 'Dealer registered successfully.', 201);
+    }
+
+    #[OA\Get(
+        path: '/dealers/{id}/outstanding-balance',
+        tags: ['Dealers'],
+        summary: 'Get a dealer\'s outstanding balance (total ordered minus total collected)',
+        security: [['sanctum' => []]],
+        parameters: [new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))],
+        responses: [new OA\Response(response: 200, description: 'Outstanding balance'), new OA\Response(response: 404, description: 'Not found')],
+    )]
+    public function outstandingBalance(Dealer $dealer): JsonResponse
+    {
+        $this->authorize('view', $dealer);
+
+        return ApiResponse::success([
+            'dealer_id' => $dealer->id,
+            'outstanding_balance' => $this->collectionEntries->outstandingBalance($dealer->id),
+        ]);
     }
 }

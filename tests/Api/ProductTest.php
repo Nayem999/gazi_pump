@@ -6,6 +6,7 @@ namespace Tests\Api;
 
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\SalesTeam;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -59,6 +60,24 @@ class ProductTest extends TestCase
 
         $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
             ->getJson("/api/v1/products?category_id={$categoryA->id}")
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+    }
+
+    public function test_an_executive_under_a_team_only_sees_that_teams_and_team_less_products(): void
+    {
+        $teamA = SalesTeam::factory()->create();
+        $teamB = SalesTeam::factory()->create();
+
+        Product::factory()->create(['sales_team_id' => $teamA->id]);
+        Product::factory()->create(['sales_team_id' => $teamB->id]);
+        Product::factory()->create(['sales_team_id' => null]);
+
+        $executive = User::factory()->create(['sales_team_id' => $teamA->id]);
+        $executive->assignRole('Sales Executive');
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->getJson('/api/v1/products')
             ->assertOk()
             ->assertJsonCount(2, 'data');
     }

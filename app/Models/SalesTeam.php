@@ -31,4 +31,9 @@ class SalesTeam extends BaseModel
     {
         return $this->hasMany(User::class, 'sales_team_id');
     }
+
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
 }

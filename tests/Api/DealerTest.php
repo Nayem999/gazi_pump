@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Api;
 
+use App\Models\CollectionEntry;
 use App\Models\Dealer;
+use App\Models\Order;
 use App\Models\Territory;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -87,6 +89,29 @@ class DealerTest extends TestCase
             ->assertJsonPath('data.status', true);
 
         $this->assertDatabaseHas('dealers', ['dealer_code' => 'CUST-API-TEST']);
+    }
+
+    public function test_sales_executive_can_fetch_a_dealers_outstanding_balance(): void
+    {
+        $executive = User::factory()->create();
+        $executive->assignRole('Sales Executive');
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+        CollectionEntry::factory()->create(['dealer_id' => $dealer->id, 'amount' => 400]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->getJson("/api/v1/dealers/{$dealer->id}/outstanding-balance")
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.dealer_id', $dealer->id)
+            ->assertJsonPath('data.outstanding_balance', 600);
+    }
+
+    public function test_outstanding_balance_endpoint_requires_authentication(): void
+    {
+        $dealer = Dealer::factory()->create();
+
+        $this->getJson("/api/v1/dealers/{$dealer->id}/outstanding-balance")->assertStatus(401);
     }
 
     public function test_registering_a_dealer_requires_a_valid_type(): void

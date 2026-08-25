@@ -21,6 +21,15 @@
                 @endforeach
             </select>
         </div>
+        <div class="col-md-3">
+            <label class="form-label">Sales Team</label>
+            <select name="sales_team_id" class="form-select">
+                <option value="">All</option>
+                @foreach ($salesTeams as $salesTeam)
+                    <option value="{{ $salesTeam->id }}" @selected((string) ($filters['sales_team_id'] ?? '') === (string) $salesTeam->id)>{{ $salesTeam->name }}</option>
+                @endforeach
+            </select>
+        </div>
         <div class="col-md-2">
             <label class="form-label">Status</label>
             <select name="status" class="form-select">
@@ -49,6 +58,7 @@
                     <th>SKU</th>
                     <th>Name</th>
                     <th>Category</th>
+                    <th>Sales Team</th>
                     <th>Price</th>
                     <th>Status</th>
                     <th class="text-end">Actions</th>
@@ -72,6 +82,7 @@
                     <td>{{ $product->sku }}</td>
                     <td>{{ $product->name }}</td>
                     <td>{{ $product->category?->name }}</td>
+                    <td>{{ $product->salesTeam?->name ?? '—' }}</td>
                     <td>{{ number_format((float) $product->price, 2) }}</td>
                     <td>
                         @if ($product->trashed())
@@ -115,7 +126,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-4">No products found.</td>
+                    <td colspan="9" class="text-center text-muted py-4">No products found.</td>
                 </tr>
             @endforelse
 
@@ -133,6 +144,7 @@
                         >
                             <x-slot:meta>
                                 <div>Category: {{ $product->category?->name }}</div>
+                                <div>Sales Team: {{ $product->salesTeam?->name ?? 'All Teams' }}</div>
                                 <div>Price: {{ number_format((float) $product->price, 2) }}</div>
                             </x-slot:meta>
                             <x-slot:checkbox>

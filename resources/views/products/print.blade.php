@@ -22,6 +22,7 @@
                 <th>SKU</th>
                 <th>Name</th>
                 <th>Category</th>
+                <th>Sales Team</th>
                 <th>Price</th>
                 <th>Status</th>
             </tr>
@@ -32,6 +33,7 @@
                     <td>{{ $product->sku }}</td>
                     <td>{{ $product->name }}</td>
                     <td>{{ $product->category?->name }}</td>
+                    <td>{{ $product->salesTeam?->name ?? 'All Teams' }}</td>
                     <td>{{ number_format((float) $product->price, 2) }}</td>
                     <td>{{ $product->status ? 'Active' : 'Inactive' }}</td>
                 </tr>

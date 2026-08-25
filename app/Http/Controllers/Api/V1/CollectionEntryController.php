@@ -32,7 +32,7 @@ class CollectionEntryController extends Controller
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(
+            content: new OA\MediaType(mediaType: 'multipart/form-data', schema: new OA\Schema(
                 required: ['dealer_id', 'amount', 'payment_method'],
                 properties: [
                     new OA\Property(property: 'dealer_id', type: 'integer'),
@@ -40,9 +40,10 @@ class CollectionEntryController extends Controller
                     new OA\Property(property: 'amount', type: 'number', format: 'float'),
                     new OA\Property(property: 'payment_method', type: 'string', enum: ['cash', 'cheque', 'bank_transfer', 'mobile_banking']),
                     new OA\Property(property: 'reference_no', type: 'string', nullable: true),
+                    new OA\Property(property: 'cheque_image', type: 'string', format: 'binary', nullable: true, description: 'Required when payment_method is cheque'),
                     new OA\Property(property: 'remarks', type: 'string', nullable: true),
                 ],
-            ),
+            )),
         ),
         responses: [
             new OA\Response(response: 201, description: 'Collection recorded'),
@@ -59,6 +60,7 @@ class CollectionEntryController extends Controller
             $request->input('reference_no'),
             $request->input('remarks'),
             $request->input('collection_date'),
+            $request->file('cheque_image'),
         );
 
         return ApiResponse::success(new CollectionEntryResource($entry), 'Collection recorded.', 201);

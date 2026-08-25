@@ -6,6 +6,7 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\SalesTeam;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -103,6 +104,54 @@ class ProductManagementTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('sku');
+    }
+
+    public function test_a_product_can_be_restricted_to_a_sales_team(): void
+    {
+        $category = ProductCategory::factory()->create();
+        $team = SalesTeam::factory()->create();
+
+        $response = $this->actingAs($this->superAdmin())->post(route('products.store'), [
+            'category_id' => $category->id,
+            'sales_team_id' => $team->id,
+            'name' => 'Team Only Product',
+            'sku' => 'SKU-TEAM-01',
+            'price' => '100',
+        ]);
+
+        $response->assertRedirect(route('products.index'));
+        $this->assertDatabaseHas('products', ['sku' => 'SKU-TEAM-01', 'sales_team_id' => $team->id]);
+    }
+
+    public function test_products_list_only_shows_the_viewers_team_and_team_less_products(): void
+    {
+        $teamA = SalesTeam::factory()->create();
+        $teamB = SalesTeam::factory()->create();
+
+        $ownTeamProduct = Product::factory()->create(['sales_team_id' => $teamA->id, 'name' => 'Own Team Product']);
+        $otherTeamProduct = Product::factory()->create(['sales_team_id' => $teamB->id, 'name' => 'Other Team Product']);
+        $teamLessProduct = Product::factory()->create(['sales_team_id' => null, 'name' => 'Team Less Product']);
+
+        $viewer = User::factory()->create(['sales_team_id' => $teamA->id]);
+        $viewer->assignRole('General Manager');
+
+        $response = $this->actingAs($viewer)->get(route('products.index'));
+
+        $response->assertOk()
+            ->assertSee($ownTeamProduct->name)
+            ->assertSee($teamLessProduct->name)
+            ->assertDontSee($otherTeamProduct->name);
+    }
+
+    public function test_a_viewer_with_no_team_sees_every_product(): void
+    {
+        $team = SalesTeam::factory()->create();
+        $teamProduct = Product::factory()->create(['sales_team_id' => $team->id, 'name' => 'Team Product']);
+        $teamLessProduct = Product::factory()->create(['sales_team_id' => null, 'name' => 'Team Less Product']);
+
+        $response = $this->actingAs($this->superAdmin())->get(route('products.index'));
+
+        $response->assertOk()->assertSee($teamProduct->name)->assertSee($teamLessProduct->name);
     }
 
     public function test_super_admin_can_update_and_delete_a_product(): void

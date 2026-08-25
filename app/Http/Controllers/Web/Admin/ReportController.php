@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Web\Admin;
 use App\Exports\AttendanceSummaryExport;
 use App\Exports\CollectionSummaryExport;
 use App\Exports\DealerCoverageExport;
+use App\Exports\DealerLedgerSummaryExport;
 use App\Exports\ExecutivePerformanceExport;
 use App\Exports\GpsReportExport;
 use App\Exports\OrderPerformanceExport;
@@ -15,6 +16,7 @@ use App\Exports\TerritoryPerformanceExport;
 use App\Exports\VisitComplianceExport;
 use App\Helpers\PermissionName;
 use App\Http\Controllers\Controller;
+use App\Models\Dealer;
 use App\Models\Division;
 use App\Models\Territory;
 use App\Models\User;
@@ -375,6 +377,73 @@ class ReportController extends Controller
 
         return Pdf::loadView('reports.gps-report-print', ['rows' => $rows])
             ->stream('gps-report-'.now()->format('Y-m-d-His').'.pdf');
+    }
+
+    public function dealerLedgerSummary(Request $request): View
+    {
+        abort_unless($request->user()?->can(PermissionName::report('dealer-ledger')), 403);
+
+        $filters = $request->only(['search', ...self::GEO_FILTER_KEYS]);
+        $rows = $this->reports->dealerLedgerSummary($this->resolveGeoFilters($filters));
+
+        return view('reports.dealer-ledger-summary', [
+            'rows' => $this->paginate($rows, $request),
+            'totals' => [
+                'total_ordered' => $rows->sum('total_ordered'),
+                'total_collected' => $rows->sum('total_collected'),
+                'due_amount' => $rows->sum('due_amount'),
+            ],
+            'divisions' => $this->divisions(),
+            'territories' => $this->territories(),
+            'filters' => $filters,
+        ]);
+    }
+
+    public function dealerLedgerSummaryExport(Request $request): mixed
+    {
+        abort_unless($request->user()?->can(PermissionName::report('dealer-ledger')), 403);
+
+        $filters = $this->resolveGeoFilters($request->only(['search', ...self::GEO_FILTER_KEYS]));
+        $rows = $this->reports->dealerLedgerSummary($filters);
+
+        return Excel::download(new DealerLedgerSummaryExport($rows), 'dealer-ledger-summary-'.now()->format('Y-m-d-His').'.xlsx');
+    }
+
+    public function dealerLedgerSummaryPrint(Request $request): mixed
+    {
+        abort_unless($request->user()?->can(PermissionName::report('dealer-ledger')), 403);
+
+        $filters = $this->resolveGeoFilters($request->only(['search', ...self::GEO_FILTER_KEYS]));
+        $rows = $this->reports->dealerLedgerSummary($filters);
+
+        return Pdf::loadView('reports.dealer-ledger-summary-print', ['rows' => $rows])
+            ->stream('dealer-ledger-summary-'.now()->format('Y-m-d-His').'.pdf');
+    }
+
+    public function dealerLedger(Request $request, Dealer $dealer): View
+    {
+        abort_unless($request->user()?->can(PermissionName::report('dealer-ledger')), 403);
+
+        $rows = $this->reports->dealerLedger($dealer);
+
+        return view('reports.dealer-ledger', [
+            'dealer' => $dealer->load('territory'),
+            'rows' => $rows,
+            'balance' => $rows->last()->balance ?? 0.0,
+        ]);
+    }
+
+    public function dealerLedgerPrint(Request $request, Dealer $dealer): mixed
+    {
+        abort_unless($request->user()?->can(PermissionName::report('dealer-ledger')), 403);
+
+        $rows = $this->reports->dealerLedger($dealer);
+
+        return Pdf::loadView('reports.dealer-ledger-print', [
+            'dealer' => $dealer->load('territory'),
+            'rows' => $rows,
+            'balance' => $rows->last()->balance ?? 0.0,
+        ])->stream('dealer-ledger-'.$dealer->dealer_code.'-'.now()->format('Y-m-d-His').'.pdf');
     }
 
     /**

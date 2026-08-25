@@ -32,7 +32,23 @@ class StoreCollectionEntryRequest extends FormRequest
             'amount' => ['required', 'numeric', 'min:0.01'],
             'payment_method' => ['required', new Enum(PaymentMethod::class)],
             'reference_no' => ['nullable', 'string', 'max:100'],
+            'cheque_image' => [
+                Rule::requiredIf(fn () => $this->input('payment_method') === PaymentMethod::Cheque->value),
+                'nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:4096',
+            ],
             'remarks' => ['nullable', 'string', 'max:1000'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            // Rule::requiredIf() resolves to the plain "required" rule
+            // string, not "required_if" — this key must match that.
+            'cheque_image.required' => 'A cheque image is required when the payment method is Cheque.',
         ];
     }
 }

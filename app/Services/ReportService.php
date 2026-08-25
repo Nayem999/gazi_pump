@@ -472,6 +472,84 @@ class ReportService
     }
 
     /**
+     * Every dealer's due amount — total ordered minus total collected, the
+     * same formula as CollectionEntryService::outstandingBalance() — via two
+     * aggregated queries rather than one call per dealer, so it scales with
+     * the real dealer list.
+     *
+     * @param  array{territory_id?: string, search?: string}  $filters
+     */
+    public function dealerLedgerSummary(array $filters): Collection
+    {
+        $orderTotals = Order::query()
+            ->selectRaw('dealer_id, SUM(total_amount) as total_ordered')
+            ->groupBy('dealer_id')
+            ->pluck('total_ordered', 'dealer_id');
+
+        $collectionTotals = CollectionEntry::query()
+            ->selectRaw('dealer_id, SUM(amount) as total_collected')
+            ->groupBy('dealer_id')
+            ->pluck('total_collected', 'dealer_id');
+
+        $dealers = Dealer::query()
+            ->with('territory')
+            ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereIn('territory_id', (array) $territoryId))
+            ->when($filters['search'] ?? null, fn (Builder $q, $search) => $q->where(
+                fn (Builder $q2) => $q2->where('name', 'like', "%{$search}%")->orWhere('dealer_code', 'like', "%{$search}%")
+            ))
+            ->orderBy('name')
+            ->get();
+
+        return $dealers->map(function (Dealer $dealer) use ($orderTotals, $collectionTotals) {
+            $ordered = (float) ($orderTotals->get($dealer->id) ?? 0);
+            $collected = (float) ($collectionTotals->get($dealer->id) ?? 0);
+
+            return (object) [
+                'dealer' => $dealer,
+                'total_ordered' => $ordered,
+                'total_collected' => $collected,
+                'due_amount' => $ordered - $collected,
+            ];
+        })->sortByDesc('due_amount')->values();
+    }
+
+    /**
+     * One dealer's full statement: every Order (debit) and Collection
+     * (credit) merged chronologically with a running balance, using the
+     * same debit/credit formula as dealerLedgerSummary().
+     *
+     * @return Collection<int, object>
+     */
+    public function dealerLedger(Dealer $dealer): Collection
+    {
+        $orders = $dealer->orders()->orderBy('order_date')->get()->map(fn (Order $order) => (object) [
+            'date' => $order->order_date,
+            'description' => 'Order #'.$order->id.($order->remarks ? ' — '.$order->remarks : ''),
+            'debit' => (float) $order->total_amount,
+            'credit' => 0.0,
+        ]);
+
+        $collections = $dealer->collectionEntries()->orderBy('collection_date')->get()->map(fn (CollectionEntry $entry) => (object) [
+            'date' => $entry->collection_date,
+            'description' => 'Collection ('.$entry->payment_method->label().')'.($entry->reference_no ? ' — '.$entry->reference_no : ''),
+            'debit' => 0.0,
+            'credit' => (float) $entry->amount,
+        ]);
+
+        $balance = 0.0;
+
+        return $orders->concat($collections)
+            ->sortBy('date')
+            ->values()
+            ->map(function ($row) use (&$balance) {
+                $balance += $row->debit - $row->credit;
+                $row->balance = $balance;
+
+                return $row;
+            });
+    }
+
+    /**
      * @param  Collection<int, int>  $userIds
      * @return Collection<int, User>
      */
