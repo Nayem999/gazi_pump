@@ -7,14 +7,17 @@
     <p class="text-muted mb-4">Here's a summary of your account and purchase history.</p>
 
     <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-4">
-            <x-stat-card icon="ti-cash" label="Total Spent" value="{{ $totalSpent }}" color="success" />
+        <div class="col-6 col-lg-3">
+            <x-stat-card icon="ti-shopping-cart" label="Total Purchase" value="{{ $totalPurchase }}" color="primary" />
         </div>
-        <div class="col-6 col-lg-4">
-            <x-stat-card icon="ti-shopping-cart" label="Total Orders" value="{{ $totalOrders }}" color="primary" />
+        <div class="col-6 col-lg-3">
+            <x-stat-card icon="ti-cash" label="Total Payment" value="{{ $totalPayment }}" color="success" />
         </div>
-        <div class="col-6 col-lg-4">
-            <x-stat-card icon="ti-package" label="Products Purchased" value="{{ count($topProducts) }}" color="info" />
+        <div class="col-6 col-lg-3">
+            <x-stat-card icon="ti-alert-circle" label="Due Amount" value="{{ $dueAmount }}" color="danger" />
+        </div>
+        <div class="col-6 col-lg-3">
+            <x-stat-card icon="ti-receipt" label="Total Orders" value="{{ $totalOrders }}" color="warning" />
         </div>
     </div>
 
@@ -22,12 +25,12 @@
         <div class="col-lg-7">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">Purchases &mdash; Last 6 Months</h6>
+                    <h6 class="mb-0">Purchases vs Payment &mdash; Last 6 Months</h6>
                     <a href="{{ route('portal.purchases.index') }}" class="small">View All</a>
                 </div>
                 <div class="card-body">
                     @if ($totalOrders > 0)
-                        <div id="customerPurchaseTrendChart" data-chart-purchases="{{ json_encode($monthlyPurchases) }}"></div>
+                        <div id="customerPurchaseVsPaymentChart" data-chart-purchases-vs-payments="{{ json_encode($monthlyPurchasesVsPayments) }}"></div>
                     @else
                         <p class="text-muted small mb-0">No purchase history yet.</p>
                     @endif

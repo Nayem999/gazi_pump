@@ -57,17 +57,17 @@ function renderAttendanceChart() {
 }
 
 /**
- * Customer portal dashboard: last-6-months purchase totals (bar) and
- * purchases-by-product breakdown (horizontal bar) — same ApexCharts +
- * theme-listener pattern as renderAttendanceChart() above.
+ * Customer portal dashboard: last-6-months purchases vs payments (grouped
+ * bar) and purchases-by-product breakdown (horizontal bar) — same
+ * ApexCharts + theme-listener pattern as renderAttendanceChart() above.
  */
-function renderCustomerPurchaseTrendChart() {
-    const el = document.getElementById('customerPurchaseTrendChart');
+function renderCustomerPurchaseVsPaymentChart() {
+    const el = document.getElementById('customerPurchaseVsPaymentChart');
     if (!el || !window.ApexCharts) {
         return;
     }
 
-    const data = JSON.parse(el.dataset.chartPurchases || '[]');
+    const data = JSON.parse(el.dataset.chartPurchasesVsPayments || '[]');
     const isDark = () => document.documentElement.getAttribute('data-bs-theme') === 'dark';
 
     const buildOptions = () => ({
@@ -79,11 +79,15 @@ function renderCustomerPurchaseTrendChart() {
             fontFamily: 'inherit',
         },
         theme: { mode: isDark() ? 'dark' : 'light' },
-        series: [{ name: 'Purchases', data: data.map((row) => row.total) }],
+        series: [
+            { name: 'Purchases', data: data.map((row) => row.purchase) },
+            { name: 'Payments', data: data.map((row) => row.payment) },
+        ],
         xaxis: { categories: data.map((row) => row.label) },
-        colors: ['#0d5aa7'],
-        plotOptions: { bar: { borderRadius: 4, columnWidth: '50%' } },
+        colors: ['#0d5aa7', '#16a34a'],
+        plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } },
         dataLabels: { enabled: false },
+        legend: { position: 'top' },
     });
 
     el.classList.add('skeleton');
@@ -186,7 +190,7 @@ function initCountUp() {
 
 document.addEventListener('DOMContentLoaded', () => {
     renderAttendanceChart();
-    renderCustomerPurchaseTrendChart();
+    renderCustomerPurchaseVsPaymentChart();
     renderCustomerProductBreakdownChart();
     initCountUp();
 });

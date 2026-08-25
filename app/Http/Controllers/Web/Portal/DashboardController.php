@@ -5,56 +5,72 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web\Portal;
 
 use App\Http\Controllers\Controller;
+use App\Models\CollectionEntry;
 use App\Models\Dealer;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Services\CollectionEntryService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 class DashboardController extends Controller
 {
+    public function __construct(private readonly CollectionEntryService $collectionEntries) {}
+
     public function index(Request $request): View
     {
         $account = $request->user('customer');
         $dealer = $account->resolveCustomer();
 
+        $totalPurchase = $dealer ? (float) $dealer->orders()->sum('total_amount') : 0.0;
+        $totalPayment = $dealer ? (float) $dealer->collectionEntries()->sum('amount') : 0.0;
+
         return view('portal.dashboard', [
             'account' => $account,
             'recentInquiries' => $account->inquiries()->latest()->limit(5)->get(),
             'recentVisitRequests' => $account->visitRequests()->latest()->limit(5)->get(),
-            'totalSpent' => $dealer ? (float) $dealer->orders()->sum('total_amount') : 0.0,
+            'totalPurchase' => $totalPurchase,
+            'totalPayment' => $totalPayment,
+            'dueAmount' => $dealer ? $this->collectionEntries->outstandingBalance($dealer->id) : 0.0,
             'totalOrders' => $dealer ? $dealer->orders()->count() : 0,
-            'monthlyPurchases' => $this->monthlyPurchases($dealer),
+            'monthlyPurchasesVsPayments' => $this->monthlyPurchasesVsPayments($dealer),
             'topProducts' => $this->topProducts($dealer),
         ]);
     }
 
     /**
-     * Purchase totals for each of the last 6 months (oldest first), with
-     * months that had no orders filled in as zero — grouped in PHP rather
-     * than a DB date-format function so it works the same on MySQL (prod)
-     * and SQLite (tests).
+     * Purchase and payment totals for each of the last 6 months (oldest
+     * first), with months that had no orders/collections filled in as
+     * zero — grouped in PHP rather than a DB date-format function so it
+     * works the same on MySQL (prod) and SQLite (tests).
      *
-     * @return list<array{label: string, total: float}>
+     * @return list<array{label: string, purchase: float, payment: float}>
      */
-    private function monthlyPurchases(?Dealer $dealer): array
+    private function monthlyPurchasesVsPayments(?Dealer $dealer): array
     {
         $months = collect(range(5, 0))->map(fn (int $i) => Carbon::now()->subMonths($i)->startOfMonth());
 
         if (! $dealer) {
-            return $months->map(fn (Carbon $month) => ['label' => $month->format('M Y'), 'total' => 0.0])->all();
+            return $months->map(fn (Carbon $month) => ['label' => $month->format('M Y'), 'purchase' => 0.0, 'payment' => 0.0])->all();
         }
 
-        $totalsByMonth = $dealer->orders()
+        $purchasesByMonth = $dealer->orders()
             ->where('order_date', '>=', $months->first())
             ->get(['order_date', 'total_amount'])
             ->groupBy(fn (Order $order) => $order->order_date->format('Y-m'))
             ->map(fn ($orders) => (float) $orders->sum('total_amount'));
 
+        $paymentsByMonth = $dealer->collectionEntries()
+            ->where('collection_date', '>=', $months->first())
+            ->get(['collection_date', 'amount'])
+            ->groupBy(fn (CollectionEntry $entry) => $entry->collection_date->format('Y-m'))
+            ->map(fn ($entries) => (float) $entries->sum('amount'));
+
         return $months->map(fn (Carbon $month) => [
             'label' => $month->format('M Y'),
-            'total' => $totalsByMonth->get($month->format('Y-m'), 0.0),
+            'purchase' => $purchasesByMonth->get($month->format('Y-m'), 0.0),
+            'payment' => $paymentsByMonth->get($month->format('Y-m'), 0.0),
         ])->all();
     }
 

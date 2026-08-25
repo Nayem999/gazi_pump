@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Portal;
 
+use App\Models\CollectionEntry;
 use App\Models\CustomerAccount;
 use App\Models\Dealer;
 use App\Models\Order;
@@ -83,5 +84,38 @@ class DashboardTest extends TestCase
             ->assertSee('Fuel Pump XL');
 
         $this->assertSame($dealer->id, $account->fresh()->dealer_id);
+    }
+
+    public function test_dashboard_shows_total_purchase_and_total_payment_instead_of_total_spent(): void
+    {
+        $dealer = Dealer::factory()->create(['email' => 'linked@example.com']);
+        $account = CustomerAccount::factory()->create(['dealer_id' => $dealer->id, 'email' => 'linked@example.com']);
+
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+        CollectionEntry::factory()->create(['dealer_id' => $dealer->id, 'amount' => 400, 'payment_method' => 'cash']);
+
+        $response = $this->actingAs($account, 'customer')->get(route('portal.dashboard'));
+
+        $response->assertOk()
+            ->assertDontSee('Total Spent')
+            ->assertSee('Total Purchase')
+            ->assertSee('Total Payment')
+            ->assertSee('Purchases vs Payment');
+    }
+
+    public function test_dashboard_shows_due_amount_and_no_longer_shows_products_purchased(): void
+    {
+        $dealer = Dealer::factory()->create(['email' => 'linked@example.com']);
+        $account = CustomerAccount::factory()->create(['dealer_id' => $dealer->id, 'email' => 'linked@example.com']);
+
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+        CollectionEntry::factory()->create(['dealer_id' => $dealer->id, 'amount' => 400, 'payment_method' => 'cash']);
+
+        $response = $this->actingAs($account, 'customer')->get(route('portal.dashboard'));
+
+        $response->assertOk()
+            ->assertSee('Due Amount')
+            ->assertSee('600')
+            ->assertDontSee('Products Purchased');
     }
 }
