@@ -32,6 +32,8 @@ class CollectionEntryResource extends JsonResource
             'reference_no' => $this->reference_no,
             'cheque_image_url' => $this->chequeImageUrl(),
             'remarks' => $this->remarks,
+            'status' => $this->status->value,
+            'status_label' => $this->status->label(),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

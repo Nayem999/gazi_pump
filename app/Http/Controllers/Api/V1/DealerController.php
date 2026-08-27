@@ -17,8 +17,8 @@ use OpenApi\Attributes as OA;
 
 /**
  * Dealer APIs for the field mobile app: a Sales Executive sees their own
- * territory's dealers by default and can register new dealers/retailers
- * they onboard during a visit.
+ * territory's dealers by default and can register new dealers they onboard
+ * during a visit.
  */
 class DealerController extends Controller
 {
@@ -34,7 +34,6 @@ class DealerController extends Controller
         security: [['sanctum' => []]],
         parameters: [
             new OA\Parameter(name: 'territory_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
-            new OA\Parameter(name: 'type', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['dealer', 'retailer', 'distributor'])),
             new OA\Parameter(name: 'search', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
         ],
@@ -44,7 +43,7 @@ class DealerController extends Controller
     {
         $this->authorize('viewAny', Dealer::class);
 
-        $filters = $request->only(['search', 'type', 'territory_id']);
+        $filters = $request->only(['search', 'territory_id']);
         $filters['territory_id'] ??= $request->user()?->territories->pluck('id')->all();
         $filters['status'] = 'active';
 
@@ -81,16 +80,15 @@ class DealerController extends Controller
     #[OA\Post(
         path: '/dealers',
         tags: ['Dealers'],
-        summary: 'Register a new dealer (dealer/retailer/distributor) from the field',
+        summary: 'Register a new dealer from the field',
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['dealer_code', 'name', 'type', 'phone'],
+                required: ['dealer_code', 'name', 'phone'],
                 properties: [
                     new OA\Property(property: 'dealer_code', type: 'string', example: 'DLR-00099'),
                     new OA\Property(property: 'name', type: 'string', example: 'Karim Traders'),
-                    new OA\Property(property: 'type', type: 'string', enum: ['dealer', 'retailer', 'distributor']),
                     new OA\Property(property: 'phone', type: 'string', example: '01712345678'),
                     new OA\Property(property: 'email', type: 'string', nullable: true),
                     new OA\Property(property: 'address', type: 'string', nullable: true),

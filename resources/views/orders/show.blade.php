@@ -21,9 +21,26 @@
                         @endif
                     </h5>
                     <div class="text-muted">{{ $order->dealer->dealer_code }}</div>
-                    <div class="mt-2">
+                    <div class="mt-2 d-flex flex-wrap justify-content-center gap-1">
                         <span class="badge text-bg-primary">{{ $order->items->count() }} item(s)</span>
+                        <span class="badge text-bg-{{ $order->status->badgeColor() }}">{{ $order->status->label() }}</span>
                     </div>
+                    @if ($order->status === \App\Enums\ApprovalStatus::Pending)
+                        @can('approve', $order)
+                            <div class="d-flex justify-content-center gap-2 mt-2 d-print-none">
+                                <form method="POST" action="{{ route('orders.approve', $order) }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button type="submit" class="btn btn-success btn-sm"><i class="ti ti-check me-1"></i>Approve</button>
+                                </form>
+                                <form method="POST" action="{{ route('orders.reject', $order) }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="ti ti-x me-1"></i>Reject</button>
+                                </form>
+                            </div>
+                        @endcan
+                    @endif
                     <div class="d-flex flex-wrap justify-content-center gap-2 mt-2 d-print-none">
                         @can('update', $order)
                             <a href="{{ route('orders.edit', $order) }}" class="btn btn-outline-primary btn-sm">
@@ -55,6 +72,9 @@
                         <dt class="col-sm-4">Dealer Phone</dt>
                         <dd class="col-sm-8"><x-phone-actions :phone="$order->dealer->phone" /></dd>
 
+                        <dt class="col-sm-4">Retailer</dt>
+                        <dd class="col-sm-8">{{ $order->retailer?->name ?? '—' }}</dd>
+
                         <dt class="col-sm-4">Order Date</dt>
                         <dd class="col-sm-8">{{ $order->order_date->format('M d, Y') }}</dd>
 
@@ -63,6 +83,14 @@
 
                         <dt class="col-sm-4">Remarks</dt>
                         <dd class="col-sm-8">{{ $order->remarks ?? '—' }}</dd>
+
+                        <dt class="col-sm-4">Approval Status</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge text-bg-{{ $order->status->badgeColor() }}">{{ $order->status->label() }}</span>
+                            @if ($order->approvedBy)
+                                <span class="text-muted small">by {{ $order->approvedBy->name }} on {{ $order->approved_at?->format('M d, Y H:i') }}</span>
+                            @endif
+                        </dd>
                     </dl>
                 </div>
             </div>

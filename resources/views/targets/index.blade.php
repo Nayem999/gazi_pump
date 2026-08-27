@@ -82,7 +82,12 @@
                         {{ $target->user?->name }}
                         <div class="text-muted small">{{ $target->user?->employee_id }}</div>
                     </td>
-                    <td>{{ $target->periodLabel() }}</td>
+                    <td>
+                        {{ $target->periodLabel() }}
+                        @if ($target->isProductWise())
+                            <div><span class="badge text-bg-info">Product-wise</span></div>
+                        @endif
+                    </td>
                     <td>
                         {{ number_format((float) ($target->achievement->order_achieved ?? 0), 2) }} / {{ number_format((float) $target->order_value_target, 2) }}
                         @if ($target->achievement)
@@ -160,7 +165,7 @@
                             icon="ti-target-arrow"
                             :icon-color="$target->achievement?->grade->badgeColor() ?? 'secondary'"
                             :title="$target->user?->name"
-                            :subtitle="$target->periodLabel()"
+                            :subtitle="$target->periodLabel().($target->isProductWise() ? ' · Product-wise' : '')"
                             :status-label="$target->trashed() ? 'Trashed' : $target->achievement?->grade->value"
                             :status-color="$target->trashed() ? 'danger' : ($target->achievement?->grade->badgeColor() ?? 'secondary')"
                         >

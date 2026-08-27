@@ -89,7 +89,6 @@ class TerritoryMapController extends Controller
                     'id' => $dealer->id,
                     'name' => $dealer->name,
                     'code' => $dealer->dealer_code,
-                    'type' => $dealer->type->label(),
                     'phone' => $dealer->phone,
                     'url' => route('dealers.show', $dealer),
                 ]),

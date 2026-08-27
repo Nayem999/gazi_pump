@@ -21,9 +21,26 @@
                         @endif
                     </h5>
                     <div class="text-muted">{{ $collectionEntry->dealer?->dealer_code }}</div>
-                    <div class="mt-2">
+                    <div class="mt-2 d-flex flex-wrap justify-content-center gap-1">
                         <span class="badge text-bg-secondary">{{ $collectionEntry->payment_method->label() }}</span>
+                        <span class="badge text-bg-{{ $collectionEntry->status->badgeColor() }}">{{ $collectionEntry->status->label() }}</span>
                     </div>
+                    @if ($collectionEntry->status === \App\Enums\ApprovalStatus::Pending)
+                        @can('approve', $collectionEntry)
+                            <div class="d-flex justify-content-center gap-2 mt-2 d-print-none">
+                                <form method="POST" action="{{ route('collection-entries.approve', $collectionEntry) }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button type="submit" class="btn btn-success btn-sm"><i class="ti ti-check me-1"></i>Approve</button>
+                                </form>
+                                <form method="POST" action="{{ route('collection-entries.reject', $collectionEntry) }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="ti ti-x me-1"></i>Reject</button>
+                                </form>
+                            </div>
+                        @endcan
+                    @endif
                     <div class="d-flex justify-content-center gap-2 mt-3 d-print-none">
                         @can('update', $collectionEntry)
                             <a href="{{ route('collection-entries.edit', $collectionEntry) }}" class="btn btn-outline-primary btn-sm">
@@ -67,6 +84,23 @@
                         <dt class="col-sm-4">Reference No.</dt>
                         <dd class="col-sm-8">{{ $collectionEntry->reference_no ?? '—' }}</dd>
 
+                        @if ($collectionEntry->cheque_status)
+                            <dt class="col-sm-4">Cheque Status</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge text-bg-{{ $collectionEntry->cheque_status->badgeColor() }}">{{ $collectionEntry->cheque_status->label() }}</span>
+                                @can('update', $collectionEntry)
+                                    @foreach ($collectionEntry->cheque_status->nextOptions() as $next)
+                                        <form method="POST" action="{{ route('collection-entries.cheque-status', $collectionEntry) }}" class="d-inline d-print-none">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="hidden" name="cheque_status" value="{{ $next->value }}">
+                                            <button type="submit" class="btn btn-outline-{{ $next->badgeColor() }} btn-sm ms-1">Mark {{ $next->label() }}</button>
+                                        </form>
+                                    @endforeach
+                                @endcan
+                            </dd>
+                        @endif
+
                         @if ($collectionEntry->chequeImageUrl())
                             <dt class="col-sm-4">Cheque Image</dt>
                             <dd class="col-sm-8">
@@ -81,6 +115,14 @@
 
                         <dt class="col-sm-4">Recorded</dt>
                         <dd class="col-sm-8">{{ $collectionEntry->created_at?->format('M d, Y H:i') }}</dd>
+
+                        <dt class="col-sm-4">Approval Status</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge text-bg-{{ $collectionEntry->status->badgeColor() }}">{{ $collectionEntry->status->label() }}</span>
+                            @if ($collectionEntry->approvedBy)
+                                <span class="text-muted small">by {{ $collectionEntry->approvedBy->name }} on {{ $collectionEntry->approved_at?->format('M d, Y H:i') }}</span>
+                            @endif
+                        </dd>
                     </dl>
                 </div>
             </div>

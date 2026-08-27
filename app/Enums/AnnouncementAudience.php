@@ -10,6 +10,8 @@ enum AnnouncementAudience: string
     case Role = 'role';
     case Territory = 'territory';
     case User = 'user';
+    case AllDealers = 'all_dealers';
+    case Dealer = 'dealer';
 
     public function label(): string
     {
@@ -18,6 +20,8 @@ enum AnnouncementAudience: string
             self::Role => 'Specific Role',
             self::Territory => 'Specific Territory',
             self::User => 'Specific User',
+            self::AllDealers => 'All Dealers',
+            self::Dealer => 'Specific Dealer',
         };
     }
 }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Web\Admin;
 
-use App\Enums\CustomerType;
 use App\Exports\DealersExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreDealerRequest;
@@ -29,12 +28,11 @@ class DealerController extends Controller
     {
         $this->authorize('viewAny', Dealer::class);
 
-        $filterKeys = ['search', 'type', 'division_id', 'district_id', 'thana_id', 'territory_id', 'status', 'trashed'];
+        $filterKeys = ['search', 'division_id', 'district_id', 'thana_id', 'territory_id', 'status', 'trashed'];
 
         return view('dealers.index', [
             'dealers' => $this->dealers->paginate($request->only($filterKeys), 15),
             'divisions' => Division::where('status', true)->orderBy('name')->get(),
-            'types' => CustomerType::cases(),
             'filters' => $request->only($filterKeys),
         ]);
     }
@@ -45,7 +43,6 @@ class DealerController extends Controller
 
         return view('dealers.create', [
             'divisions' => Division::where('status', true)->orderBy('name')->get(),
-            'types' => CustomerType::cases(),
         ]);
     }
 
@@ -80,7 +77,6 @@ class DealerController extends Controller
         return view('dealers.edit', [
             'dealer' => $dealer->load(['territory', 'thana', 'district', 'division']),
             'divisions' => Division::where('status', true)->orderBy('name')->get(),
-            'types' => CustomerType::cases(),
         ]);
     }
 
@@ -146,7 +142,7 @@ class DealerController extends Controller
     {
         $this->authorize('export', Dealer::class);
 
-        $dealers = $this->dealers->paginate($request->only(['search', 'type', 'territory_id', 'status', 'trashed']), PHP_INT_MAX)->getCollection();
+        $dealers = $this->dealers->paginate($request->only(['search', 'territory_id', 'status', 'trashed']), PHP_INT_MAX)->getCollection();
 
         return Excel::download(new DealersExport($dealers), 'dealers-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -166,7 +162,7 @@ class DealerController extends Controller
     {
         $this->authorize('print', Dealer::class);
 
-        $dealers = $this->dealers->paginate($request->only(['search', 'type', 'territory_id', 'status', 'trashed']), PHP_INT_MAX)->getCollection();
+        $dealers = $this->dealers->paginate($request->only(['search', 'territory_id', 'status', 'trashed']), PHP_INT_MAX)->getCollection();
 
         return Pdf::loadView('dealers.print', ['dealers' => $dealers])
             ->stream('dealers-'.now()->format('Y-m-d-His').'.pdf');

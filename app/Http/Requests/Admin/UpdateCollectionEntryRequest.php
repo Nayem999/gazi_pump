@@ -27,7 +27,15 @@ class UpdateCollectionEntryRequest extends FormRequest
             'collection_date' => ['required', 'date'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'payment_method' => ['required', new Enum(PaymentMethod::class)],
-            'reference_no' => ['nullable', 'string', 'max:100'],
+            'reference_no' => [
+                Rule::requiredIf(fn () => in_array($this->input('payment_method'), [
+                    PaymentMethod::BankTransfer->value, PaymentMethod::MobileBanking->value,
+                ], true)),
+                'nullable', 'string', 'max:100',
+                Rule::unique('collection_entries', 'reference_no')
+                    ->where(fn ($query) => $query->whereIn('payment_method', [PaymentMethod::BankTransfer->value, PaymentMethod::MobileBanking->value]))
+                    ->ignore($this->route('collection_entry')),
+            ],
             // Only forces a (re-)upload if the entry would otherwise end up
             // with no cheque image at all — editing an existing cheque
             // collection without touching this field keeps its current
@@ -51,6 +59,8 @@ class UpdateCollectionEntryRequest extends FormRequest
             // Rule::requiredIf() resolves to the plain "required" rule
             // string, not "required_if" — this key must match that.
             'cheque_image.required' => 'A cheque image is required when the payment method is Cheque.',
+            'reference_no.required' => 'A transaction ID is required for Bank Transfer and Mobile Banking payments.',
+            'reference_no.unique' => 'This transaction ID has already been recorded against another collection.',
         ];
     }
 }

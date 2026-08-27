@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\CustomerType;
 use App\Models\Dealer;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -21,7 +20,6 @@ class DealerFactory extends Factory
         return [
             'dealer_code' => 'CUST-'.fake()->unique()->numerify('#####'),
             'name' => fake()->company(),
-            'type' => fake()->randomElement(CustomerType::cases()),
             'phone' => fake()->numerify('01#########'),
             'email' => fake()->boolean(60) ? fake()->unique()->companyEmail() : null,
             'address' => fake()->address(),
@@ -30,11 +28,6 @@ class DealerFactory extends Factory
             'territory_id' => null,
             'status' => true,
         ];
-    }
-
-    public function type(CustomerType $type): static
-    {
-        return $this->state(fn (array $attributes) => ['type' => $type]);
     }
 
     public function inactive(): static

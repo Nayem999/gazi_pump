@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\CustomerAccount;
 use App\Models\User;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -13,7 +14,10 @@ use Illuminate\Support\Facades\Cache;
 /**
  * Every notification is inherently scoped to its own notifiable (a user only
  * ever sees their own inbox), so — unlike the other modules — there's no
- * Policy class here; the query itself is the authorization boundary.
+ * Policy class here; the query itself is the authorization boundary. Shared
+ * between the admin bell/inbox (User) and the customer portal's (CustomerAccount)
+ * — both use the Notifiable trait, so every method body here works
+ * identically for either, only the type hint needs to admit both.
  */
 class NotificationService
 {
@@ -30,7 +34,7 @@ class NotificationService
     /**
      * @param  array{status?: string}  $filters
      */
-    public function paginate(User $user, array $filters, int $perPage = 15): LengthAwarePaginator
+    public function paginate(User|CustomerAccount $user, array $filters, int $perPage = 15): LengthAwarePaginator
     {
         return $user->notifications()
             ->when(($filters['status'] ?? null) === 'unread', fn ($query) => $query->whereNull('read_at'))
@@ -39,7 +43,7 @@ class NotificationService
             ->withQueryString();
     }
 
-    public function unreadCount(User $user): int
+    public function unreadCount(User|CustomerAccount $user): int
     {
         return Cache::remember(
             $this->bellCacheKey('unread_count', $user),
@@ -51,7 +55,7 @@ class NotificationService
     /**
      * @return DatabaseNotification[]|Collection
      */
-    public function recent(User $user, int $limit = 6)
+    public function recent(User|CustomerAccount $user, int $limit = 6)
     {
         return Cache::remember(
             $this->bellCacheKey("recent.{$limit}", $user),
@@ -60,7 +64,7 @@ class NotificationService
         );
     }
 
-    public function markAsRead(User $user, string $id): DatabaseNotification
+    public function markAsRead(User|CustomerAccount $user, string $id): DatabaseNotification
     {
         $notification = $user->notifications()->findOrFail($id);
         $notification->markAsRead();
@@ -70,7 +74,7 @@ class NotificationService
         return $notification;
     }
 
-    public function markAllAsRead(User $user): int
+    public function markAllAsRead(User|CustomerAccount $user): int
     {
         $unread = $user->unreadNotifications;
         $count = $unread->count();
@@ -81,16 +85,23 @@ class NotificationService
         return $count;
     }
 
-    public function delete(User $user, string $id): void
+    public function delete(User|CustomerAccount $user, string $id): void
     {
         $user->notifications()->findOrFail($id)->delete();
 
         $this->forgetBellCache($user);
     }
 
-    private function bellCacheKey(string $suffix, User $user): string
+    /**
+     * Namespaced by model type, not just id — a User and a CustomerAccount
+     * can share the same numeric id, and without this a customer's cached
+     * unread count could collide with (and mask) an admin user's.
+     */
+    private function bellCacheKey(string $suffix, User|CustomerAccount $user): string
     {
-        return "notifications.{$suffix}.{$user->id}";
+        $type = $user instanceof User ? 'user' : 'customer';
+
+        return "notifications.{$suffix}.{$type}.{$user->id}";
     }
 
     /**
@@ -98,7 +109,7 @@ class NotificationService
      * notifications arriving from elsewhere (5 scheduled Actions, manual
      * admin sends) rely on BELL_TTL_SECONDS to eventually surface instead.
      */
-    private function forgetBellCache(User $user): void
+    private function forgetBellCache(User|CustomerAccount $user): void
     {
         Cache::forget($this->bellCacheKey('unread_count', $user));
         Cache::forget($this->bellCacheKey('recent.6', $user));

@@ -80,7 +80,6 @@ class DealerTest extends TestCase
             ->postJson('/api/v1/dealers', [
                 'dealer_code' => 'CUST-API-TEST',
                 'name' => 'Field Registered Shop',
-                'type' => 'retailer',
                 'phone' => '01700000000',
             ]);
 
@@ -112,21 +111,5 @@ class DealerTest extends TestCase
         $dealer = Dealer::factory()->create();
 
         $this->getJson("/api/v1/dealers/{$dealer->id}/outstanding-balance")->assertStatus(401);
-    }
-
-    public function test_registering_a_dealer_requires_a_valid_type(): void
-    {
-        $executive = User::factory()->create();
-        $executive->assignRole('Sales Executive');
-
-        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
-            ->postJson('/api/v1/dealers', [
-                'dealer_code' => 'CUST-API-TEST-2',
-                'name' => 'Field Registered Shop',
-                'type' => 'wholesaler',
-                'phone' => '01700000000',
-            ])
-            ->assertStatus(422)
-            ->assertJsonPath('success', false);
     }
 }

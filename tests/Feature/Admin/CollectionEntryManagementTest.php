@@ -130,6 +130,145 @@ class CollectionEntryManagementTest extends TestCase
         $this->assertNotNull($entry->chequeImageUrl());
     }
 
+    public function test_a_bank_transfer_collection_requires_a_transaction_id(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+
+        $this->actingAs($manager)->post(route('collection-entries.store'), [
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'collection_date' => Carbon::today()->toDateString(),
+            'amount' => 600,
+            'payment_method' => 'bank_transfer',
+        ])->assertSessionHasErrors('reference_no');
+
+        $this->assertDatabaseCount('collection_entries', 0);
+    }
+
+    public function test_a_duplicate_bank_transaction_id_is_rejected(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 10000]);
+        CollectionEntry::factory()->create([
+            'dealer_id' => $dealer->id,
+            'amount' => 1000,
+            'payment_method' => 'bank_transfer',
+            'reference_no' => 'TXN-DUP-001',
+        ]);
+
+        $this->actingAs($manager)->post(route('collection-entries.store'), [
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'collection_date' => Carbon::today()->toDateString(),
+            'amount' => 600,
+            'payment_method' => 'mobile_banking',
+            'reference_no' => 'TXN-DUP-001',
+        ])->assertSessionHasErrors('reference_no');
+
+        $this->assertDatabaseCount('collection_entries', 1);
+    }
+
+    public function test_the_same_reference_no_is_allowed_across_cheque_and_bank_entries(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 10000]);
+        CollectionEntry::factory()->create([
+            'dealer_id' => $dealer->id,
+            'amount' => 1000,
+            'payment_method' => 'cheque',
+            'reference_no' => 'SHARED-001',
+        ]);
+
+        // A cheque number and a bank/MFS transaction ID are different
+        // identifier spaces — the duplicate check only applies within
+        // bank_transfer/mobile_banking entries, so this must succeed.
+        $this->actingAs($manager)->post(route('collection-entries.store'), [
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'collection_date' => Carbon::today()->toDateString(),
+            'amount' => 600,
+            'payment_method' => 'mobile_banking',
+            'reference_no' => 'SHARED-001',
+        ])->assertRedirect(route('collection-entries.index'));
+
+        $this->assertDatabaseCount('collection_entries', 2);
+    }
+
+    public function test_a_new_cheque_collection_starts_at_the_collected_status(): void
+    {
+        Storage::fake('public');
+
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+
+        $this->actingAs($manager)->post(route('collection-entries.store'), [
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'collection_date' => Carbon::today()->toDateString(),
+            'amount' => 600,
+            'payment_method' => 'cheque',
+            'cheque_image' => UploadedFile::fake()->image('cheque.jpg'),
+        ]);
+
+        $this->assertDatabaseHas('collection_entries', ['dealer_id' => $dealer->id, 'cheque_status' => 'collected']);
+    }
+
+    public function test_a_cheque_status_can_advance_through_its_lifecycle(): void
+    {
+        $manager = $this->generalManager();
+        $entry = CollectionEntry::factory()->create(['payment_method' => 'cheque', 'cheque_status' => 'collected']);
+
+        $this->actingAs($manager)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'submitted'])
+            ->assertRedirect();
+        $this->assertDatabaseHas('collection_entries', ['id' => $entry->id, 'cheque_status' => 'submitted']);
+
+        $this->actingAs($manager)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'deposited'])
+            ->assertRedirect();
+        $this->assertDatabaseHas('collection_entries', ['id' => $entry->id, 'cheque_status' => 'deposited']);
+
+        $this->actingAs($manager)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'cleared'])
+            ->assertRedirect();
+        $this->assertDatabaseHas('collection_entries', ['id' => $entry->id, 'cheque_status' => 'cleared']);
+    }
+
+    public function test_a_cheque_status_cannot_skip_ahead(): void
+    {
+        $manager = $this->generalManager();
+        $entry = CollectionEntry::factory()->create(['payment_method' => 'cheque', 'cheque_status' => 'collected']);
+
+        $this->actingAs($manager)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'cleared'])
+            ->assertSessionHasErrors('cheque_status');
+
+        $this->assertDatabaseHas('collection_entries', ['id' => $entry->id, 'cheque_status' => 'collected']);
+    }
+
+    public function test_a_cleared_cheque_has_no_further_transitions(): void
+    {
+        $manager = $this->generalManager();
+        $entry = CollectionEntry::factory()->create(['payment_method' => 'cheque', 'cheque_status' => 'cleared']);
+
+        $this->actingAs($manager)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'bounced'])
+            ->assertSessionHasErrors('cheque_status');
+    }
+
+    public function test_cheque_status_cannot_be_changed_on_a_non_cheque_entry(): void
+    {
+        $manager = $this->generalManager();
+        $entry = CollectionEntry::factory()->create(['payment_method' => 'cash', 'cheque_status' => null]);
+
+        $this->actingAs($manager)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'submitted'])
+            ->assertSessionHasErrors('cheque_status');
+    }
+
     public function test_updating_a_cheque_image_deletes_the_previous_file(): void
     {
         Storage::fake('public');
@@ -308,6 +447,103 @@ class CollectionEntryManagementTest extends TestCase
             ->assertHeader('content-type', 'application/pdf');
     }
 
+    public function test_manager_can_send_an_otp_and_gets_a_demo_code_back(): void
+    {
+        $manager = $this->generalManager();
+        $dealer = Dealer::factory()->create();
+
+        $response = $this->actingAs($manager)->postJson(route('collection-entries.send-otp'), [
+            'dealer_id' => $dealer->id,
+            'amount' => 600,
+            'payment_method' => 'cash',
+        ]);
+
+        $response->assertOk();
+        $this->assertFalse($response->json('sent'));
+        $this->assertNotNull($response->json('demo_code'));
+        $this->assertDatabaseHas('collection_otps', ['dealer_id' => $dealer->id, 'user_id' => $manager->id]);
+    }
+
+    public function test_a_collection_can_be_recorded_with_a_valid_otp(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+
+        $otpResponse = $this->actingAs($manager)->postJson(route('collection-entries.send-otp'), [
+            'dealer_id' => $dealer->id,
+            'amount' => 600,
+            'payment_method' => 'cash',
+        ]);
+
+        $this->actingAs($manager)->post(route('collection-entries.store'), [
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'collection_date' => Carbon::today()->toDateString(),
+            'amount' => 600,
+            'payment_method' => 'cash',
+            'otp_id' => $otpResponse->json('otp_id'),
+            'otp_code' => $otpResponse->json('demo_code'),
+        ])->assertRedirect(route('collection-entries.index'));
+
+        $entry = CollectionEntry::where('dealer_id', $dealer->id)->firstOrFail();
+        $this->assertNotNull($entry->otp_verified_at);
+    }
+
+    public function test_a_collection_is_rejected_when_the_otp_code_is_wrong(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+
+        $otpResponse = $this->actingAs($manager)->postJson(route('collection-entries.send-otp'), [
+            'dealer_id' => $dealer->id,
+            'amount' => 600,
+            'payment_method' => 'cash',
+        ]);
+
+        $this->actingAs($manager)->post(route('collection-entries.store'), [
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'collection_date' => Carbon::today()->toDateString(),
+            'amount' => 600,
+            'payment_method' => 'cash',
+            'otp_id' => $otpResponse->json('otp_id'),
+            'otp_code' => '000000',
+        ])->assertSessionHasErrors('otp');
+
+        $this->assertDatabaseCount('collection_entries', 0);
+    }
+
+    public function test_an_otp_sent_by_one_manager_cannot_be_used_by_another(): void
+    {
+        $managerA = $this->generalManager();
+        $managerB = $this->generalManager();
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+
+        $otpResponse = $this->actingAs($managerA)->postJson(route('collection-entries.send-otp'), [
+            'dealer_id' => $dealer->id,
+            'amount' => 600,
+            'payment_method' => 'cash',
+        ]);
+
+        $this->actingAs($managerB)->post(route('collection-entries.store'), [
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'collection_date' => Carbon::today()->toDateString(),
+            'amount' => 600,
+            'payment_method' => 'cash',
+            'otp_id' => $otpResponse->json('otp_id'),
+            'otp_code' => $otpResponse->json('demo_code'),
+        ])->assertSessionHasErrors('otp');
+
+        $this->assertDatabaseCount('collection_entries', 0);
+    }
+
     public function test_the_print_report_renders_with_a_cheque_image_present(): void
     {
         Storage::fake('public');
@@ -321,5 +557,73 @@ class CollectionEntryManagementTest extends TestCase
         $this->actingAs($admin)->get(route('collection-entries.print'))
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_a_new_collection_starts_pending(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+
+        $this->actingAs($manager)->post(route('collection-entries.store'), [
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'collection_date' => Carbon::today()->toDateString(),
+            'amount' => 600,
+            'payment_method' => 'cash',
+        ]);
+
+        $this->assertDatabaseHas('collection_entries', ['dealer_id' => $dealer->id, 'status' => 'pending']);
+    }
+
+    public function test_general_manager_can_approve_a_pending_collection(): void
+    {
+        $manager = $this->generalManager();
+        $entry = CollectionEntry::factory()->create(['status' => 'pending']);
+
+        $this->actingAs($manager)->patch(route('collection-entries.approve', $entry))->assertRedirect();
+
+        $this->assertDatabaseHas('collection_entries', ['id' => $entry->id, 'status' => 'approved', 'approved_by' => $manager->id]);
+    }
+
+    public function test_general_manager_can_reject_a_pending_collection(): void
+    {
+        $manager = $this->generalManager();
+        $entry = CollectionEntry::factory()->create(['status' => 'pending']);
+
+        $this->actingAs($manager)->patch(route('collection-entries.reject', $entry))->assertRedirect();
+
+        $this->assertDatabaseHas('collection_entries', ['id' => $entry->id, 'status' => 'rejected', 'approved_by' => $manager->id]);
+    }
+
+    public function test_an_already_rejected_collection_cannot_be_approved(): void
+    {
+        $manager = $this->generalManager();
+        $entry = CollectionEntry::factory()->create(['status' => 'rejected', 'approved_by' => $manager->id, 'approved_at' => now()]);
+
+        $this->actingAs($manager)->patch(route('collection-entries.approve', $entry))->assertSessionHasErrors('status');
+    }
+
+    public function test_a_territory_manager_cannot_approve_a_collection(): void
+    {
+        $manager = User::factory()->create();
+        $manager->assignRole('Territory Manager');
+        $entry = CollectionEntry::factory()->create(['status' => 'pending']);
+
+        $this->actingAs($manager)->patch(route('collection-entries.approve', $entry))->assertForbidden();
+    }
+
+    public function test_the_approval_filter_only_returns_collections_with_that_status(): void
+    {
+        $manager = $this->generalManager();
+        $pending = CollectionEntry::factory()->create(['status' => 'pending']);
+        $approved = CollectionEntry::factory()->create(['status' => 'approved']);
+
+        $response = $this->actingAs($manager)->get(route('collection-entries.index', ['status' => 'approved']));
+
+        $response->assertOk();
+        $response->assertSee($approved->dealer->name);
+        $response->assertDontSee($pending->dealer->name);
     }
 }

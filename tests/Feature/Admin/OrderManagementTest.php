@@ -7,6 +7,7 @@ namespace Tests\Feature\Admin;
 use App\Models\Dealer;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Retailer;
 use App\Models\SalesTeam;
 use App\Models\Territory;
 use App\Models\User;
@@ -101,6 +102,48 @@ class OrderManagementTest extends TestCase
             'total_amount' => 550,
         ]);
         $this->assertDatabaseCount('order_items', 2);
+    }
+
+    public function test_an_order_can_optionally_be_placed_for_a_specific_retailer(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        $retailer = Retailer::factory()->create(['dealer_id' => $dealer->id]);
+        $product = Product::factory()->create(['price' => 100]);
+
+        $response = $this->actingAs($manager)->post(route('orders.store'), [
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'retailer_id' => $retailer->id,
+            'order_date' => Carbon::today()->toDateString(),
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 1, 'unit_price' => 100, 'discount_amount' => 0],
+            ],
+        ]);
+
+        $response->assertRedirect(route('orders.index'));
+        $this->assertDatabaseHas('orders', ['dealer_id' => $dealer->id, 'retailer_id' => $retailer->id]);
+    }
+
+    public function test_an_order_can_be_placed_without_a_retailer(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        $product = Product::factory()->create(['price' => 100]);
+
+        $response = $this->actingAs($manager)->post(route('orders.store'), [
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'order_date' => Carbon::today()->toDateString(),
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 1, 'unit_price' => 100, 'discount_amount' => 0],
+            ],
+        ]);
+
+        $response->assertRedirect(route('orders.index'));
+        $this->assertDatabaseHas('orders', ['dealer_id' => $dealer->id, 'retailer_id' => null]);
     }
 
     public function test_the_territory_filter_only_returns_orders_for_dealers_in_that_territory(): void
@@ -253,5 +296,74 @@ class OrderManagementTest extends TestCase
         $this->actingAs($manager)->get(route('orders.edit', $order))
             ->assertOk()
             ->assertSee($otherTeamProduct->name);
+    }
+
+    public function test_a_new_order_starts_pending(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        $product = Product::factory()->create(['price' => 100]);
+
+        $this->actingAs($manager)->post(route('orders.store'), [
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'order_date' => Carbon::today()->toDateString(),
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 1, 'unit_price' => 100, 'discount_amount' => 0],
+            ],
+        ]);
+
+        $this->assertDatabaseHas('orders', ['dealer_id' => $dealer->id, 'status' => 'pending']);
+    }
+
+    public function test_general_manager_can_approve_a_pending_order(): void
+    {
+        $manager = $this->generalManager();
+        $order = Order::factory()->create(['status' => 'pending']);
+
+        $this->actingAs($manager)->patch(route('orders.approve', $order))->assertRedirect();
+
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'approved', 'approved_by' => $manager->id]);
+    }
+
+    public function test_general_manager_can_reject_a_pending_order(): void
+    {
+        $manager = $this->generalManager();
+        $order = Order::factory()->create(['status' => 'pending']);
+
+        $this->actingAs($manager)->patch(route('orders.reject', $order))->assertRedirect();
+
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'rejected', 'approved_by' => $manager->id]);
+    }
+
+    public function test_an_already_approved_order_cannot_be_approved_again(): void
+    {
+        $manager = $this->generalManager();
+        $order = Order::factory()->create(['status' => 'approved', 'approved_by' => $manager->id, 'approved_at' => now()]);
+
+        $this->actingAs($manager)->patch(route('orders.approve', $order))->assertSessionHasErrors('status');
+    }
+
+    public function test_a_territory_manager_cannot_approve_an_order(): void
+    {
+        $manager = User::factory()->create();
+        $manager->assignRole('Territory Manager');
+        $order = Order::factory()->create(['status' => 'pending']);
+
+        $this->actingAs($manager)->patch(route('orders.approve', $order))->assertForbidden();
+    }
+
+    public function test_the_approval_filter_only_returns_orders_with_that_status(): void
+    {
+        $manager = $this->generalManager();
+        $pending = Order::factory()->create(['status' => 'pending']);
+        $approved = Order::factory()->create(['status' => 'approved']);
+
+        $response = $this->actingAs($manager)->get(route('orders.index', ['status' => 'approved']));
+
+        $response->assertOk();
+        $response->assertSee($approved->dealer->name);
+        $response->assertDontSee($pending->dealer->name);
     }
 }

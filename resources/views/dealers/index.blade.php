@@ -13,15 +13,6 @@
             <input type="text" name="search" class="form-control" placeholder="Name, code, phone..." value="{{ $filters['search'] ?? '' }}">
         </div>
         <div class="col-md-2">
-            <label class="form-label">Type</label>
-            <select name="type" class="form-select">
-                <option value="">All Types</option>
-                @foreach ($types as $type)
-                    <option value="{{ $type->value }}" @selected(($filters['type'] ?? '') === $type->value)>{{ $type->label() }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div class="col-md-2">
             <label class="form-label">Division</label>
             <select name="division_id" id="filterDivision" class="form-select">
                 <option value="">All Divisions</option>
@@ -75,7 +66,6 @@
                     <th>Photo</th>
                     <th>Code</th>
                     <th>Name</th>
-                    <th>Type</th>
                     <th>Phone</th>
                     <th>Division</th>
                     <th>District</th>
@@ -108,7 +98,6 @@
                             <a href="{{ route('dealers.show', $dealer) }}">{{ $dealer->name }}</a>
                         @endif
                     </td>
-                    <td><span class="badge text-bg-{{ $dealer->type->badgeColor() }}">{{ $dealer->type->label() }}</span></td>
                     <td><x-phone-actions :phone="$dealer->phone" /></td>
                     <td>{{ $dealer->division?->name ?? '—' }}</td>
                     <td>{{ $dealer->district?->name ?? '—' }}</td>
@@ -159,7 +148,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="12" class="text-center text-muted py-4">No dealers found.</td>
+                    <td colspan="11" class="text-center text-muted py-4">No dealers found.</td>
                 </tr>
             @endforelse
 
@@ -177,7 +166,6 @@
                             :status-color="$dealer->trashed() ? 'danger' : ($dealer->status ? 'success' : 'secondary')"
                         >
                             <x-slot:meta>
-                                <div><span class="badge text-bg-{{ $dealer->type->badgeColor() }}">{{ $dealer->type->label() }}</span></div>
                                 <div>Phone: <x-phone-actions :phone="$dealer->phone" /></div>
                                 <div>{{ $dealer->division?->name ?? '—' }} / {{ $dealer->district?->name ?? '—' }} / {{ $dealer->thana?->name ?? '—' }}</div>
                                 <div>Territory: {{ $dealer->territory?->name ?? '—' }}</div>
@@ -240,7 +228,7 @@
                 <div class="mb-3">
                     <label class="form-label">Excel/CSV File</label>
                     <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.csv" required>
-                    <div class="form-text">Columns: dealer_code, name, type (dealer/retailer/distributor), phone, email, address, territory_code.</div>
+                    <div class="form-text">Columns: dealer_code, name, phone, email, address, territory_code.</div>
                 </div>
             </form>
             <x-slot:footer>

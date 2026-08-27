@@ -7,6 +7,7 @@ namespace App\Models;
 use Database\Factories\TargetFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
@@ -46,8 +47,25 @@ class Target extends BaseModel
         return $this->hasOne(Achievement::class);
     }
 
+    public function items(): HasMany
+    {
+        return $this->hasMany(TargetItem::class);
+    }
+
     public function periodLabel(): string
     {
         return Carbon::create($this->year, $this->month, 1)->format('F Y');
+    }
+
+    /**
+     * True when this target was assigned product-by-product rather than as
+     * one overall figure — its order_value_target/collection_target/
+     * quantity_target columns are still populated either way (auto-summed
+     * from the product rows when product-wise), so achievement calculation
+     * never needs to know which mode a target was created in.
+     */
+    public function isProductWise(): bool
+    {
+        return $this->items->isNotEmpty();
     }
 }

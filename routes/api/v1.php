@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\OrgStructureController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\RetailerController;
 use App\Http\Controllers\Api\V1\TargetController;
 use App\Http\Controllers\Api\V1\VisitController;
 use App\Http\Controllers\Api\V1\VisitPlanController;
@@ -47,6 +48,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
     Route::get('/dealers/{dealer}', [DealerController::class, 'show']);
     Route::get('/dealers/{dealer}/outstanding-balance', [DealerController::class, 'outstandingBalance']);
 
+    Route::get('/retailers', [RetailerController::class, 'index']);
+    Route::get('/retailers/{retailer}', [RetailerController::class, 'show']);
+
     Route::get('/products', [ProductController::class, 'index']);
     Route::get('/products/{product}', [ProductController::class, 'show']);
 
@@ -69,6 +73,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders', [OrderController::class, 'index']);
 
+    Route::post('/collection-entries/send-otp', [CollectionEntryController::class, 'sendOtp']);
     Route::post('/collection-entries', [CollectionEntryController::class, 'store']);
     Route::get('/collection-entries', [CollectionEntryController::class, 'index']);
 

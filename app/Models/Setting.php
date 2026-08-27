@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\SmsChannel;
 use Database\Factories\SettingFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\Cache;
@@ -37,6 +38,14 @@ class Setting extends BaseModel
         'target_reminder_days_before_month_end',
         'target_reminder_min_pct',
         'live_gps_stale_after_minutes',
+        'sms_gateway_enabled',
+        'sms_gateway_provider',
+        'sms_gateway_api_url',
+        'sms_gateway_api_key',
+        'sms_gateway_sender_id',
+        'sms_channel',
+        'collection_otp_expiry_minutes',
+        'cash_daily_limit_amount',
     ];
 
     protected function casts(): array
@@ -55,6 +64,10 @@ class Setting extends BaseModel
             'target_reminder_days_before_month_end' => 'integer',
             'target_reminder_min_pct' => 'decimal:2',
             'live_gps_stale_after_minutes' => 'integer',
+            'sms_gateway_enabled' => 'boolean',
+            'sms_channel' => SmsChannel::class,
+            'collection_otp_expiry_minutes' => 'integer',
+            'cash_daily_limit_amount' => 'decimal:2',
         ];
     }
 
@@ -105,6 +118,14 @@ class Setting extends BaseModel
             'target_reminder_days_before_month_end' => config('sfa.notifications.target_reminder_days_before_month_end'),
             'target_reminder_min_pct' => config('sfa.notifications.target_reminder_min_pct'),
             'live_gps_stale_after_minutes' => config('sfa.live_gps.stale_after_minutes'),
+            'sms_gateway_enabled' => false,
+            'sms_gateway_provider' => null,
+            'sms_gateway_api_url' => null,
+            'sms_gateway_api_key' => null,
+            'sms_gateway_sender_id' => null,
+            'sms_channel' => SmsChannel::Sms->value,
+            'collection_otp_expiry_minutes' => 10,
+            'cash_daily_limit_amount' => null,
         ];
     }
 

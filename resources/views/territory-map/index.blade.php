@@ -231,7 +231,6 @@
                     <tr>
                         <td><a href="${dealer.url}">${dealer.name}</a></td>
                         <td>${dealer.code}</td>
-                        <td>${dealer.type}</td>
                         <td>${phoneActionsHtml(dealer.phone)}</td>
                     </tr>
                 `).join('');
@@ -283,10 +282,10 @@
                     <div class="table-responsive">
                         <table class="table table-sm table-hover align-middle mb-0">
                             <thead class="table-light">
-                                <tr><th>Name</th><th>Code</th><th>Type</th><th>Phone</th></tr>
+                                <tr><th>Name</th><th>Code</th><th>Phone</th></tr>
                             </thead>
                             <tbody>
-                                ${rows || '<tr><td colspan="4" class="text-center text-muted py-3">No dealers in this territory yet.</td></tr>'}
+                                ${rows || '<tr><td colspan="3" class="text-center text-muted py-3">No dealers in this territory yet.</td></tr>'}
                             </tbody>
                         </table>
                     </div>

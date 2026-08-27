@@ -71,14 +71,15 @@ cd docs/postman
 npx newman run "Gazi_Pump_SFA.postman_collection.json" -e "Gazi_Pump_SFA.postman_environment.json" --working-dir .
 ```
 
-`--working-dir .` is required so the four photo-upload requests (Attendance
-and Visit check-in/out) can resolve their file field against
-`docs/postman/fixtures/sample-photo.jpg` — a genuine minimal JPEG committed for
-exactly this purpose, since Postman/Newman can't send a `type: file` form-data
-field without a real file to attach. The collection is safe to re-run against
-the same seeded database repeatedly: `Register Customer`'s `customer_code`
-uses Postman's `{{$timestamp}}` dynamic variable rather than a fixed string,
-so it never collides with a customer created by a previous run.
+`--working-dir .` is required so the photo-upload requests (Attendance,
+Visit check-in/out, and the cheque-image field on Record Collection) can
+resolve their file field against `docs/postman/fixtures/sample-photo.jpg` —
+a genuine minimal JPEG committed for exactly this purpose, since
+Postman/Newman can't send a `type: file` form-data field without a real file
+to attach. The collection is safe to re-run against the same seeded database
+repeatedly: `Register Dealer`'s `dealer_code` uses Postman's `{{$timestamp}}`
+dynamic variable rather than a fixed string, so it never collides with a
+dealer created by a previous run.
 
 ## Module 18 — API/Docs finalization
 
@@ -113,3 +114,68 @@ requests manually, never the whole collection run start-to-finish):
 All 35 requests now pass on a clean run. `php artisan test` (334 tests) and
 `./vendor/bin/pint` remain green — this pass only touched `docs/postman/*`,
 no application code.
+
+## Post-launch sync — Approval layer + drift correction
+
+The collection had drifted badly out of sync with the API since Module 20:
+several modules later in the project renamed `customer_id` → `dealer_id`
+and the `sales-entries` endpoint group → `orders` (Dealer/Order rename),
+dropped the `type` column from dealers entirely, and added the OTP-secured
+collection flow (`POST /collection-entries/send-otp`, plus `otp_id`/
+`otp_code` on `Record Collection`) and the dealer outstanding-balance
+endpoint — none of which had ever been reflected back into
+`docs/postman/*`, only into the Swagger spec. Re-audited every
+`Api/V1` controller and its `FormRequest` directly (the source of truth,
+not the previously-drifted Postman collection) and rebuilt the collection
+to match exactly:
+
+- `Sales Entries` folder renamed to `Orders`, pointed at `/orders`, body
+  fields renamed `customer_id` → `dealer_id`, `sale_date` → `order_date`.
+- `Plan Visit` and `Check In Visit` bodies renamed `customer_id` →
+  `dealer_id`.
+- `Register Dealer`'s body and `List Dealers`' query no longer send/accept
+  a `type` field — the column was dropped from the `dealers` table.
+- Added `Dealer Outstanding Balance` (`GET /dealers/{id}/outstanding-balance`).
+- Added `Send Collection OTP` (`POST /collection-entries/send-otp`), whose
+  test script captures `otp_id` into a new `otp_id` collection/environment
+  variable; `Record Collection` switched from a raw JSON body to
+  `multipart/form-data` (it always could accept a `cheque_image` file, this
+  was simply never modeled) and gained `reference_no`, `cheque_image`,
+  `otp_id`, `otp_code` fields.
+- `My Order History` and `My Collection History` gained the `status`
+  (`pending|approved|rejected`) filter added alongside the approval-layer
+  feature, mirrored from the same query param now in the Swagger spec.
+- Added the `otp_id` variable to both environment files.
+
+38 requests now cover all 38 registered `api/v1/*` routes (including
+`/ping`) with zero gaps, verified by direct diff against
+`php artisan route:list --path=api` and each endpoint's actual
+`FormRequest` validation rules rather than against the (until now, stale)
+Swagger annotations.
+
+## Retailers endpoint + Order retailer_id
+
+Retailers had a full web admin CRUD (with dealer-filtered picker on the
+Order create/edit form, client-side) but no mobile API surface at all, and
+`POST /orders` had no `retailer_id` input either — a Sales Executive
+placing an order via the app had no way to attribute it to one of the
+dealer's own retailers, only the dealer itself.
+
+- Added `GET /retailers` (filters: `dealer_id`, `search`, `per_page` —
+  `status` is forced to active server-side, same as `/dealers` and
+  `/products`) and `GET /retailers/{id}`, gated by `RetailerPolicy` /
+  `retailers.view` + `api.retailers.view` (granted to Sales Executive).
+  `RetailerRepository::paginateWithFilters()` already supported a
+  `dealer_id` filter from its web admin use — the API layer just needed to
+  expose it.
+- Added `retailer_id` (nullable, must exist in `retailers`) to
+  `POST /orders`'s `StoreOrderRequest` and `OrderService::recordOrder()`;
+  `OrderResource` now returns a `retailer` object alongside `dealer` when
+  the relation is loaded (mirrors `dealer`'s shape/loading behavior
+  exactly — same `whenLoaded()` gate, so it appears on `GET /orders` but
+  not on the `POST /orders` create response, same as `dealer` already
+  didn't).
+- Swagger regenerated; Postman collection got a new `Retailers` folder
+  (`List Retailers`, `Get Retailer`) and `Record Order`'s body gained
+  `retailer_id`. Verified end-to-end with Newman (40/40 requests passing)
+  and a direct authenticated request against `GET /retailers/{id}`.

@@ -8,6 +8,12 @@
     <a href="{{ route('portal.payments.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('portal.payments.*') ? 'active' : '' }}">
         <i class="ti ti-cash me-2 text-amber"></i>Payments
     </a>
+    <a href="{{ route('portal.notifications.index') }}" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between {{ request()->routeIs('portal.notifications.*') ? 'active' : '' }}">
+        <span><i class="ti ti-bell me-2 text-danger"></i>Notifications</span>
+        @if (($unreadNotificationsCount ?? 0) > 0)
+            <span class="badge rounded-pill text-bg-danger">{{ $unreadNotificationsCount > 9 ? '9+' : $unreadNotificationsCount }}</span>
+        @endif
+    </a>
     <a href="{{ route('portal.profile.edit') }}" class="list-group-item list-group-item-action {{ request()->routeIs('portal.profile.*') ? 'active' : '' }}">
         <i class="ti ti-user-circle me-2 text-info"></i>My Profile
     </a>

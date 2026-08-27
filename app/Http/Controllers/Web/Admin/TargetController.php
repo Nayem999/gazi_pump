@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreTargetRequest;
 use App\Http\Requests\Admin\UpdateTargetRequest;
 use App\Imports\TargetsImport;
+use App\Models\Product;
 use App\Models\Target;
 use App\Models\User;
 use App\Services\TargetService;
@@ -33,12 +34,13 @@ class TargetController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('create', Target::class);
 
         return view('targets.create', [
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
+            'products' => Product::where('status', true)->visibleTo($request->user())->orderBy('name')->get(),
         ]);
     }
 
@@ -54,17 +56,22 @@ class TargetController extends Controller
         $this->authorize('view', $target);
 
         return view('targets.show', [
-            'target' => $target->load(['user', 'achievement']),
+            'target' => $target->load(['user', 'achievement', 'items.product']),
         ]);
     }
 
-    public function edit(Target $target): View
+    public function edit(Request $request, Target $target): View
     {
         $this->authorize('update', $target);
+
+        $target->load('items');
 
         return view('targets.edit', [
             'target' => $target,
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
+            'products' => Product::where('status', true)->visibleTo($request->user())
+                ->orWhereIn('id', $target->items->pluck('product_id'))
+                ->orderBy('name')->get(),
         ]);
     }
 

@@ -31,6 +31,15 @@
             </select>
         </div>
         <div class="col-md-2">
+            <label class="form-label">Approval</label>
+            <select name="status" class="form-select">
+                <option value="">All</option>
+                @foreach (\App\Enums\ApprovalStatus::cases() as $status)
+                    <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-2">
             <label class="form-label">From</label>
             <input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] ?? '' }}">
         </div>
@@ -62,6 +71,7 @@
                     <th>Items</th>
                     <th>Order Date</th>
                     <th>Total</th>
+                    <th>Approval</th>
                     <th class="text-end">Actions</th>
                 </tr>
             </x-slot:thead>
@@ -94,6 +104,7 @@
                     </td>
                     <td>{{ $order->order_date->format('M d, Y') }}</td>
                     <td>{{ number_format((float) $order->total_amount, 2) }}</td>
+                    <td><span class="badge text-bg-{{ $order->status->badgeColor() }}">{{ $order->status->label() }}</span></td>
                     <td class="text-end">
                         <div class="btn-group btn-group-sm">
                             @if ($order->trashed())
@@ -117,6 +128,20 @@
                                 @can('update', $order)
                                     <a href="{{ route('orders.edit', $order) }}" class="btn btn-outline-primary" title="Edit"><i class="ti ti-pencil"></i></a>
                                 @endcan
+                                @if ($order->status === \App\Enums\ApprovalStatus::Pending)
+                                    @can('approve', $order)
+                                        <form method="POST" action="{{ route('orders.approve', $order) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="btn btn-outline-success" title="Approve"><i class="ti ti-check"></i></button>
+                                        </form>
+                                        <form method="POST" action="{{ route('orders.reject', $order) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="btn btn-outline-danger" title="Reject"><i class="ti ti-x"></i></button>
+                                        </form>
+                                    @endcan
+                                @endif
                                 @can('delete', $order)
                                     <form method="POST" action="{{ route('orders.destroy', $order) }}" data-confirm data-confirm-title="Move this record to trash?">
                                         @csrf
@@ -130,7 +155,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-4">No orders found.</td>
+                    <td colspan="9" class="text-center text-muted py-4">No orders found.</td>
                 </tr>
             @endforelse
 
@@ -143,8 +168,8 @@
                             :title="$order->dealer?->name"
                             :title-url="$order->dealer && ! $order->dealer->trashed() ? route('dealers.show', $order->dealer) : null"
                             :subtitle="$order->items->count().' item(s)'"
-                            :status-label="$order->trashed() ? 'Trashed' : null"
-                            status-color="danger"
+                            :status-label="$order->trashed() ? 'Trashed' : $order->status->label()"
+                            :status-color="$order->trashed() ? 'danger' : $order->status->badgeColor()"
                         >
                             <x-slot:meta>
                                 <div>Executive: {{ $order->user?->name }} &middot; <x-phone-actions :phone="$order->user?->phone" /></div>
@@ -181,6 +206,20 @@
                                     @can('update', $order)
                                         <a href="{{ route('orders.edit', $order) }}" class="btn btn-outline-primary" title="Edit"><i class="ti ti-pencil"></i></a>
                                     @endcan
+                                    @if ($order->status === \App\Enums\ApprovalStatus::Pending)
+                                        @can('approve', $order)
+                                            <form method="POST" action="{{ route('orders.approve', $order) }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-outline-success" title="Approve"><i class="ti ti-check"></i></button>
+                                            </form>
+                                            <form method="POST" action="{{ route('orders.reject', $order) }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-outline-danger" title="Reject"><i class="ti ti-x"></i></button>
+                                            </form>
+                                        @endcan
+                                    @endif
                                     @can('delete', $order)
                                         <form method="POST" action="{{ route('orders.destroy', $order) }}" data-confirm data-confirm-title="Move this record to trash?">
                                             @csrf

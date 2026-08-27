@@ -68,6 +68,18 @@
                         </select>
                         @error('audience_user_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
+
+                    <div class="col-md-6 audience-field" data-audience="dealer">
+                        <label class="form-label">Dealer</label>
+                        <select name="audience_dealer_id" class="form-select @error('audience_dealer_id') is-invalid @enderror">
+                            <option value="">— Select —</option>
+                            @foreach ($dealers as $dealer)
+                                <option value="{{ $dealer->id }}" @selected((string) old('audience_dealer_id') === (string) $dealer->id)>{{ $dealer->name }} ({{ $dealer->dealer_code }})</option>
+                            @endforeach
+                        </select>
+                        <div class="form-text">Only reaches dealers with a linked customer portal account.</div>
+                        @error('audience_dealer_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
                 </div>
 
                 <div class="mt-4 d-flex gap-2">

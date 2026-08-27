@@ -50,6 +50,7 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
             ->when($filters['product_id'] ?? null, function ($query, $productId) {
                 $query->whereHas('items', fn ($q) => $q->where('product_id', $productId));
             })
+            ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->when($filters['date_from'] ?? null, fn ($query, $date) => $query->whereDate('order_date', '>=', $date))
             ->when($filters['date_to'] ?? null, fn ($query, $date) => $query->whereDate('order_date', '<=', $date))
             ->when($filters['trashed'] ?? null, function ($query, $trashed) {

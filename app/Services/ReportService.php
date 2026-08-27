@@ -151,7 +151,7 @@ class ReportService
     }
 
     /**
-     * @param  array{date_from?: string, date_to?: string, user_id?: string, territory_id?: string}  $filters
+     * @param  array{date_from?: string, date_to?: string, user_id?: string, territory_id?: string, status?: string}  $filters
      */
     public function orderPerformance(array $filters): Collection
     {
@@ -163,6 +163,7 @@ class ReportService
             ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereHas(
                 'user.territories', fn (Builder $t) => $t->whereIn('territories.id', (array) $territoryId)
             ))
+            ->when($filters['status'] ?? null, fn (Builder $q, $status) => $q->where('status', $status))
             ->selectRaw('user_id, COUNT(*) as order_count, SUM(total_amount) as total_order_value')
             ->groupBy('user_id')
             ->get();
@@ -174,6 +175,7 @@ class ReportService
             ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereHas(
                 'order.user.territories', fn (Builder $t) => $t->whereIn('territories.id', (array) $territoryId)
             ))
+            ->when($filters['status'] ?? null, fn (Builder $q, $status) => $q->where('orders.status', $status))
             ->selectRaw('orders.user_id as user_id, SUM(order_items.quantity) as total_quantity')
             ->groupBy('orders.user_id')
             ->pluck('total_quantity', 'user_id');
@@ -189,7 +191,7 @@ class ReportService
     }
 
     /**
-     * @param  array{date_from?: string, date_to?: string, user_id?: string, territory_id?: string}  $filters
+     * @param  array{date_from?: string, date_to?: string, user_id?: string, territory_id?: string, status?: string}  $filters
      */
     public function collectionSummary(array $filters): Collection
     {
@@ -201,6 +203,7 @@ class ReportService
             ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereHas(
                 'user.territories', fn (Builder $t) => $t->whereIn('territories.id', (array) $territoryId)
             ))
+            ->when($filters['status'] ?? null, fn (Builder $q, $status) => $q->where('status', $status))
             ->selectRaw(
                 'user_id,
                 COUNT(*) as collections_count,

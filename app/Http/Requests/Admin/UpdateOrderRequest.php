@@ -22,6 +22,7 @@ class UpdateOrderRequest extends FormRequest
         return [
             'user_id' => ['required', 'integer', Rule::exists('users', 'id')],
             'dealer_id' => ['required', 'integer', Rule::exists('dealers', 'id')],
+            'retailer_id' => ['nullable', 'integer', Rule::exists('retailers', 'id')],
             'order_date' => ['required', 'date'],
             'remarks' => ['nullable', 'string', 'max:1000'],
             'items' => ['required', 'array', 'min:1'],

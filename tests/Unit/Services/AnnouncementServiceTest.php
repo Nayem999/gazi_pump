@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use App\Enums\AnnouncementAudience;
+use App\Models\CustomerAccount;
+use App\Models\Dealer;
 use App\Models\Territory;
 use App\Models\User;
 use App\Services\AnnouncementService;
@@ -111,5 +113,50 @@ class AnnouncementServiceTest extends TestCase
         $this->assertSame(1, $announcement->recipient_count);
         $this->assertCount(1, $target->fresh()->notifications);
         $this->assertCount(0, $other->fresh()->notifications);
+    }
+
+    public function test_sending_to_a_single_dealer_only_notifies_that_dealers_linked_account(): void
+    {
+        $sender = User::factory()->create();
+        $targetDealer = Dealer::factory()->create();
+        $targetAccount = CustomerAccount::factory()->create(['dealer_id' => $targetDealer->id]);
+        $otherDealer = Dealer::factory()->create();
+        $otherAccount = CustomerAccount::factory()->create(['dealer_id' => $otherDealer->id]);
+
+        $announcement = $this->service()->send($sender, [
+            'title' => 'For one dealer',
+            'message' => 'Hello dealer',
+            'audience' => AnnouncementAudience::Dealer->value,
+            'audience_role' => null,
+            'audience_territory_id' => null,
+            'audience_user_id' => null,
+            'audience_dealer_id' => $targetDealer->id,
+        ]);
+
+        $this->assertSame(1, $announcement->recipient_count);
+        $this->assertCount(1, $targetAccount->fresh()->notifications);
+        $this->assertCount(0, $otherAccount->fresh()->notifications);
+    }
+
+    public function test_sending_to_all_dealers_notifies_every_linked_customer_account(): void
+    {
+        $sender = User::factory()->create();
+        $dealer = Dealer::factory()->create();
+        $linkedAccount = CustomerAccount::factory()->create(['dealer_id' => $dealer->id]);
+        $unlinkedAccount = CustomerAccount::factory()->create(['dealer_id' => null]);
+
+        $announcement = $this->service()->send($sender, [
+            'title' => 'For every dealer',
+            'message' => 'Hello dealers',
+            'audience' => AnnouncementAudience::AllDealers->value,
+            'audience_role' => null,
+            'audience_territory_id' => null,
+            'audience_user_id' => null,
+            'audience_dealer_id' => null,
+        ]);
+
+        $this->assertSame(1, $announcement->recipient_count);
+        $this->assertCount(1, $linkedAccount->fresh()->notifications);
+        $this->assertCount(0, $unlinkedAccount->fresh()->notifications);
     }
 }

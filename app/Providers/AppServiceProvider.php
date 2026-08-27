@@ -63,6 +63,16 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
+        // Same idea for the customer portal's account sidebar — the badge
+        // next to "Notifications" there, keyed off the 'customer' guard
+        // instead of the default one.
+        View::composer('layouts.portal-account', function ($view): void {
+            if ($account = Auth::guard('customer')->user()) {
+                $notifications = app(NotificationService::class);
+                $view->with('unreadNotificationsCount', $notifications->unreadCount($account));
+            }
+        });
+
         // The uploaded company logo (Settings module) replaces the default
         // truck icon on the admin sidebar brand, the login page, and the
         // customer portal's nav brand.

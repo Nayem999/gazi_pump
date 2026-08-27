@@ -42,7 +42,6 @@
     <table class="data">
         <tr><th>Dealer Code</th><td>{{ $dealer->dealer_code }}</td></tr>
         <tr><th>Name</th><td>{{ $dealer->name }}</td></tr>
-        <tr><th>Type</th><td>{{ $dealer->type->label() }}</td></tr>
         <tr><th>Phone</th><td>{{ $dealer->phone }}</td></tr>
         <tr><th>Email</th><td>{{ $dealer->email ?? '—' }}</td></tr>
         <tr><th>Address</th><td>{{ $dealer->address ?? '—' }}</td></tr>

@@ -26,6 +26,10 @@ class OrderResource extends JsonResource
                 'name' => $this->dealer->name,
                 'dealer_code' => $this->dealer->dealer_code,
             ] : null),
+            'retailer' => $this->whenLoaded('retailer', fn () => $this->retailer ? [
+                'id' => $this->retailer->id,
+                'name' => $this->retailer->name,
+            ] : null),
             'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($item) => [
                 'id' => $item->id,
                 'product' => $item->relationLoaded('product') && $item->product ? [
@@ -40,6 +44,8 @@ class OrderResource extends JsonResource
             ])),
             'total_amount' => (float) $this->total_amount,
             'remarks' => $this->remarks,
+            'status' => $this->status->value,
+            'status_label' => $this->status->label(),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

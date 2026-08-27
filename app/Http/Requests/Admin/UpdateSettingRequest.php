@@ -6,6 +6,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Enums\DayOfWeek;
 use App\Enums\PerformanceGrade;
+use App\Enums\SmsChannel;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -55,6 +56,16 @@ class UpdateSettingRequest extends FormRequest
             'target_reminder_min_pct' => ['required', 'numeric', 'min:0', 'max:100'],
 
             'live_gps_stale_after_minutes' => ['required', 'integer', 'min:1', 'max:1440'],
+
+            'sms_gateway_enabled' => ['boolean'],
+            'sms_gateway_provider' => ['nullable', 'string', 'max:255'],
+            'sms_gateway_api_url' => ['nullable', 'url', 'max:500', Rule::requiredIf(fn () => $this->boolean('sms_gateway_enabled'))],
+            'sms_gateway_api_key' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn () => $this->boolean('sms_gateway_enabled'))],
+            'sms_gateway_sender_id' => ['nullable', 'string', 'max:50'],
+            'sms_channel' => ['required', Rule::enum(SmsChannel::class)],
+            'collection_otp_expiry_minutes' => ['required', 'integer', 'min:1', 'max:60'],
+
+            'cash_daily_limit_amount' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 

@@ -18,7 +18,7 @@ class TargetRepository extends BaseRepository implements TargetRepositoryInterfa
     public function paginateWithFilters(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         return $this->query()
-            ->with(['user', 'achievement'])
+            ->with(['user', 'achievement', 'items'])
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->whereHas('user', function ($inner) use ($search) {
                     $inner->where('name', 'like', "%{$search}%")->orWhere('employee_id', 'like', "%{$search}%");

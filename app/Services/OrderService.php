@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\ApprovalStatus;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -22,7 +23,7 @@ class OrderService extends BaseCrudService
     }
 
     /**
-     * @param  array{search?: string, user_id?: string, dealer_id?: string, territory_id?: string, product_id?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
+     * @param  array{search?: string, user_id?: string, dealer_id?: string, territory_id?: string, product_id?: string, status?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
      */
     public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
     {
@@ -30,7 +31,7 @@ class OrderService extends BaseCrudService
     }
 
     /**
-     * @param  array{search?: string, user_id?: string, dealer_id?: string, territory_id?: string, product_id?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
+     * @param  array{search?: string, user_id?: string, dealer_id?: string, territory_id?: string, product_id?: string, status?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
      */
     public function total(array $filters): float
     {
@@ -44,6 +45,7 @@ class OrderService extends BaseCrudService
     {
         $items = $data['items'];
         unset($data['items']);
+        $data['status'] ??= ApprovalStatus::Pending->value;
 
         return DB::transaction(function () use ($data, $items) {
             $lines = $this->buildLines($items);
@@ -55,6 +57,38 @@ class OrderService extends BaseCrudService
 
             return $order->load('items.product');
         });
+    }
+
+    /**
+     * Forward-only, mirroring CashHandoverService::confirm()/reject(): only
+     * a Pending order can be approved or rejected, and both are terminal —
+     * a rejected order is corrected and resubmitted, not reopened here.
+     */
+    public function approve(Order $order, int $approverId): Order
+    {
+        $this->assertPending($order);
+
+        $order->update(['status' => ApprovalStatus::Approved->value, 'approved_by' => $approverId, 'approved_at' => now()]);
+
+        return $order->fresh();
+    }
+
+    public function reject(Order $order, int $approverId): Order
+    {
+        $this->assertPending($order);
+
+        $order->update(['status' => ApprovalStatus::Rejected->value, 'approved_by' => $approverId, 'approved_at' => now()]);
+
+        return $order->fresh();
+    }
+
+    private function assertPending(Order $order): void
+    {
+        if ($order->status !== ApprovalStatus::Pending) {
+            throw ValidationException::withMessages([
+                'status' => 'This order has already been '.$order->status->label().' and cannot be changed.',
+            ]);
+        }
     }
 
     /**
@@ -85,7 +119,7 @@ class OrderService extends BaseCrudService
      *
      * @param  array<int, array{product_id: int, quantity: int, discount_amount?: float}>  $items
      */
-    public function recordOrder(User $user, int $dealerId, array $items, ?string $orderDate, ?string $remarks): Order
+    public function recordOrder(User $user, int $dealerId, array $items, ?string $orderDate, ?string $remarks, ?int $retailerId = null): Order
     {
         $itemsWithPrice = array_map(function (array $item) {
             $product = Product::findOrFail($item['product_id']);
@@ -102,6 +136,7 @@ class OrderService extends BaseCrudService
         $entry = $this->create([
             'user_id' => $user->id,
             'dealer_id' => $dealerId,
+            'retailer_id' => $retailerId,
             'order_date' => $orderDate ?? Carbon::today()->toDateString(),
             'remarks' => $remarks,
             'items' => $itemsWithPrice,

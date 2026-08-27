@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Admin;
 
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\Target;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -145,6 +146,89 @@ class TargetManagementTest extends TestCase
         $target = Target::factory()->create();
 
         $this->actingAs($manager)->delete(route('targets.destroy', $target))->assertForbidden();
+    }
+
+    public function test_a_product_wise_target_sums_into_the_overall_target_fields(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $productA = Product::factory()->create();
+        $productB = Product::factory()->create();
+
+        $response = $this->actingAs($manager)->post(route('targets.store'), [
+            'user_id' => $executive->id,
+            'month' => 8,
+            'year' => 2026,
+            'mode' => 'product_wise',
+            'product_targets' => [
+                ['product_id' => $productA->id, 'order_target' => 60000, 'collection_target' => 30000, 'quantity_target' => 60],
+                ['product_id' => $productB->id, 'order_target' => 40000, 'collection_target' => 20000, 'quantity_target' => 40],
+            ],
+        ]);
+
+        $response->assertRedirect(route('targets.index'));
+
+        $target = Target::where('user_id', $executive->id)->firstOrFail();
+        $this->assertSame(100000.0, (float) $target->order_value_target);
+        $this->assertSame(50000.0, (float) $target->collection_target);
+        $this->assertSame(100, $target->quantity_target);
+        $this->assertCount(2, $target->items);
+        $this->assertTrue($target->isProductWise());
+    }
+
+    public function test_a_product_wise_target_requires_at_least_one_product_row(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+
+        $this->actingAs($manager)->post(route('targets.store'), [
+            'user_id' => $executive->id,
+            'month' => 8,
+            'year' => 2026,
+            'mode' => 'product_wise',
+        ])->assertSessionHasErrors('product_targets');
+    }
+
+    public function test_the_same_product_cannot_appear_twice_in_a_product_wise_target(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $product = Product::factory()->create();
+
+        $this->actingAs($manager)->post(route('targets.store'), [
+            'user_id' => $executive->id,
+            'month' => 8,
+            'year' => 2026,
+            'mode' => 'product_wise',
+            'product_targets' => [
+                ['product_id' => $product->id, 'order_target' => 10000, 'collection_target' => 5000, 'quantity_target' => 10],
+                ['product_id' => $product->id, 'order_target' => 20000, 'collection_target' => 10000, 'quantity_target' => 20],
+            ],
+        ])->assertSessionHasErrors('product_targets.0.product_id');
+    }
+
+    public function test_switching_a_target_from_product_wise_back_to_single_clears_the_breakdown(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $product = Product::factory()->create();
+        $target = Target::factory()->create(['user_id' => $executive->id, 'month' => 8, 'year' => 2026]);
+        $target->items()->create(['product_id' => $product->id, 'order_target' => 1000, 'collection_target' => 500, 'quantity_target' => 10]);
+
+        $this->actingAs($manager)->put(route('targets.update', $target), [
+            'user_id' => $executive->id,
+            'month' => 8,
+            'year' => 2026,
+            'mode' => 'single',
+            'order_value_target' => 5000,
+            'collection_target' => 2500,
+            'quantity_target' => 50,
+        ])->assertRedirect(route('targets.index'));
+
+        $target->refresh();
+        $this->assertCount(0, $target->items);
+        $this->assertFalse($target->isProductWise());
+        $this->assertSame(5000.0, (float) $target->order_value_target);
     }
 
     public function test_territory_manager_can_assign_a_target_to_their_team(): void

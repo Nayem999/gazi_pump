@@ -20,7 +20,6 @@
                     <h5 class="mb-0">{{ $dealer->name }}</h5>
                     <div class="text-muted">{{ $dealer->dealer_code }}</div>
                     <div class="mt-2">
-                        <span class="badge text-bg-{{ $dealer->type->badgeColor() }}">{{ $dealer->type->label() }}</span>
                         <span class="badge text-bg-{{ $dealer->status ? 'success' : 'secondary' }}">
                             {{ $dealer->status ? 'Active' : 'Inactive' }}
                         </span>

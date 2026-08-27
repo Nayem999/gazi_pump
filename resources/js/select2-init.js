@@ -1,7 +1,7 @@
 /**
  * Turns every entity-picker <select> across the admin app into a searchable
  * Select2 dropdown — division/district/thana/territory (the geo hierarchy),
- * dealer, and user (covers manager, sales executive, and activity-log
+ * dealer, retailer, and user (covers manager, sales executive, and activity-log
  * "causer" pickers, since they're all just `<select name="user_id">` /
  * `<select name="manager_id">` under different labels). Matched by `name`
  * (and a couple of known `id`s for the handful of cascade-only selects that
@@ -38,6 +38,7 @@ function initSelect2() {
         'select[name="territory_id"]',
         'select[name="territory_ids[]"]',
         'select[name="dealer_id"]',
+        'select[name="retailer_id"]',
         'select[name="manager_id"]',
         'select[name="user_id"]',
         'select[name="causer_id"]',

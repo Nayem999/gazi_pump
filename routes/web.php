@@ -6,6 +6,7 @@ use App\Http\Controllers\Web\Admin\ActivityLogController;
 use App\Http\Controllers\Web\Admin\AnnouncementController;
 use App\Http\Controllers\Web\Admin\AttendanceController;
 use App\Http\Controllers\Web\Admin\BrochureController;
+use App\Http\Controllers\Web\Admin\CashHandoverController;
 use App\Http\Controllers\Web\Admin\CollectionEntryController;
 use App\Http\Controllers\Web\Admin\DashboardController;
 use App\Http\Controllers\Web\Admin\DealerController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\Web\Admin\ProductController;
 use App\Http\Controllers\Web\Admin\ProfileController;
 use App\Http\Controllers\Web\Admin\PromotionController;
 use App\Http\Controllers\Web\Admin\ReportController;
+use App\Http\Controllers\Web\Admin\RetailerController;
 use App\Http\Controllers\Web\Admin\RoleController;
 use App\Http\Controllers\Web\Admin\SalesTeamController;
 use App\Http\Controllers\Web\Admin\ServiceCenterController;
@@ -154,6 +156,7 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
     $registerManagementRoutes('dealers', DealerController::class, withShow: true);
     Route::get('/dealers-options', [DealerController::class, 'options'])->name('dealers.options');
     Route::get('/dealers/{dealer}/pdf', [DealerController::class, 'downloadPdf'])->name('dealers.download-pdf');
+    $registerManagementRoutes('retailers', RetailerController::class);
     $registerManagementRoutes('product-categories', ProductCategoryController::class);
     $registerManagementRoutes('products', ProductController::class);
 
@@ -270,6 +273,8 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
         Route::get('/{order}/pdf', [OrderController::class, 'downloadPdf'])->name('download-pdf');
         Route::get('/{order}/edit', [OrderController::class, 'edit'])->name('edit');
         Route::put('/{order}', [OrderController::class, 'update'])->name('update');
+        Route::patch('/{order}/approve', [OrderController::class, 'approve'])->name('approve');
+        Route::patch('/{order}/reject', [OrderController::class, 'reject'])->name('reject');
         Route::delete('/{order}', [OrderController::class, 'destroy'])->name('destroy');
     });
 
@@ -282,6 +287,7 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
     Route::prefix('collection-entries')->name('collection-entries.')->group(function (): void {
         Route::get('/', [CollectionEntryController::class, 'index'])->name('index');
         Route::get('/create', [CollectionEntryController::class, 'create'])->name('create');
+        Route::post('/send-otp', [CollectionEntryController::class, 'sendOtp'])->name('send-otp');
         Route::post('/', [CollectionEntryController::class, 'store'])->name('store');
         Route::get('/export', [CollectionEntryController::class, 'export'])->name('export');
         Route::post('/import', [CollectionEntryController::class, 'import'])->name('import');
@@ -294,7 +300,27 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
         Route::get('/{collection_entry}/pdf', [CollectionEntryController::class, 'downloadPdf'])->name('download-pdf');
         Route::get('/{collection_entry}/edit', [CollectionEntryController::class, 'edit'])->name('edit');
         Route::put('/{collection_entry}', [CollectionEntryController::class, 'update'])->name('update');
+        Route::patch('/{collection_entry}/cheque-status', [CollectionEntryController::class, 'updateChequeStatus'])->name('cheque-status');
+        Route::patch('/{collection_entry}/approve', [CollectionEntryController::class, 'approve'])->name('approve');
+        Route::patch('/{collection_entry}/reject', [CollectionEntryController::class, 'reject'])->name('reject');
         Route::delete('/{collection_entry}', [CollectionEntryController::class, 'destroy'])->name('destroy');
+    });
+
+    /**
+     * Cash handovers have a Pending -> Confirmed|Rejected lifecycle instead
+     * of a boolean status, and no edit form (a wrong entry is deleted and
+     * re-recorded, not corrected in place) — so this gets its own route
+     * block instead of $registerManagementRoutes.
+     */
+    Route::prefix('cash-handovers')->name('cash-handovers.')->group(function (): void {
+        Route::get('/', [CashHandoverController::class, 'index'])->name('index');
+        Route::get('/create', [CashHandoverController::class, 'create'])->name('create');
+        Route::post('/', [CashHandoverController::class, 'store'])->name('store');
+        Route::post('/{id}/restore', [CashHandoverController::class, 'restore'])->whereNumber('id')->name('restore');
+        Route::get('/{cash_handover}', [CashHandoverController::class, 'show'])->name('show');
+        Route::patch('/{cash_handover}/confirm', [CashHandoverController::class, 'confirm'])->name('confirm');
+        Route::patch('/{cash_handover}/reject', [CashHandoverController::class, 'reject'])->name('reject');
+        Route::delete('/{cash_handover}', [CashHandoverController::class, 'destroy'])->name('destroy');
     });
 
     /**

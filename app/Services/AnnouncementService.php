@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Enums\AnnouncementAudience;
 use App\Models\Announcement;
+use App\Models\CustomerAccount;
 use App\Models\User;
 use App\Notifications\AnnouncementNotification;
 use App\Repositories\Contracts\AnnouncementRepositoryInterface;
@@ -53,8 +54,13 @@ class AnnouncementService extends BaseCrudService
     }
 
     /**
+     * Recipients are either internal Users or portal CustomerAccounts —
+     * both use the Notifiable trait, so a heterogeneous collection works
+     * fine with Notification::send() even though only one audience type
+     * is ever resolved per announcement.
+     *
      * @param  array<string, mixed>  $data
-     * @return Collection<int, User>
+     * @return Collection<int, User|CustomerAccount>
      */
     private function resolveRecipients(array $data): Collection
     {
@@ -65,6 +71,11 @@ class AnnouncementService extends BaseCrudService
                 'territories', fn ($q) => $q->where('territories.id', $data['audience_territory_id'])
             )->where('status', true)->get(),
             AnnouncementAudience::User => User::where('id', $data['audience_user_id'])->get(),
+            // Only CustomerAccounts actually have a login/inbox — a Dealer
+            // CRM record with no portal account can't receive an in-app
+            // notification, so "all dealers" means every linked account.
+            AnnouncementAudience::AllDealers => CustomerAccount::whereNotNull('dealer_id')->get(),
+            AnnouncementAudience::Dealer => CustomerAccount::where('dealer_id', $data['audience_dealer_id'])->get(),
         };
     }
 }

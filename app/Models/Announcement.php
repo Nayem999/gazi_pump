@@ -21,6 +21,7 @@ class Announcement extends BaseModel
         'audience_role',
         'audience_territory_id',
         'audience_user_id',
+        'audience_dealer_id',
         'sent_by',
         'recipient_count',
     ];
@@ -48,6 +49,11 @@ class Announcement extends BaseModel
         return $this->belongsTo(User::class, 'audience_user_id');
     }
 
+    public function targetDealer(): BelongsTo
+    {
+        return $this->belongsTo(Dealer::class, 'audience_dealer_id');
+    }
+
     public function audienceLabel(): string
     {
         return match ($this->audience) {
@@ -55,6 +61,8 @@ class Announcement extends BaseModel
             AnnouncementAudience::Role => $this->audience_role ?? 'Role',
             AnnouncementAudience::Territory => $this->territory?->name ?? 'Territory',
             AnnouncementAudience::User => $this->targetUser?->name ?? 'User',
+            AnnouncementAudience::AllDealers => 'All Dealers',
+            AnnouncementAudience::Dealer => $this->targetDealer?->name ?? 'Dealer',
         };
     }
 }

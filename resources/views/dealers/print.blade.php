@@ -21,7 +21,6 @@
             <tr>
                 <th>Code</th>
                 <th>Name</th>
-                <th>Type</th>
                 <th>Phone</th>
                 <th>Division</th>
                 <th>District</th>
@@ -35,7 +34,6 @@
                 <tr>
                     <td>{{ $dealer->dealer_code }}</td>
                     <td>{{ $dealer->name }}</td>
-                    <td>{{ $dealer->type->label() }}</td>
                     <td>{{ $dealer->phone }}</td>
                     <td>{{ $dealer->division?->name }}</td>
                     <td>{{ $dealer->district?->name }}</td>

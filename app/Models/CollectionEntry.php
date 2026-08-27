@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\ApprovalStatus;
+use App\Enums\ChequeStatus;
 use App\Enums\PaymentMethod;
 use Database\Factories\CollectionEntryFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -22,7 +24,12 @@ class CollectionEntry extends BaseModel
         'payment_method',
         'reference_no',
         'cheque_image',
+        'cheque_status',
+        'otp_verified_at',
         'remarks',
+        'status',
+        'approved_by',
+        'approved_at',
     ];
 
     protected function casts(): array
@@ -31,6 +38,10 @@ class CollectionEntry extends BaseModel
             'collection_date' => 'date:Y-m-d',
             'amount' => 'decimal:2',
             'payment_method' => PaymentMethod::class,
+            'cheque_status' => ChequeStatus::class,
+            'otp_verified_at' => 'datetime',
+            'status' => ApprovalStatus::class,
+            'approved_at' => 'datetime',
         ];
     }
 
@@ -42,6 +53,11 @@ class CollectionEntry extends BaseModel
     public function dealer(): BelongsTo
     {
         return $this->belongsTo(Dealer::class);
+    }
+
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 
     public function chequeImageUrl(): ?string

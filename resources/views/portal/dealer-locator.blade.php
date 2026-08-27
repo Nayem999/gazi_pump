@@ -6,7 +6,6 @@
     @php
         $dealerPoints = $dealers->map(fn ($d) => [
             'name' => $d->name,
-            'type' => $d->type->label(),
             'address' => $d->address,
             'phone' => $d->phone,
             'territory' => $d->territory?->name,
@@ -134,7 +133,7 @@
 
             dealers.forEach(function (d) {
                 window.L.marker([d.lat, d.lng], { icon: dotIcon('#0d5aa7') })
-                    .bindPopup(`<strong>${d.name}</strong> (${d.type})<br>${d.territory ?? ''}<br>${d.address ?? ''}<br>${d.phone ?? ''}`)
+                    .bindPopup(`<strong>${d.name}</strong><br>${d.territory ?? ''}<br>${d.address ?? ''}<br>${d.phone ?? ''}`)
                     .addTo(clusters);
             });
 

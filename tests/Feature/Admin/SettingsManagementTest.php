@@ -146,6 +146,8 @@ class SettingsManagementTest extends TestCase
             'target_reminder_days_before_month_end' => 5,
             'target_reminder_min_pct' => 70,
             'live_gps_stale_after_minutes' => 30,
+            'sms_channel' => 'sms',
+            'collection_otp_expiry_minutes' => 10,
         ], $overrides);
     }
 }

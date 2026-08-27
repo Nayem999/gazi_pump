@@ -29,6 +29,11 @@
 			"key": "notification_id",
 			"value": "",
 			"type": "string"
+		},
+		{
+			"key": "otp_id",
+			"value": "",
+			"type": "string"
 		}
 	],
 	"item": [
@@ -84,7 +89,7 @@
 								"login"
 							]
 						},
-						"description": "Authenticate and receive a Sanctum API token."
+						"description": "Authenticate and receive a Sanctum API token. Rate-limited to 6 attempts/minute."
 					}
 				},
 				{
@@ -137,7 +142,7 @@
 								"ping"
 							]
 						},
-						"description": "Unauthenticated health check \u2014 confirms the API is reachable."
+						"description": "Unauthenticated health check — confirms the API is reachable."
 					}
 				}
 			]
@@ -292,7 +297,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/dealers?search=&type=&territory_id=&per_page=20",
+							"raw": "{{base_url}}/dealers?search=&territory_id=&per_page=20",
 							"host": [
 								"{{base_url}}"
 							],
@@ -306,14 +311,9 @@
 									"description": "Optional: name/code/phone"
 								},
 								{
-									"key": "type",
-									"value": "",
-									"description": "Optional: dealer|retailer|distributor"
-								},
-								{
 									"key": "territory_id",
 									"value": "",
-									"description": "Optional: defaults to the logged-in user's own territory"
+									"description": "Optional: defaults to the logged-in user's own territories"
 								},
 								{
 									"key": "per_page",
@@ -321,7 +321,7 @@
 								}
 							]
 						},
-						"description": "List dealers (defaults to the authenticated user's own territory)."
+						"description": "List active dealers (defaults to the authenticated user's own territory)."
 					}
 				},
 				{
@@ -359,7 +359,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"dealer_code\": \"DLR-{{$timestamp}}\",\n    \"name\": \"Karim Traders\",\n    \"type\": \"retailer\",\n    \"phone\": \"01712345678\",\n    \"email\": null,\n    \"address\": null,\n    \"gps_lat\": 23.8103,\n    \"gps_lng\": 90.4125,\n    \"territory_id\": null\n}",
+							"raw": "{\n    \"dealer_code\": \"DLR-{{$timestamp}}\",\n    \"name\": \"Karim Traders\",\n    \"phone\": \"01712345678\",\n    \"email\": null,\n    \"address\": null,\n    \"gps_lat\": 23.8103,\n    \"gps_lng\": 90.4125,\n    \"territory_id\": null\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -375,7 +375,97 @@
 								"dealers"
 							]
 						},
-						"description": "Register a new dealer (dealer/retailer/distributor) from the field."
+						"description": "Register a new dealer from the field. `territory_id` defaults to the authenticated user's own territory when omitted."
+					}
+				},
+				{
+					"name": "Dealer Outstanding Balance",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/dealers/1/outstanding-balance",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"dealers",
+								"1",
+								"outstanding-balance"
+							]
+						},
+						"description": "Get a dealer's outstanding balance (total ordered minus total collected)."
+					}
+				}
+			]
+		},
+		{
+			"name": "Retailers",
+			"item": [
+				{
+					"name": "List Retailers",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/retailers?dealer_id=&search=&per_page=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"retailers"
+							],
+							"query": [
+								{
+									"key": "dealer_id",
+									"value": "",
+									"description": "Optional: filter to a single dealer's retailers"
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Optional: name/phone"
+								},
+								{
+									"key": "per_page",
+									"value": "20"
+								}
+							]
+						},
+						"description": "List active retailers, optionally filtered to a single dealer — use this to populate the retailer picker when placing an order."
+					}
+				},
+				{
+					"name": "Get Retailer",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/retailers/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"retailers",
+								"1"
+							]
+						},
+						"description": "Get a single retailer."
 					}
 				}
 			]
@@ -614,7 +704,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"logs\": [\n    { \"lat\": 23.8103, \"lng\": 90.4125, \"recorded_at\": \"2026-08-03T09:20:00+06:00\", \"accuracy\": 12.5, \"speed\": 8.2, \"battery_level\": 87 },\n    { \"lat\": 23.8110, \"lng\": 90.4130, \"recorded_at\": \"2026-08-03T09:40:00+06:00\", \"accuracy\": 10.0, \"speed\": 5.0, \"battery_level\": 85 }\n  ]\n}",
+							"raw": "{\n  \"logs\": [\n    { \"lat\": 23.8103, \"lng\": 90.4125, \"recorded_at\": \"2026-08-27T09:20:00+06:00\", \"accuracy\": 12.5, \"speed\": 8.2, \"battery_level\": 87 },\n    { \"lat\": 23.8110, \"lng\": 90.4130, \"recorded_at\": \"2026-08-27T09:40:00+06:00\", \"accuracy\": 10.0, \"speed\": 5.0, \"battery_level\": 85 }\n  ]\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -630,7 +720,7 @@
 								"gps-logs"
 							]
 						},
-						"description": "Ingest a batch of GPS pings (1 or more) for the authenticated user."
+						"description": "Ingest a batch of 1–200 GPS pings for the authenticated user."
 					}
 				},
 				{
@@ -660,7 +750,7 @@
 								}
 							]
 						},
-						"description": "Get the authenticated user's own GPS trail for a date."
+						"description": "Get the authenticated user's own GPS trail for a date, plus a computed distance_km."
 					}
 				}
 			]
@@ -680,7 +770,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"customer_id\": 1,\n  \"planned_date\": \"2026-08-05\",\n  \"notes\": \"Follow up on last order.\"\n}",
+							"raw": "{\n  \"dealer_id\": 1,\n  \"planned_date\": \"2026-08-28\",\n  \"notes\": \"Follow up on last order.\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -696,7 +786,7 @@
 								"visit-plans"
 							]
 						},
-						"description": "Plan a visit to a customer for a given date."
+						"description": "Plan a visit to a dealer for a given date. Always created with status \"planned\"."
 					}
 				},
 				{
@@ -710,7 +800,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/visit-plans?date_from=&date_to=",
+							"raw": "{{base_url}}/visit-plans?date_from=&date_to=&per_page=20",
 							"host": [
 								"{{base_url}}"
 							],
@@ -727,6 +817,10 @@
 									"key": "date_to",
 									"value": "",
 									"description": "Optional: YYYY-MM-DD"
+								},
+								{
+									"key": "per_page",
+									"value": "20"
 								}
 							]
 						},
@@ -752,14 +846,15 @@
 							"mode": "formdata",
 							"formdata": [
 								{
-									"key": "customer_id",
+									"key": "dealer_id",
 									"value": "1",
 									"type": "text"
 								},
 								{
 									"key": "visit_plan_id",
 									"value": "",
-									"type": "text"
+									"type": "text",
+									"description": "Optional: link to a planned visit"
 								},
 								{
 									"key": "lat",
@@ -788,7 +883,7 @@
 								"check-in"
 							]
 						},
-						"description": "Check in to a customer visit with GPS + photo."
+						"description": "Check in to a dealer visit with GPS + photo. Response includes is_gps_verified against the dealer's registered location."
 					}
 				},
 				{
@@ -822,7 +917,8 @@
 								{
 									"key": "photo",
 									"type": "file",
-									"src": "fixtures/sample-photo.jpg"
+									"src": "fixtures/sample-photo.jpg",
+									"description": "Optional on check-out"
 								}
 							]
 						},
@@ -873,7 +969,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/visits/history?date_from=&date_to=",
+							"raw": "{{base_url}}/visits/history?date_from=&date_to=&per_page=20",
 							"host": [
 								"{{base_url}}"
 							],
@@ -891,6 +987,10 @@
 									"key": "date_to",
 									"value": "",
 									"description": "Optional: YYYY-MM-DD"
+								},
+								{
+									"key": "per_page",
+									"value": "20"
 								}
 							]
 						},
@@ -900,10 +1000,10 @@
 			]
 		},
 		{
-			"name": "Sales Entries",
+			"name": "Orders",
 			"item": [
 				{
-					"name": "Record Sale",
+					"name": "Record Order",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -914,7 +1014,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"customer_id\": 1,\n  \"sale_date\": \"2026-08-04\",\n  \"remarks\": \"Restocked shelf display.\",\n  \"items\": [\n    { \"product_id\": 1, \"quantity\": 4, \"discount_amount\": 0 },\n    { \"product_id\": 2, \"quantity\": 2, \"discount_amount\": 0 }\n  ]\n}",
+							"raw": "{\n  \"dealer_id\": 1,\n  \"retailer_id\": null,\n  \"order_date\": \"2026-08-27\",\n  \"remarks\": \"Restocked shelf display.\",\n  \"items\": [\n    { \"product_id\": 1, \"quantity\": 4, \"discount_amount\": 0 },\n    { \"product_id\": 2, \"quantity\": 2, \"discount_amount\": 0 }\n  ]\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -922,19 +1022,19 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/sales-entries",
+							"raw": "{{base_url}}/orders",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
-								"sales-entries"
+								"orders"
 							]
 						},
-						"description": "Record one or more products sold to a customer."
+						"description": "Record one or more products sold to a dealer. `retailer_id` is optional — one of the dealer's own retailers, from List Retailers filtered by dealer_id. Each line's unit price is snapshotted server-side from the product's current price — never trust a client-supplied price. New orders always start with approval status \"pending\"."
 					}
 				},
 				{
-					"name": "My Sales History",
+					"name": "My Order History",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -944,12 +1044,12 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/sales-entries?date_from=&date_to=",
+							"raw": "{{base_url}}/orders?date_from=&date_to=&status=&per_page=20",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
-								"sales-entries"
+								"orders"
 							],
 							"query": [
 								{
@@ -961,10 +1061,19 @@
 									"key": "date_to",
 									"value": "",
 									"description": "Optional: YYYY-MM-DD"
+								},
+								{
+									"key": "status",
+									"value": "",
+									"description": "Optional: pending | approved | rejected"
+								},
+								{
+									"key": "per_page",
+									"value": "20"
 								}
 							]
 						},
-						"description": "List the authenticated user's own sales history."
+						"description": "List the authenticated user's own order history."
 					}
 				}
 			]
@@ -972,6 +1081,53 @@
 		{
 			"name": "Collection Entries",
 			"item": [
+				{
+					"name": "Send Collection OTP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const body = pm.response.json();",
+									"if (body.success && body.data && body.data.otp_id) {",
+									"    pm.collectionVariables.set(\"otp_id\", body.data.otp_id);",
+									"    pm.environment.set(\"otp_id\", body.data.otp_id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"dealer_id\": 1,\n  \"amount\": 600,\n  \"payment_method\": \"cash\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/collection-entries/send-otp",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"collection-entries",
+								"send-otp"
+							]
+						},
+						"description": "Send (or, in demo mode when no SMS gateway is configured, generate and return as demo_code) an OTP to confirm a collection with the dealer before recording it."
+					}
+				},
 				{
 					"name": "Record Collection",
 					"request": {
@@ -983,13 +1139,59 @@
 							}
 						],
 						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"customer_id\": 1,\n  \"collection_date\": \"2026-08-04\",\n  \"amount\": 600,\n  \"payment_method\": \"cash\",\n  \"reference_no\": null,\n  \"remarks\": \"Collected during routine visit.\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "dealer_id",
+									"value": "1",
+									"type": "text"
+								},
+								{
+									"key": "collection_date",
+									"value": "2026-08-27",
+									"type": "text"
+								},
+								{
+									"key": "amount",
+									"value": "600",
+									"type": "text"
+								},
+								{
+									"key": "payment_method",
+									"value": "cash",
+									"type": "text",
+									"description": "cash | cheque | bank_transfer | mobile_banking"
+								},
+								{
+									"key": "reference_no",
+									"value": "",
+									"type": "text",
+									"description": "Required when payment_method is bank_transfer or mobile_banking; must be unique among those two methods"
+								},
+								{
+									"key": "cheque_image",
+									"type": "file",
+									"src": "fixtures/sample-photo.jpg",
+									"description": "Required when payment_method is cheque"
+								},
+								{
+									"key": "otp_id",
+									"value": "{{otp_id}}",
+									"type": "text",
+									"description": "Optional: from Send Collection OTP — omit both otp_id and otp_code to record without OTP verification"
+								},
+								{
+									"key": "otp_code",
+									"value": "",
+									"type": "text",
+									"description": "Optional: the 6-digit code the dealer read back to the executive"
+								},
+								{
+									"key": "remarks",
+									"value": "Collected during routine visit.",
+									"type": "text"
 								}
-							}
+							]
 						},
 						"url": {
 							"raw": "{{base_url}}/collection-entries",
@@ -1000,7 +1202,7 @@
 								"collection-entries"
 							]
 						},
-						"description": "Record a payment collected from a customer."
+						"description": "Record a payment collected from a dealer, optionally OTP-verified. New collections always start with approval status \"pending\"."
 					}
 				},
 				{
@@ -1014,7 +1216,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/collection-entries?date_from=&date_to=",
+							"raw": "{{base_url}}/collection-entries?date_from=&date_to=&status=&per_page=20",
 							"host": [
 								"{{base_url}}"
 							],
@@ -1031,6 +1233,15 @@
 									"key": "date_to",
 									"value": "",
 									"description": "Optional: YYYY-MM-DD"
+								},
+								{
+									"key": "status",
+									"value": "",
+									"description": "Optional: pending | approved | rejected"
+								},
+								{
+									"key": "per_page",
+									"value": "20"
 								}
 							]
 						},
@@ -1076,7 +1287,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/targets?year=",
+							"raw": "{{base_url}}/targets?year=&per_page=20",
 							"host": [
 								"{{base_url}}"
 							],
@@ -1088,6 +1299,10 @@
 									"key": "year",
 									"value": "",
 									"description": "Optional: e.g. 2026"
+								},
+								{
+									"key": "per_page",
+									"value": "20"
 								}
 							]
 						},
@@ -1110,7 +1325,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/notifications?status=",
+							"raw": "{{base_url}}/notifications?status=&per_page=20",
 							"host": [
 								"{{base_url}}"
 							],
@@ -1122,6 +1337,10 @@
 									"key": "status",
 									"value": "",
 									"description": "Optional: read | unread"
+								},
+								{
+									"key": "per_page",
+									"value": "20"
 								}
 							]
 						},

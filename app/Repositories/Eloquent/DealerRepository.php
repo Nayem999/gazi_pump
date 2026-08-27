@@ -26,7 +26,6 @@ class DealerRepository extends BaseRepository implements DealerRepositoryInterfa
                         ->orWhere('phone', 'like', "%{$search}%");
                 });
             })
-            ->when($filters['type'] ?? null, fn ($query, $type) => $query->where('type', $type))
             ->when($filters['division_id'] ?? null, fn ($query, $divisionId) => $query->where('division_id', $divisionId))
             ->when($filters['district_id'] ?? null, fn ($query, $districtId) => $query->where('district_id', $districtId))
             ->when($filters['thana_id'] ?? null, fn ($query, $thanaId) => $query->where('thana_id', $thanaId))

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Feature\Admin;
 
 use App\Models\Announcement;
+use App\Models\CustomerAccount;
+use App\Models\Dealer;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -76,6 +78,51 @@ class AnnouncementManagementTest extends TestCase
             'message' => 'Message body',
             'audience' => 'role',
         ])->assertSessionHasErrors('audience_role');
+    }
+
+    public function test_general_manager_can_send_an_announcement_to_a_specific_dealer(): void
+    {
+        $manager = $this->generalManager();
+        $dealer = Dealer::factory()->create();
+        $account = CustomerAccount::factory()->create(['dealer_id' => $dealer->id]);
+
+        $response = $this->actingAs($manager)->post(route('announcements.store'), [
+            'title' => 'Dealer Notice',
+            'message' => 'A message for one dealer.',
+            'audience' => 'dealer',
+            'audience_dealer_id' => $dealer->id,
+        ]);
+
+        $response->assertRedirect(route('announcements.index'));
+        $this->assertDatabaseHas('announcements', ['title' => 'Dealer Notice', 'audience_dealer_id' => $dealer->id]);
+        $this->assertCount(1, $account->fresh()->notifications);
+    }
+
+    public function test_sending_to_a_dealer_requires_the_dealer_field(): void
+    {
+        $manager = $this->generalManager();
+
+        $this->actingAs($manager)->post(route('announcements.store'), [
+            'title' => 'For a dealer',
+            'message' => 'Message body',
+            'audience' => 'dealer',
+        ])->assertSessionHasErrors('audience_dealer_id');
+    }
+
+    public function test_general_manager_can_send_an_announcement_to_all_dealers(): void
+    {
+        $manager = $this->generalManager();
+        $dealer = Dealer::factory()->create();
+        $account = CustomerAccount::factory()->create(['dealer_id' => $dealer->id]);
+
+        $response = $this->actingAs($manager)->post(route('announcements.store'), [
+            'title' => 'All Dealers Notice',
+            'message' => 'A message for every dealer.',
+            'audience' => 'all_dealers',
+        ]);
+
+        $response->assertRedirect(route('announcements.index'));
+        $this->assertCount(1, $account->fresh()->notifications);
     }
 
     public function test_general_manager_can_delete_and_restore_an_announcement(): void

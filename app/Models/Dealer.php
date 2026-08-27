@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\CustomerType;
 use Database\Factories\DealerFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,7 +17,6 @@ class Dealer extends BaseModel
     protected $fillable = [
         'dealer_code',
         'name',
-        'type',
         'phone',
         'email',
         'address',
@@ -35,7 +33,6 @@ class Dealer extends BaseModel
     protected function casts(): array
     {
         return [
-            'type' => CustomerType::class,
             'status' => 'boolean',
             'gps_lat' => 'decimal:7',
             'gps_lng' => 'decimal:7',
@@ -70,6 +67,11 @@ class Dealer extends BaseModel
     public function collectionEntries(): HasMany
     {
         return $this->hasMany(CollectionEntry::class);
+    }
+
+    public function retailers(): HasMany
+    {
+        return $this->hasMany(Retailer::class);
     }
 
     public function hasGps(): bool

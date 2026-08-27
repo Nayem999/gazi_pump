@@ -29,6 +29,11 @@ class OrderPolicy
         return $user->can('orders.edit');
     }
 
+    public function approve(User $user, Order $order): bool
+    {
+        return $user->can('orders.approve');
+    }
+
     public function delete(User $user, Order $order): bool
     {
         return $user->can('orders.delete');

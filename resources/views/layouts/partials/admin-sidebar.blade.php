@@ -8,7 +8,7 @@
     <i class="ti ti-gauge icon-blue"></i> Dashboard
 </a>
 
-@canany(['menu.orders', 'menu.collection-entries'])
+@canany(['menu.orders', 'menu.collection-entries', 'menu.cash-handovers'])
     <div class="nav-section-title">Order Operations</div>
 @endcanany
 
@@ -21,6 +21,12 @@
 @can('menu.collection-entries')
     <a href="{{ route('collection-entries.index') }}" class="nav-link {{ request()->routeIs('collection-entries.*') ? 'active' : '' }}">
         <i class="ti ti-cash icon-amber"></i> Collection Entry
+    </a>
+@endcan
+
+@can('menu.cash-handovers')
+    <a href="{{ route('cash-handovers.index') }}" class="nav-link {{ request()->routeIs('cash-handovers.*') ? 'active' : '' }}">
+        <i class="ti ti-hand-move icon-amber"></i> Cash Handover
     </a>
 @endcan
 
@@ -124,13 +130,19 @@
     </a>
 @endcan
 
-@canany(['dealers.view'])
+@canany(['dealers.view', 'retailers.view'])
     <div class="nav-section-title">Dealer Management</div>
 @endcanany
 
 @can('menu.dealers')
     <a href="{{ route('dealers.index') }}" class="nav-link {{ request()->routeIs('dealers.*') ? 'active' : '' }}">
         <i class="ti ti-building-store icon-cyan"></i> Dealers
+    </a>
+@endcan
+
+@can('menu.retailers')
+    <a href="{{ route('retailers.index') }}" class="nav-link {{ request()->routeIs('retailers.*') ? 'active' : '' }}">
+        <i class="ti ti-building-cottage icon-pink"></i> Retailers
     </a>
 @endcan
 

@@ -186,6 +186,80 @@
         </div>
 
         <div class="card mb-3">
+            <div class="card-header"><h5 class="mb-0">SMS Gateway &amp; OTP</h5></div>
+            <div class="card-body row g-3">
+                <div class="col-12">
+                    <div class="form-check form-switch">
+                        <input type="hidden" name="sms_gateway_enabled" value="0">
+                        <input type="checkbox" class="form-check-input" id="smsGatewayEnabled" name="sms_gateway_enabled" value="1"
+                               @checked(old('sms_gateway_enabled', $settings->sms_gateway_enabled))>
+                        <label class="form-check-label" for="smsGatewayEnabled">Enable SMS Gateway</label>
+                    </div>
+                    <div class="form-text">
+                        While disabled (or unconfigured), collection OTPs run in <strong>demo mode</strong> — no SMS is sent, and the code
+                        is shown directly on screen so the field-collection flow can still be tested end to end.
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Provider</label>
+                    <input type="text" name="sms_gateway_provider" class="form-control @error('sms_gateway_provider') is-invalid @enderror"
+                           value="{{ old('sms_gateway_provider', $settings->sms_gateway_provider) }}" placeholder="e.g. SSL Wireless, Twilio">
+                    @error('sms_gateway_provider') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Channel <span class="text-danger">*</span></label>
+                    <select name="sms_channel" class="form-select @error('sms_channel') is-invalid @enderror" required>
+                        @foreach (\App\Enums\SmsChannel::cases() as $channel)
+                            <option value="{{ $channel->value }}" @selected((string) old('sms_channel', $settings->sms_channel->value) === $channel->value)>{{ $channel->label() }}</option>
+                        @endforeach
+                    </select>
+                    @error('sms_channel') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">Gateway API URL</label>
+                    <input type="url" name="sms_gateway_api_url" class="form-control @error('sms_gateway_api_url') is-invalid @enderror"
+                           value="{{ old('sms_gateway_api_url', $settings->sms_gateway_api_url) }}" placeholder="https://...">
+                    <div class="form-text">The provider's send-message endpoint. Required to actually send a real message.</div>
+                    @error('sms_gateway_api_url') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Sender ID</label>
+                    <input type="text" name="sms_gateway_sender_id" class="form-control @error('sms_gateway_sender_id') is-invalid @enderror"
+                           value="{{ old('sms_gateway_sender_id', $settings->sms_gateway_sender_id) }}">
+                    @error('sms_gateway_sender_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">API Key</label>
+                    <input type="text" name="sms_gateway_api_key" class="form-control @error('sms_gateway_api_key') is-invalid @enderror"
+                           value="{{ old('sms_gateway_api_key', $settings->sms_gateway_api_key) }}" autocomplete="off">
+                    @error('sms_gateway_api_key') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Collection OTP Expiry (minutes) <span class="text-danger">*</span></label>
+                    <input type="number" name="collection_otp_expiry_minutes" class="form-control @error('collection_otp_expiry_minutes') is-invalid @enderror"
+                           value="{{ old('collection_otp_expiry_minutes', $settings->collection_otp_expiry_minutes) }}" required>
+                    @error('collection_otp_expiry_minutes') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><h5 class="mb-0">Cash Handover</h5></div>
+            <div class="card-body row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Daily Cash Limit (per Executive)</label>
+                    <input type="number" step="0.01" min="0" name="cash_daily_limit_amount" class="form-control @error('cash_daily_limit_amount') is-invalid @enderror"
+                           value="{{ old('cash_daily_limit_amount', $settings->cash_daily_limit_amount) }}" placeholder="Leave blank for no limit">
+                    <div class="form-text">
+                        Warns when a Sales Executive is holding more cash-in-hand than this amount, so they know to hand it over to their manager.
+                        Leave blank to track cash-in-hand without a limit warning.
+                    </div>
+                    @error('cash_daily_limit_amount') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
             <div class="card-header"><h5 class="mb-0">Live GPS Dashboard</h5></div>
             <div class="card-body row g-3">
                 <div class="col-md-6">

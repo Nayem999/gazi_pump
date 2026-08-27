@@ -59,9 +59,13 @@
     </div>
 
     <div class="col-md-6">
-        <label class="form-label">Reference No.</label>
-        <input type="text" name="reference_no" class="form-control @error('reference_no') is-invalid @enderror"
-               value="{{ old('reference_no', $collectionEntry->reference_no ?? '') }}" placeholder="Cheque no. / transaction ID">
+        <label class="form-label">
+            Reference No.
+            <span class="text-danger" id="referenceNoRequiredMark" style="display:none">*</span>
+        </label>
+        <input type="text" name="reference_no" id="referenceNoInput" class="form-control @error('reference_no') is-invalid @enderror"
+               value="{{ old('reference_no', $collectionEntry->reference_no ?? '') }}" placeholder="Cheque no. / bank &amp; MFS transaction ID">
+        <div class="form-text">Required for Bank Transfer and Mobile Banking — must be unique per transaction.</div>
         @error('reference_no') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
@@ -86,6 +90,31 @@
             <img id="chequeImagePreview" class="mt-2 rounded d-none" style="height:80px">
         @endif
     </div>
+
+    @unless (isset($collectionEntry))
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h6 class="card-title mb-2"><i class="ti ti-shield-lock me-1"></i>Secure Collection — OTP Verification</h6>
+                    <p class="text-muted small mb-2">Optional: send an OTP to the dealer to confirm this collection before submitting. The amount is locked once an OTP is sent.</p>
+                    <div id="otpStatus" class="small mb-2"></div>
+                    <div class="row g-2 align-items-end">
+                        <div class="col-auto">
+                            <button type="button" id="sendOtpBtn" class="btn btn-outline-primary btn-sm"><i class="ti ti-send me-1"></i>Send OTP</button>
+                        </div>
+                        <div class="col-auto" id="otpCodeWrap" style="display:none">
+                            <label class="form-label mb-0 small">OTP from Dealer</label>
+                            <input type="text" id="otpCodeInput" name="otp_code" class="form-control form-control-sm" maxlength="6" placeholder="6-digit code" inputmode="numeric" autocomplete="off">
+                        </div>
+                        <div class="col-auto" id="otpCancelWrap" style="display:none">
+                            <button type="button" id="cancelOtpBtn" class="btn btn-link btn-sm text-danger">Cancel / Unlock Amount</button>
+                        </div>
+                    </div>
+                    <input type="hidden" name="otp_id" id="otpIdInput">
+                </div>
+            </div>
+        </div>
+    @endunless
 
     <div class="col-12">
         <label class="form-label">Remarks</label>
@@ -138,6 +167,9 @@
             const chequeImageRequiredMark = document.getElementById('chequeImageRequiredMark');
             const chequeImageHasExisting = chequeImageInput?.dataset.hasExisting === '1';
 
+            const referenceNoInput = document.getElementById('referenceNoInput');
+            const referenceNoRequiredMark = document.getElementById('referenceNoRequiredMark');
+
             if (paymentMethodSelect && chequeImageField) {
                 paymentMethodSelect.addEventListener('change', function () {
                     const isCheque = paymentMethodSelect.value === 'cheque';
@@ -150,7 +182,12 @@
                     const isRequired = isCheque && ! chequeImageHasExisting;
                     chequeImageInput.required = isRequired;
                     chequeImageRequiredMark.style.display = isRequired ? '' : 'none';
+
+                    const isBankOrMfs = ['bank_transfer', 'mobile_banking'].includes(paymentMethodSelect.value);
+                    referenceNoInput.required = isBankOrMfs;
+                    referenceNoRequiredMark.style.display = isBankOrMfs ? '' : 'none';
                 });
+                paymentMethodSelect.dispatchEvent(new Event('change'));
             }
 
             chequeImageInput?.addEventListener('change', function (e) {
@@ -161,6 +198,83 @@
                 chequeImagePreview.src = URL.createObjectURL(file);
                 chequeImagePreview.classList.remove('d-none');
             });
+
+            // Secure Collection OTP flow (create form only — this markup
+            // is omitted entirely when editing an existing entry).
+            const sendOtpBtn = document.getElementById('sendOtpBtn');
+            const cancelOtpBtn = document.getElementById('cancelOtpBtn');
+            const otpCodeWrap = document.getElementById('otpCodeWrap');
+            const otpCancelWrap = document.getElementById('otpCancelWrap');
+            const otpStatus = document.getElementById('otpStatus');
+            const otpIdInput = document.getElementById('otpIdInput');
+            const otpCodeInput = document.getElementById('otpCodeInput');
+            const amountInput = document.querySelector('input[name="amount"]');
+
+            function resetOtp() {
+                otpIdInput.value = '';
+                otpCodeInput.value = '';
+                otpCodeWrap.style.display = 'none';
+                otpCancelWrap.style.display = 'none';
+                otpStatus.textContent = '';
+                if (amountInput) {
+                    amountInput.readOnly = false;
+                }
+                if (sendOtpBtn) {
+                    sendOtpBtn.disabled = false;
+                    sendOtpBtn.innerHTML = '<i class="ti ti-send me-1"></i>Send OTP';
+                }
+            }
+
+            sendOtpBtn?.addEventListener('click', function () {
+                const dealerId = dealerSelect?.value;
+                const amount = amountInput?.value;
+                const paymentMethod = paymentMethodSelect?.value;
+
+                if (! dealerId || ! amount || ! paymentMethod) {
+                    otpStatus.innerHTML = '<span class="text-danger">Select a dealer and payment method, and enter an amount, before sending an OTP.</span>';
+                    return;
+                }
+
+                sendOtpBtn.disabled = true;
+                otpStatus.textContent = 'Sending OTP…';
+
+                fetch('{{ route('collection-entries.send-otp') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    },
+                    body: JSON.stringify({ dealer_id: dealerId, amount: amount, payment_method: paymentMethod }),
+                })
+                    .then(function (response) {
+                        if (! response.ok) {
+                            return response.json().then(function (body) {
+                                throw new Error(body.message || 'Failed to send OTP.');
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(function (data) {
+                        otpIdInput.value = data.otp_id;
+                        if (amountInput) {
+                            amountInput.readOnly = true;
+                        }
+                        otpCodeWrap.style.display = '';
+                        otpCancelWrap.style.display = '';
+                        sendOtpBtn.disabled = false;
+                        sendOtpBtn.innerHTML = '<i class="ti ti-refresh me-1"></i>Resend OTP';
+                        otpStatus.innerHTML = data.demo_code
+                            ? '<span class="text-warning">Demo mode — OTP code: <strong>' + data.demo_code + '</strong> (no SMS gateway configured).</span>'
+                            : '<span class="text-success">OTP sent to the dealer.</span>';
+                    })
+                    .catch(function (error) {
+                        sendOtpBtn.disabled = false;
+                        otpStatus.innerHTML = '<span class="text-danger">' + error.message + '</span>';
+                    });
+            });
+
+            cancelOtpBtn?.addEventListener('click', resetOtp);
         });
     </script>
 @endpush

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Api;
 
 use App\Models\CollectionEntry;
+use App\Models\CollectionOtp;
 use App\Models\Dealer;
 use App\Models\Order;
 use App\Models\User;
@@ -136,5 +137,188 @@ class CollectionEntryTest extends TestCase
             ->getJson('/api/v1/collection-entries')
             ->assertOk()
             ->assertJsonCount(1, 'data');
+    }
+
+    public function test_send_otp_returns_a_demo_code_when_no_sms_gateway_is_configured(): void
+    {
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries/send-otp', [
+                'dealer_id' => $dealer->id,
+                'amount' => 600,
+                'payment_method' => 'cash',
+            ]);
+
+        $response->assertOk()->assertJsonPath('success', true);
+        $this->assertFalse($response->json('data.sent'));
+        $this->assertNotNull($response->json('data.demo_code'));
+        $this->assertDatabaseCount('collection_otps', 1);
+    }
+
+    public function test_a_collection_can_be_submitted_with_a_valid_otp(): void
+    {
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+
+        $otpResponse = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries/send-otp', [
+                'dealer_id' => $dealer->id,
+                'amount' => 600,
+                'payment_method' => 'cash',
+            ]);
+        $otpId = $otpResponse->json('data.otp_id');
+        $code = $otpResponse->json('data.demo_code');
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries', [
+                'dealer_id' => $dealer->id,
+                'amount' => 600,
+                'payment_method' => 'cash',
+                'otp_id' => $otpId,
+                'otp_code' => $code,
+            ]);
+
+        $response->assertStatus(201)->assertJsonPath('success', true);
+
+        $entry = CollectionEntry::where('dealer_id', $dealer->id)->firstOrFail();
+        $this->assertNotNull($entry->otp_verified_at);
+        $this->assertNotNull(CollectionOtp::find($otpId)->verified_at);
+    }
+
+    public function test_a_collection_is_rejected_when_the_otp_code_is_wrong(): void
+    {
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+
+        $otpResponse = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries/send-otp', [
+                'dealer_id' => $dealer->id,
+                'amount' => 600,
+                'payment_method' => 'cash',
+            ]);
+        $otpId = $otpResponse->json('data.otp_id');
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries', [
+                'dealer_id' => $dealer->id,
+                'amount' => 600,
+                'payment_method' => 'cash',
+                'otp_id' => $otpId,
+                'otp_code' => '000000',
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonValidationErrors('otp');
+
+        $this->assertDatabaseCount('collection_entries', 0);
+    }
+
+    public function test_a_collection_is_rejected_when_the_otp_amount_does_not_match(): void
+    {
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+
+        $otpResponse = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries/send-otp', [
+                'dealer_id' => $dealer->id,
+                'amount' => 600,
+                'payment_method' => 'cash',
+            ]);
+        $otpId = $otpResponse->json('data.otp_id');
+        $code = $otpResponse->json('data.demo_code');
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries', [
+                'dealer_id' => $dealer->id,
+                'amount' => 700,
+                'payment_method' => 'cash',
+                'otp_id' => $otpId,
+                'otp_code' => $code,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('otp');
+
+        $this->assertDatabaseCount('collection_entries', 0);
+    }
+
+    public function test_an_expired_otp_is_rejected(): void
+    {
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+
+        $otpResponse = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries/send-otp', [
+                'dealer_id' => $dealer->id,
+                'amount' => 600,
+                'payment_method' => 'cash',
+            ]);
+        $otpId = $otpResponse->json('data.otp_id');
+        $code = $otpResponse->json('data.demo_code');
+        CollectionOtp::find($otpId)->update(['expires_at' => now()->subMinute()]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries', [
+                'dealer_id' => $dealer->id,
+                'amount' => 600,
+                'payment_method' => 'cash',
+                'otp_id' => $otpId,
+                'otp_code' => $code,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('otp');
+
+        $this->assertDatabaseCount('collection_entries', 0);
+    }
+
+    public function test_a_collection_can_still_be_submitted_without_an_otp(): void
+    {
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries', [
+                'dealer_id' => $dealer->id,
+                'amount' => 600,
+                'payment_method' => 'cash',
+            ]);
+
+        $response->assertStatus(201);
+        $entry = CollectionEntry::where('dealer_id', $dealer->id)->firstOrFail();
+        $this->assertNull($entry->otp_verified_at);
+    }
+
+    public function test_a_recorded_collection_reports_a_pending_status(): void
+    {
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries', [
+                'dealer_id' => $dealer->id,
+                'amount' => 600,
+                'payment_method' => 'cash',
+            ]);
+
+        $response->assertJsonPath('data.status', 'pending')->assertJsonPath('data.status_label', 'Pending');
+    }
+
+    public function test_index_can_be_filtered_by_approval_status(): void
+    {
+        $executive = $this->executive();
+        CollectionEntry::factory()->create(['user_id' => $executive->id, 'status' => 'pending']);
+        CollectionEntry::factory()->create(['user_id' => $executive->id, 'status' => 'approved']);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->getJson('/api/v1/collection-entries?status=approved');
+
+        $response->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.status', 'approved');
     }
 }

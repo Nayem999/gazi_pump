@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Imports;
 
-use App\Enums\CustomerType;
 use App\Models\Dealer;
 use App\Models\Territory;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rules\Enum;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -32,7 +30,6 @@ class DealersImport implements ToModel, WithHeadingRow, WithValidation
         return new Dealer([
             'dealer_code' => $row['dealer_code'],
             'name' => $row['name'],
-            'type' => $row['type'],
             'phone' => $row['phone'],
             'email' => $row['email'] ?? null,
             'address' => $row['address'] ?? null,
@@ -50,7 +47,6 @@ class DealersImport implements ToModel, WithHeadingRow, WithValidation
         return [
             'dealer_code' => ['required', 'string', 'unique:dealers,dealer_code'],
             'name' => ['required', 'string'],
-            'type' => ['required', new Enum(CustomerType::class)],
             'phone' => ['required', 'string'],
             'email' => ['nullable', 'email'],
             'territory_code' => ['nullable', 'string', 'exists:territories,code'],

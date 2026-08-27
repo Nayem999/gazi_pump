@@ -40,6 +40,15 @@
             </select>
         </div>
         <div class="col-md-2">
+            <label class="form-label">Approval</label>
+            <select name="status" class="form-select">
+                <option value="">All</option>
+                @foreach (\App\Enums\ApprovalStatus::cases() as $status)
+                    <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-2">
             <label class="form-label">From</label>
             <input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] ?? '' }}">
         </div>
@@ -71,6 +80,7 @@
                     <th>Collection Date</th>
                     <th>Amount</th>
                     <th>Method</th>
+                    <th>Approval</th>
                     <th class="text-end">Actions</th>
                 </tr>
             </x-slot:thead>
@@ -101,6 +111,9 @@
                     <td>{{ number_format((float) $collectionEntry->amount, 2) }}</td>
                     <td>
                         <span class="badge text-bg-secondary">{{ $collectionEntry->payment_method->label() }}</span>
+                        @if ($collectionEntry->cheque_status)
+                            <span class="badge text-bg-{{ $collectionEntry->cheque_status->badgeColor() }}">{{ $collectionEntry->cheque_status->label() }}</span>
+                        @endif
                         @if ($collectionEntry->reference_no)
                             <div class="text-muted small">{{ $collectionEntry->reference_no }}</div>
                         @endif
@@ -109,7 +122,22 @@
                                 <img src="{{ $collectionEntry->chequeImageUrl() }}" style="width:28px;height:28px;object-fit:cover" class="rounded">
                             </a>
                         @endif
+                        @can('update', $collectionEntry)
+                            @if ($collectionEntry->cheque_status && ! $collectionEntry->trashed())
+                                <div class="d-flex flex-wrap gap-1 mt-1">
+                                    @foreach ($collectionEntry->cheque_status->nextOptions() as $next)
+                                        <form method="POST" action="{{ route('collection-entries.cheque-status', $collectionEntry) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="hidden" name="cheque_status" value="{{ $next->value }}">
+                                            <button type="submit" class="btn btn-outline-{{ $next->badgeColor() }} btn-sm py-0 px-1" style="font-size:.7rem">Mark {{ $next->label() }}</button>
+                                        </form>
+                                    @endforeach
+                                </div>
+                            @endif
+                        @endcan
                     </td>
+                    <td><span class="badge text-bg-{{ $collectionEntry->status->badgeColor() }}">{{ $collectionEntry->status->label() }}</span></td>
                     <td class="text-end">
                         <div class="btn-group btn-group-sm">
                             @if ($collectionEntry->trashed())
@@ -133,6 +161,20 @@
                                 @can('update', $collectionEntry)
                                     <a href="{{ route('collection-entries.edit', $collectionEntry) }}" class="btn btn-outline-primary" title="Edit"><i class="ti ti-pencil"></i></a>
                                 @endcan
+                                @if ($collectionEntry->status === \App\Enums\ApprovalStatus::Pending)
+                                    @can('approve', $collectionEntry)
+                                        <form method="POST" action="{{ route('collection-entries.approve', $collectionEntry) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="btn btn-outline-success" title="Approve"><i class="ti ti-check"></i></button>
+                                        </form>
+                                        <form method="POST" action="{{ route('collection-entries.reject', $collectionEntry) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="btn btn-outline-danger" title="Reject"><i class="ti ti-x"></i></button>
+                                        </form>
+                                    @endcan
+                                @endif
                                 @can('delete', $collectionEntry)
                                     <form method="POST" action="{{ route('collection-entries.destroy', $collectionEntry) }}" data-confirm data-confirm-title="Move this record to trash?">
                                         @csrf
@@ -146,7 +188,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-4">No collection entries found.</td>
+                    <td colspan="9" class="text-center text-muted py-4">No collection entries found.</td>
                 </tr>
             @endforelse
 
@@ -159,8 +201,8 @@
                             :title="$collectionEntry->dealer?->name"
                             :title-url="$collectionEntry->dealer && ! $collectionEntry->dealer->trashed() ? route('dealers.show', $collectionEntry->dealer) : null"
                             :subtitle="$collectionEntry->payment_method->label()"
-                            :status-label="$collectionEntry->trashed() ? 'Trashed' : null"
-                            status-color="danger"
+                            :status-label="$collectionEntry->trashed() ? 'Trashed' : $collectionEntry->status->label()"
+                            :status-color="$collectionEntry->trashed() ? 'danger' : $collectionEntry->status->badgeColor()"
                         >
                             <x-slot:meta>
                                 <div>Executive: {{ $collectionEntry->user?->name }} &middot; <x-phone-actions :phone="$collectionEntry->user?->phone" /></div>
@@ -168,6 +210,9 @@
                                 <div>Territory: {{ $collectionEntry->dealer?->territory?->name ?? '—' }}</div>
                                 <div>Date: {{ $collectionEntry->collection_date->format('M d, Y') }}</div>
                                 <div>Amount: {{ number_format((float) $collectionEntry->amount, 2) }}</div>
+                                @if ($collectionEntry->cheque_status)
+                                    <div>Cheque Status: <span class="badge text-bg-{{ $collectionEntry->cheque_status->badgeColor() }}">{{ $collectionEntry->cheque_status->label() }}</span></div>
+                                @endif
                                 @if ($collectionEntry->chequeImageUrl())
                                     <div><a href="{{ $collectionEntry->chequeImageUrl() }}" target="_blank">View cheque image</a></div>
                                 @endif
@@ -199,6 +244,20 @@
                                     @can('update', $collectionEntry)
                                         <a href="{{ route('collection-entries.edit', $collectionEntry) }}" class="btn btn-outline-primary" title="Edit"><i class="ti ti-pencil"></i></a>
                                     @endcan
+                                    @if ($collectionEntry->status === \App\Enums\ApprovalStatus::Pending)
+                                        @can('approve', $collectionEntry)
+                                            <form method="POST" action="{{ route('collection-entries.approve', $collectionEntry) }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-outline-success" title="Approve"><i class="ti ti-check"></i></button>
+                                            </form>
+                                            <form method="POST" action="{{ route('collection-entries.reject', $collectionEntry) }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-outline-danger" title="Reject"><i class="ti ti-x"></i></button>
+                                            </form>
+                                        @endcan
+                                    @endif
                                     @can('delete', $collectionEntry)
                                         <form method="POST" action="{{ route('collection-entries.destroy', $collectionEntry) }}" data-confirm data-confirm-title="Move this record to trash?">
                                             @csrf

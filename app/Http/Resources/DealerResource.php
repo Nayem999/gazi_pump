@@ -22,8 +22,6 @@ class DealerResource extends JsonResource
             'id' => $this->id,
             'dealer_code' => $this->dealer_code,
             'name' => $this->name,
-            'type' => $this->type->value,
-            'type_label' => $this->type->label(),
             'phone' => $this->phone,
             'email' => $this->email,
             'address' => $this->address,

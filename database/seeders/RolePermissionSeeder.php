@@ -65,6 +65,7 @@ class RolePermissionSeeder extends Seeder
         $this->createModulePermissions('thanas');
         $this->createModulePermissions('dealers');
         Permission::firstOrCreate(['name' => PermissionName::api('dealers', ButtonAction::Add), 'guard_name' => 'web']);
+        $this->createModulePermissions('retailers');
         $this->createModulePermissions('product-categories');
         $this->createModulePermissions('products');
         $this->createModulePermissions('attendance');
@@ -79,6 +80,7 @@ class RolePermissionSeeder extends Seeder
         Permission::firstOrCreate(['name' => PermissionName::api('orders', ButtonAction::Add), 'guard_name' => 'web']);
         $this->createModulePermissions('collection-entries');
         Permission::firstOrCreate(['name' => PermissionName::api('collection-entries', ButtonAction::Add), 'guard_name' => 'web']);
+        $this->createModulePermissions('cash-handovers', withApi: false);
         $this->createModulePermissions('targets');
 
         foreach (self::REPORTS as $reportKey) {
@@ -142,7 +144,7 @@ class RolePermissionSeeder extends Seeder
 
         $productModules = ['product-categories', 'products'];
 
-        foreach ([...$orgModules, 'dealers', ...$productModules] as $module) {
+        foreach ([...$orgModules, 'dealers', 'retailers', ...$productModules] as $module) {
             $generalManagerPermissions[] = PermissionName::menu($module);
             $generalManagerPermissions[] = PermissionName::button($module, ButtonAction::View);
             $generalManagerPermissions[] = PermissionName::button($module, ButtonAction::Add);
@@ -184,6 +186,9 @@ class RolePermissionSeeder extends Seeder
         $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Edit);
         $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Export);
         $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Print);
+        // Approve/reject sits with General Manager and Super Admin only —
+        // same separation-of-accountability rule as cash handovers below.
+        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Approve);
 
         $generalManagerPermissions[] = PermissionName::menu('collection-entries');
         $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::View);
@@ -191,6 +196,17 @@ class RolePermissionSeeder extends Seeder
         $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::Edit);
         $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::Export);
         $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::Print);
+        $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::Approve);
+
+        // Approve/reject sits with General Manager and Super Admin only —
+        // separation of accountability from whichever manager recorded the
+        // handover in the first place.
+        $generalManagerPermissions[] = PermissionName::menu('cash-handovers');
+        $generalManagerPermissions[] = PermissionName::button('cash-handovers', ButtonAction::View);
+        $generalManagerPermissions[] = PermissionName::button('cash-handovers', ButtonAction::Add);
+        $generalManagerPermissions[] = PermissionName::button('cash-handovers', ButtonAction::Approve);
+        $generalManagerPermissions[] = PermissionName::button('cash-handovers', ButtonAction::Delete);
+        $generalManagerPermissions[] = PermissionName::button('cash-handovers', ButtonAction::Restore);
 
         $generalManagerPermissions[] = PermissionName::menu('targets');
         $generalManagerPermissions[] = PermissionName::button('targets', ButtonAction::View);
@@ -252,6 +268,10 @@ class RolePermissionSeeder extends Seeder
                 PermissionName::button('dealers', ButtonAction::View),
                 PermissionName::button('dealers', ButtonAction::Add),
                 PermissionName::button('dealers', ButtonAction::Edit),
+                PermissionName::menu('retailers'),
+                PermissionName::button('retailers', ButtonAction::View),
+                PermissionName::button('retailers', ButtonAction::Add),
+                PermissionName::button('retailers', ButtonAction::Edit),
                 PermissionName::menu('attendance'),
                 PermissionName::button('attendance', ButtonAction::View),
                 PermissionName::button('attendance', ButtonAction::Export),
@@ -280,6 +300,11 @@ class RolePermissionSeeder extends Seeder
                 PermissionName::button('collection-entries', ButtonAction::View),
                 PermissionName::button('collection-entries', ButtonAction::Export),
                 PermissionName::button('collection-entries', ButtonAction::Print),
+                // They record handovers from their own executives, but
+                // don't approve them — that stays with General Manager.
+                PermissionName::menu('cash-handovers'),
+                PermissionName::button('cash-handovers', ButtonAction::View),
+                PermissionName::button('cash-handovers', ButtonAction::Add),
                 PermissionName::menu('targets'),
                 PermissionName::button('targets', ButtonAction::View),
                 PermissionName::button('targets', ButtonAction::Add),
@@ -316,6 +341,10 @@ class RolePermissionSeeder extends Seeder
             PermissionName::button('dealers', ButtonAction::Add),
             PermissionName::api('dealers', ButtonAction::View),
             PermissionName::api('dealers', ButtonAction::Add),
+            PermissionName::menu('retailers'),
+            PermissionName::button('retailers', ButtonAction::View),
+            PermissionName::button('retailers', ButtonAction::Add),
+            PermissionName::api('retailers', ButtonAction::View),
             PermissionName::api('attendance', ButtonAction::View),
             PermissionName::api('attendance', ButtonAction::Add),
             PermissionName::api('gps-logs', ButtonAction::View),

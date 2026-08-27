@@ -49,6 +49,15 @@
             </select>
         </div>
         <div class="col-md-3">
+            <label class="form-label">Approval</label>
+            <select name="status" class="form-select">
+                <option value="">All</option>
+                @foreach ($statuses as $status)
+                    <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-3">
             <label class="form-label">From</label>
             <input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] ?? now()->startOfMonth()->toDateString() }}">
         </div>

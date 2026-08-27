@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Enums\CustomerType;
 use App\Models\Dealer;
 use App\Models\District;
 use App\Models\Division;
@@ -37,11 +36,11 @@ class DealerSeeder extends Seeder
     ];
 
     private const DEALERS = [
-        ['name' => 'Savar Pump House', 'type' => CustomerType::Dealer, 'address' => 'Savar Bazar Road, Savar, Dhaka'],
-        ['name' => 'Keraniganj Hardware & Motors', 'type' => CustomerType::Retailer, 'address' => 'Aganagar, Keraniganj, Dhaka'],
-        ['name' => 'Dhamrai Water Solutions', 'type' => CustomerType::Dealer, 'address' => 'Dhamrai Bus Stand, Dhamrai, Dhaka'],
-        ['name' => 'Gazi Appliance Corner', 'type' => CustomerType::Retailer, 'address' => 'Savar New Market, Savar, Dhaka'],
-        ['name' => 'Buriganga Distribution House', 'type' => CustomerType::Distributor, 'address' => 'Zinzira, Keraniganj, Dhaka'],
+        ['name' => 'Savar Pump House', 'address' => 'Savar Bazar Road, Savar, Dhaka'],
+        ['name' => 'Keraniganj Hardware & Motors', 'address' => 'Aganagar, Keraniganj, Dhaka'],
+        ['name' => 'Dhamrai Water Solutions', 'address' => 'Dhamrai Bus Stand, Dhamrai, Dhaka'],
+        ['name' => 'Gazi Appliance Corner', 'address' => 'Savar New Market, Savar, Dhaka'],
+        ['name' => 'Buriganga Distribution House', 'address' => 'Zinzira, Keraniganj, Dhaka'],
     ];
 
     public function run(): void
@@ -72,7 +71,6 @@ class DealerSeeder extends Seeder
             Dealer::create([
                 'dealer_code' => 'DLR-'.str_pad((string) ($i + 1), 4, '0', STR_PAD_LEFT),
                 'name' => $data['name'],
-                'type' => $data['type'],
                 'phone' => '01'.str_pad((string) random_int(700000000, 999999999), 9, '0', STR_PAD_LEFT),
                 'address' => $data['address'],
                 'image' => self::IMAGES[$i % count(self::IMAGES)],

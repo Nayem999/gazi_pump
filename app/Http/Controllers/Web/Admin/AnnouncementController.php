@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Web\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreAnnouncementRequest;
 use App\Models\Announcement;
+use App\Models\Dealer;
 use App\Models\Territory;
 use App\Models\User;
 use App\Services\AnnouncementService;
@@ -37,6 +38,7 @@ class AnnouncementController extends Controller
             'roles' => Role::orderBy('name')->pluck('name'),
             'territories' => Territory::orderBy('name')->get(),
             'users' => User::where('status', true)->orderBy('name')->get(),
+            'dealers' => Dealer::orderBy('name')->get(),
         ]);
     }
 

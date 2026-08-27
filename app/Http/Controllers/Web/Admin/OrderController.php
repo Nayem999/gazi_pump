@@ -12,6 +12,7 @@ use App\Imports\OrdersImport;
 use App\Models\Dealer;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Retailer;
 use App\Models\Setting;
 use App\Models\Territory;
 use App\Models\User;
@@ -30,7 +31,7 @@ class OrderController extends Controller
     {
         $this->authorize('viewAny', Order::class);
 
-        $filters = $request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'product_id', 'date_from', 'date_to', 'trashed']);
+        $filters = $request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'product_id', 'status', 'date_from', 'date_to', 'trashed']);
 
         return view('orders.index', [
             'orders' => $this->orders->paginate($filters, 15),
@@ -48,6 +49,7 @@ class OrderController extends Controller
         return view('orders.create', [
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
             'dealers' => Dealer::orderBy('name')->get(),
+            'retailers' => Retailer::where('status', true)->orderBy('name')->get(),
             'products' => Product::where('status', true)->visibleTo($request->user())->orderBy('name')->get(),
         ]);
     }
@@ -64,7 +66,7 @@ class OrderController extends Controller
         $this->authorize('view', $order);
 
         return view('orders.show', [
-            'order' => $order->load(['user', 'dealer', 'items.product']),
+            'order' => $order->load(['user', 'dealer', 'retailer', 'items.product', 'approvedBy']),
         ]);
     }
 
@@ -72,7 +74,7 @@ class OrderController extends Controller
     {
         $this->authorize('view', $order);
 
-        $order->load(['user', 'dealer', 'items.product']);
+        $order->load(['user', 'dealer', 'retailer', 'items.product']);
 
         return Pdf::loadView('orders.detail-pdf', ['order' => $order, 'setting' => Setting::current()])
             ->stream('order-'.$order->id.'-'.now()->format('Y-m-d-His').'.pdf');
@@ -88,6 +90,12 @@ class OrderController extends Controller
             'order' => $order,
             'executives' => User::role('Sales Executive')->orderBy('name')->get(),
             'dealers' => Dealer::orderBy('name')->get(),
+            // Active retailers, plus this order's own retailer if it was
+            // since deactivated — mirrors the products fix below so editing
+            // an old order never silently drops its retailer selection.
+            'retailers' => Retailer::where('status', true)
+                ->orWhere('id', $order->retailer_id)
+                ->orderBy('name')->get(),
             // Team-scoped like create(), but also keeps whatever products
             // this order already has on it — otherwise re-editing an order
             // placed before a product's team changed (or before the item's
@@ -104,6 +112,24 @@ class OrderController extends Controller
         $this->orders->update($order, $request->validated());
 
         return redirect()->route('orders.index')->with('success', 'Order updated successfully.');
+    }
+
+    public function approve(Request $request, Order $order): RedirectResponse
+    {
+        $this->authorize('approve', $order);
+
+        $this->orders->approve($order, $request->user()->id);
+
+        return back()->with('success', 'Order approved.');
+    }
+
+    public function reject(Request $request, Order $order): RedirectResponse
+    {
+        $this->authorize('approve', $order);
+
+        $this->orders->reject($order, $request->user()->id);
+
+        return back()->with('success', 'Order rejected.');
     }
 
     public function destroy(Order $order): RedirectResponse
@@ -161,7 +187,7 @@ class OrderController extends Controller
     {
         $this->authorize('export', Order::class);
 
-        $orders = $this->orders->paginate($request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'product_id', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
+        $orders = $this->orders->paginate($request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'product_id', 'status', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
 
         return Excel::download(new OrdersExport($orders), 'orders-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -181,7 +207,7 @@ class OrderController extends Controller
     {
         $this->authorize('print', Order::class);
 
-        $orders = $this->orders->paginate($request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'product_id', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
+        $orders = $this->orders->paginate($request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'product_id', 'status', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
 
         return Pdf::loadView('orders.print', ['orders' => $orders])
             ->stream('orders-'.now()->format('Y-m-d-His').'.pdf');

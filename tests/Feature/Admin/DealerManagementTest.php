@@ -57,7 +57,6 @@ class DealerManagementTest extends TestCase
         $response = $this->actingAs($this->superAdmin())->post(route('dealers.store'), [
             'dealer_code' => 'CUST-TEST-01',
             'name' => 'Test Dealer',
-            'type' => 'dealer',
             'phone' => '01712345678',
             'territory_id' => $territory->id,
             'gps_lat' => '23.8103000',
@@ -68,7 +67,6 @@ class DealerManagementTest extends TestCase
         $response->assertRedirect(route('dealers.index'));
 
         $dealer = Dealer::where('dealer_code', 'CUST-TEST-01')->firstOrFail();
-        $this->assertSame('dealer', $dealer->type->value);
         $this->assertEquals(23.8103, (float) $dealer->gps_lat);
     }
 
@@ -79,7 +77,6 @@ class DealerManagementTest extends TestCase
         $response = $this->actingAs($this->superAdmin())->post(route('dealers.store'), [
             'dealer_code' => 'CUST-TEST-04',
             'name' => 'Photo Dealer',
-            'type' => 'dealer',
             'phone' => '01712345678',
             'image' => UploadedFile::fake()->image('shop.jpg'),
         ]);
@@ -96,25 +93,12 @@ class DealerManagementTest extends TestCase
         $response = $this->actingAs($this->superAdmin())->post(route('dealers.store'), [
             'dealer_code' => 'CUST-TEST-02',
             'name' => 'Test Dealer',
-            'type' => 'dealer',
             'phone' => '01712345678',
             'gps_lat' => '999',
             'gps_lng' => '90.4125000',
         ]);
 
         $response->assertSessionHasErrors('gps_lat');
-    }
-
-    public function test_dealer_type_must_be_a_valid_enum_value(): void
-    {
-        $response = $this->actingAs($this->superAdmin())->post(route('dealers.store'), [
-            'dealer_code' => 'CUST-TEST-03',
-            'name' => 'Test Dealer',
-            'type' => 'wholesaler',
-            'phone' => '01712345678',
-        ]);
-
-        $response->assertSessionHasErrors('type');
     }
 
     public function test_super_admin_can_view_edit_and_delete_a_dealer(): void
@@ -127,7 +111,6 @@ class DealerManagementTest extends TestCase
         $this->actingAs($admin)->put(route('dealers.update', $dealer), [
             'dealer_code' => $dealer->dealer_code,
             'name' => 'Renamed Dealer',
-            'type' => $dealer->type->value,
             'phone' => $dealer->phone,
             'status' => '1',
         ])->assertRedirect(route('dealers.index'));

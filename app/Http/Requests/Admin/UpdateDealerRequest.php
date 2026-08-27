@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
-use App\Enums\CustomerType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Enum;
 
 class UpdateDealerRequest extends FormRequest
 {
@@ -24,7 +22,6 @@ class UpdateDealerRequest extends FormRequest
         return [
             'dealer_code' => ['required', 'string', 'max:50', Rule::unique('dealers', 'dealer_code')->ignore($this->route('dealer')->id)],
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', new Enum(CustomerType::class)],
             'phone' => ['required', 'string', 'max:20'],
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string'],

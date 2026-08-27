@@ -29,6 +29,11 @@ class CollectionEntryPolicy
         return $user->can('collection-entries.edit');
     }
 
+    public function approve(User $user, CollectionEntry $collectionEntry): bool
+    {
+        return $user->can('collection-entries.approve');
+    }
+
     public function delete(User $user, CollectionEntry $collectionEntry): bool
     {
         return $user->can('collection-entries.delete');

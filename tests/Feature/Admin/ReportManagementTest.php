@@ -93,6 +93,35 @@ class ReportManagementTest extends TestCase
         $response->assertOk()->assertSee($executive->name)->assertSee('5,000.00');
     }
 
+    public function test_order_performance_report_can_be_filtered_by_approval_status(): void
+    {
+        $manager = $this->generalManager();
+        $approvedExecutive = $this->executive();
+        $pendingExecutive = $this->executive();
+        Order::factory()->create(['user_id' => $approvedExecutive->id, 'order_date' => now()->toDateString(), 'total_amount' => 55555, 'status' => 'approved']);
+        Order::factory()->create(['user_id' => $pendingExecutive->id, 'order_date' => now()->toDateString(), 'total_amount' => 33333, 'status' => 'pending']);
+
+        $response = $this->actingAs($manager)->get(route('reports.order-performance', ['status' => 'approved']));
+
+        // Both executives always appear in the filter dropdown regardless of
+        // report data, so assert on the aggregated totals (scoped to the
+        // filtered status) rather than the executives' names.
+        $response->assertOk()->assertSee('55,555.00')->assertDontSee('33,333.00');
+    }
+
+    public function test_collection_summary_report_can_be_filtered_by_approval_status(): void
+    {
+        $manager = $this->generalManager();
+        $approvedExecutive = $this->executive();
+        $pendingExecutive = $this->executive();
+        CollectionEntry::factory()->create(['user_id' => $approvedExecutive->id, 'collection_date' => now()->toDateString(), 'amount' => 11111, 'status' => 'approved']);
+        CollectionEntry::factory()->create(['user_id' => $pendingExecutive->id, 'collection_date' => now()->toDateString(), 'amount' => 77777, 'status' => 'pending']);
+
+        $response = $this->actingAs($manager)->get(route('reports.collection-summary', ['status' => 'approved']));
+
+        $response->assertOk()->assertSee('11,111.00')->assertDontSee('77,777.00');
+    }
+
     public function test_reports_can_be_exported_to_excel(): void
     {
         $manager = $this->generalManager();

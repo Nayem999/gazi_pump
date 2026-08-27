@@ -24,6 +24,7 @@ use App\Http\Controllers\Web\Portal\FaqController;
 use App\Http\Controllers\Web\Portal\HomeController;
 use App\Http\Controllers\Web\Portal\InquiryController;
 use App\Http\Controllers\Web\Portal\NewsController;
+use App\Http\Controllers\Web\Portal\NotificationController;
 use App\Http\Controllers\Web\Portal\PaymentController;
 use App\Http\Controllers\Web\Portal\ProductController;
 use App\Http\Controllers\Web\Portal\ProfileController;
@@ -94,6 +95,13 @@ Route::name('portal.')->group(function (): void {
         Route::get('/purchases/{salesEntry}', [PurchaseController::class, 'show'])->name('purchases.show');
 
         Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
+
+        Route::prefix('notifications')->name('notifications.')->group(function (): void {
+            Route::get('/', [NotificationController::class, 'index'])->name('index');
+            Route::post('/read-all', [NotificationController::class, 'markAllRead'])->name('read-all');
+            Route::post('/{id}/read', [NotificationController::class, 'markRead'])->name('read');
+            Route::delete('/{id}', [NotificationController::class, 'destroy'])->name('destroy');
+        });
 
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');

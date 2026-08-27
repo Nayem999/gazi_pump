@@ -35,6 +35,7 @@ class OrderController extends Controller
                 required: ['dealer_id', 'items'],
                 properties: [
                     new OA\Property(property: 'dealer_id', type: 'integer'),
+                    new OA\Property(property: 'retailer_id', type: 'integer', nullable: true, description: 'Optional: one of the dealer\'s own retailers, from GET /retailers?dealer_id='),
                     new OA\Property(property: 'order_date', type: 'string', format: 'date', nullable: true),
                     new OA\Property(property: 'remarks', type: 'string', nullable: true),
                     new OA\Property(property: 'items', type: 'array', items: new OA\Items(
@@ -61,6 +62,7 @@ class OrderController extends Controller
             $request->input('items'),
             $request->input('order_date'),
             $request->input('remarks'),
+            $request->integer('retailer_id') ?: null,
         );
 
         return ApiResponse::success(new OrderResource($entry), 'Order recorded.', 201);
@@ -74,13 +76,14 @@ class OrderController extends Controller
         parameters: [
             new OA\Parameter(name: 'date_from', in: 'query', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
             new OA\Parameter(name: 'date_to', in: 'query', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'status', in: 'query', required: false, description: 'Filter by approval status', schema: new OA\Schema(type: 'string', enum: ['pending', 'approved', 'rejected'])),
             new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
         ],
         responses: [new OA\Response(response: 200, description: 'Paginated order history')],
     )]
     public function index(Request $request): JsonResponse
     {
-        $query = Order::where('user_id', $request->user()->id)->with(['dealer', 'items.product']);
+        $query = Order::where('user_id', $request->user()->id)->with(['dealer', 'retailer', 'items.product']);
 
         if ($request->filled('date_from')) {
             $query->whereDate('order_date', '>=', $request->string('date_from'));
@@ -88,6 +91,10 @@ class OrderController extends Controller
 
         if ($request->filled('date_to')) {
             $query->whereDate('order_date', '<=', $request->string('date_to'));
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->string('status'));
         }
 
         $orders = $query->latest('order_date')->paginate((int) $request->integer('per_page', 20));

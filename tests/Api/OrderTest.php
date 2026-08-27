@@ -7,6 +7,7 @@ namespace Tests\Api;
 use App\Models\Dealer;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Retailer;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -128,5 +129,50 @@ class OrderTest extends TestCase
             ->getJson('/api/v1/orders')
             ->assertOk()
             ->assertJsonCount(1, 'data');
+    }
+
+    public function test_a_recorded_order_reports_a_pending_status(): void
+    {
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        $product = Product::factory()->create(['price' => 100]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/orders', [
+                'dealer_id' => $dealer->id,
+                'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            ]);
+
+        $response->assertJsonPath('data.status', 'pending')->assertJsonPath('data.status_label', 'Pending');
+    }
+
+    public function test_an_order_can_optionally_be_placed_for_one_of_the_dealers_retailers(): void
+    {
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        $retailer = Retailer::factory()->create(['dealer_id' => $dealer->id]);
+        $product = Product::factory()->create(['price' => 100]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/orders', [
+                'dealer_id' => $dealer->id,
+                'retailer_id' => $retailer->id,
+                'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            ]);
+
+        $response->assertStatus(201);
+        $this->assertDatabaseHas('orders', ['dealer_id' => $dealer->id, 'retailer_id' => $retailer->id]);
+    }
+
+    public function test_index_can_be_filtered_by_approval_status(): void
+    {
+        $executive = $this->executive();
+        Order::factory()->create(['user_id' => $executive->id, 'status' => 'pending']);
+        Order::factory()->create(['user_id' => $executive->id, 'status' => 'approved']);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->getJson('/api/v1/orders?status=approved');
+
+        $response->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.status', 'approved');
     }
 }

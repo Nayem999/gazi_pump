@@ -19,7 +19,7 @@ class DealerService extends BaseCrudService
     }
 
     /**
-     * @param  array{search?: string, type?: string, territory_id?: string, status?: string, trashed?: string}  $filters
+     * @param  array{search?: string, territory_id?: string, status?: string, trashed?: string}  $filters
      */
     public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
     {

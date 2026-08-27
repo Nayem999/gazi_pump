@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Web\Admin;
 
+use App\Enums\ApprovalStatus;
 use App\Exports\AttendanceSummaryExport;
 use App\Exports\CollectionSummaryExport;
 use App\Exports\DealerCoverageExport;
@@ -122,7 +123,7 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('order-performance')), 403);
 
-        $filters = $request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]);
+        $filters = $request->only(['date_from', 'date_to', 'user_id', 'status', ...self::GEO_FILTER_KEYS]);
         $rows = $this->reports->orderPerformance($this->resolveGeoFilters($filters));
 
         return view('reports.order-performance', [
@@ -135,6 +136,7 @@ class ReportController extends Controller
             'executives' => $this->executives(),
             'divisions' => $this->divisions(),
             'territories' => $this->territories(),
+            'statuses' => ApprovalStatus::cases(),
             'filters' => $filters,
         ]);
     }
@@ -143,7 +145,7 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('order-performance')), 403);
 
-        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', 'status', ...self::GEO_FILTER_KEYS]));
         $rows = $this->reports->orderPerformance($filters);
 
         return Excel::download(new OrderPerformanceExport($rows), 'order-performance-'.now()->format('Y-m-d-His').'.xlsx');
@@ -153,7 +155,7 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('order-performance')), 403);
 
-        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', 'status', ...self::GEO_FILTER_KEYS]));
         $rows = $this->reports->orderPerformance($filters);
 
         return Pdf::loadView('reports.order-performance-print', ['rows' => $rows])
@@ -164,7 +166,7 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('collections')), 403);
 
-        $filters = $request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]);
+        $filters = $request->only(['date_from', 'date_to', 'user_id', 'status', ...self::GEO_FILTER_KEYS]);
         $rows = $this->reports->collectionSummary($this->resolveGeoFilters($filters));
 
         return view('reports.collection-summary', [
@@ -180,6 +182,7 @@ class ReportController extends Controller
             'executives' => $this->executives(),
             'divisions' => $this->divisions(),
             'territories' => $this->territories(),
+            'statuses' => ApprovalStatus::cases(),
             'filters' => $filters,
         ]);
     }
@@ -188,7 +191,7 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('collections')), 403);
 
-        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', 'status', ...self::GEO_FILTER_KEYS]));
         $rows = $this->reports->collectionSummary($filters);
 
         return Excel::download(new CollectionSummaryExport($rows), 'collection-summary-'.now()->format('Y-m-d-His').'.xlsx');
@@ -198,7 +201,7 @@ class ReportController extends Controller
     {
         abort_unless($request->user()?->can(PermissionName::report('collections')), 403);
 
-        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]));
+        $filters = $this->resolveGeoFilters($request->only(['date_from', 'date_to', 'user_id', 'status', ...self::GEO_FILTER_KEYS]));
         $rows = $this->reports->collectionSummary($filters);
 
         return Pdf::loadView('reports.collection-summary-print', ['rows' => $rows])

@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\V1;
 
-use App\Enums\CustomerType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Enum;
 
 class StoreDealerRequest extends FormRequest
 {
@@ -24,7 +22,6 @@ class StoreDealerRequest extends FormRequest
         return [
             'dealer_code' => ['required', 'string', 'max:50', 'unique:dealers,dealer_code'],
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', new Enum(CustomerType::class)],
             'phone' => ['required', 'string', 'max:20'],
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string'],

@@ -44,6 +44,7 @@ class CollectionEntryRepository extends BaseRepository implements CollectionEntr
                 $query->whereHas('dealer', fn ($q) => $q->where('territory_id', $territoryId));
             })
             ->when($filters['payment_method'] ?? null, fn ($query, $method) => $query->where('payment_method', $method))
+            ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->when($filters['date_from'] ?? null, fn ($query, $date) => $query->whereDate('collection_date', '>=', $date))
             ->when($filters['date_to'] ?? null, fn ($query, $date) => $query->whereDate('collection_date', '<=', $date))
             ->when($filters['trashed'] ?? null, function ($query, $trashed) {

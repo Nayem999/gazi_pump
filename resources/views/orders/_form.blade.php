@@ -19,7 +19,7 @@
 @endif
 
 <div class="row g-3">
-    <div class="col-md-6">
+    <div class="col-md-4">
         <label class="form-label">Sales Executive <span class="text-danger">*</span></label>
         <select name="user_id" class="form-select @error('user_id') is-invalid @enderror" required>
             <option value="">— Select Executive —</option>
@@ -30,7 +30,7 @@
         @error('user_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
-    <div class="col-md-6">
+    <div class="col-md-4">
         <label class="form-label">Dealer <span class="text-danger">*</span></label>
         <select name="dealer_id" class="form-select @error('dealer_id') is-invalid @enderror" required>
             <option value="">— Select Dealer —</option>
@@ -39,6 +39,17 @@
             @endforeach
         </select>
         @error('dealer_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+
+    <div class="col-md-4">
+        <label class="form-label">Retailer</label>
+        <select name="retailer_id" id="retailerSelect" class="form-select @error('retailer_id') is-invalid @enderror">
+            <option value="">— None —</option>
+            @foreach ($retailers as $retailer)
+                <option value="{{ $retailer->id }}" data-dealer-id="{{ $retailer->dealer_id }}" @selected((string) old('retailer_id', $order->retailer_id ?? '') === (string) $retailer->id)>{{ $retailer->name }}</option>
+            @endforeach
+        </select>
+        @error('retailer_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
     <div class="col-md-4">
@@ -106,6 +117,46 @@
         // once the deferred module bundle (app.js) finishes executing —
         // which happens at/before DOMContentLoaded, not before.
         document.addEventListener('DOMContentLoaded', function () {
+            // Retailer options are all pre-rendered (small per-dealer counts
+            // don't justify an AJAX round trip like the Territory/Thana
+            // cascades use) — switching Dealer just hides/disables every
+            // option whose data-dealer-id doesn't match, rather than
+            // re-fetching a filtered list from the server.
+            const dealerSelect = document.querySelector('select[name="dealer_id"]');
+            const retailerSelect = document.getElementById('retailerSelect');
+
+            function filterRetailers(preserveSelection) {
+                const dealerId = dealerSelect.value;
+                const currentValue = retailerSelect.value;
+                let currentStillValid = false;
+
+                Array.from(retailerSelect.options).forEach((option) => {
+                    if (!option.value) {
+                        return;
+                    }
+
+                    const matches = option.dataset.dealerId === dealerId;
+                    option.hidden = !matches;
+                    option.disabled = !matches;
+
+                    if (matches && option.value === currentValue) {
+                        currentStillValid = true;
+                    }
+                });
+
+                if (!preserveSelection || !currentStillValid) {
+                    retailerSelect.value = '';
+                }
+
+                window.refreshSelect2?.(retailerSelect);
+            }
+
+            window.$(dealerSelect).on('change', function () {
+                filterRetailers(false);
+            });
+
+            filterRetailers(true);
+
             const itemsBody = document.getElementById('itemsBody');
             const addItemBtn = document.getElementById('addItemBtn');
             const grandTotalPreview = document.getElementById('grandTotalPreview');

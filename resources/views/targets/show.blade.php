@@ -101,5 +101,46 @@
                 </div>
             </div>
         </div>
+
+        @if ($target->isProductWise())
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">Product-wise Breakdown</div>
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Order Target</th>
+                                    <th>Collection Target</th>
+                                    <th>Quantity Target</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($target->items as $item)
+                                    <tr>
+                                        <td>
+                                            {{ $item->product?->name }}
+                                            <div class="text-muted small">{{ $item->product?->sku }}</div>
+                                        </td>
+                                        <td>{{ number_format((float) $item->order_target, 2) }}</td>
+                                        <td>{{ number_format((float) $item->collection_target, 2) }}</td>
+                                        <td>{{ $item->quantity_target }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td class="text-end fw-semibold">Total</td>
+                                    <td class="fw-semibold">{{ number_format((float) $target->order_value_target, 2) }}</td>
+                                    <td class="fw-semibold">{{ number_format((float) $target->collection_target, 2) }}</td>
+                                    <td class="fw-semibold">{{ $target->quantity_target }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        @endif
     </div>
 @endsection

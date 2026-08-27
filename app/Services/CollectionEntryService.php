@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\ApprovalStatus;
+use App\Enums\ChequeStatus;
 use App\Enums\PaymentMethod;
 use App\Models\CollectionEntry;
 use App\Models\Order;
@@ -18,13 +20,15 @@ use Illuminate\Validation\ValidationException;
 
 class CollectionEntryService extends BaseCrudService
 {
-    public function __construct(private readonly CollectionEntryRepositoryInterface $collectionEntries)
-    {
+    public function __construct(
+        private readonly CollectionEntryRepositoryInterface $collectionEntries,
+        private readonly CollectionOtpService $otps,
+    ) {
         parent::__construct($collectionEntries);
     }
 
     /**
-     * @param  array{search?: string, user_id?: string, dealer_id?: string, territory_id?: string, payment_method?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
+     * @param  array{search?: string, user_id?: string, dealer_id?: string, territory_id?: string, payment_method?: string, status?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
      */
     public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
     {
@@ -32,7 +36,7 @@ class CollectionEntryService extends BaseCrudService
     }
 
     /**
-     * @param  array{search?: string, user_id?: string, dealer_id?: string, territory_id?: string, payment_method?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
+     * @param  array{search?: string, user_id?: string, dealer_id?: string, territory_id?: string, payment_method?: string, status?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
      */
     public function total(array $filters): float
     {
@@ -40,15 +44,47 @@ class CollectionEntryService extends BaseCrudService
     }
 
     /**
+     * When `otp_id`/`otp_code` are both present, the collection is only
+     * created after that OTP verifies against this exact dealer/amount/
+     * payment_method — otherwise those two keys are simply absent and
+     * every existing (non-OTP) call site keeps working unchanged.
+     *
      * @param  array<string, mixed>  $data
      */
     public function create(array $data, ?UploadedFile $chequeImage = null): Model
     {
         $this->validateAmount((int) $data['dealer_id'], (float) $data['amount']);
 
+        $otpId = $data['otp_id'] ?? null;
+        $otpCode = $data['otp_code'] ?? null;
+        unset($data['otp_id'], $data['otp_code']);
+
+        if ($otpId && $otpCode) {
+            // Scoped to whoever is actually authenticated (and so actually
+            // stood in front of the dealer when the OTP was sent) — not
+            // necessarily $data['user_id'], which on the web admin form is
+            // just an attribution dropdown an operator can set to any
+            // Sales Executive.
+            $this->otps->verify(
+                (int) $otpId,
+                auth()->user(),
+                (string) $otpCode,
+                (int) $data['dealer_id'],
+                (float) $data['amount'],
+                PaymentMethod::from($data['payment_method']),
+            );
+            $data['otp_verified_at'] = now();
+        }
+
         if ($chequeImage) {
             $data['cheque_image'] = $chequeImage->store('collection-entries', 'public');
         }
+
+        if (($data['payment_method'] ?? null) === PaymentMethod::Cheque->value) {
+            $data['cheque_status'] = ChequeStatus::Collected->value;
+        }
+
+        $data['status'] ??= ApprovalStatus::Pending->value;
 
         return parent::create($data);
     }
@@ -67,6 +103,17 @@ class CollectionEntryService extends BaseCrudService
             $data['cheque_image'] = $chequeImage->store('collection-entries', 'public');
         }
 
+        if (($data['payment_method'] ?? null) === PaymentMethod::Cheque->value) {
+            // Switching an existing (non-cheque) entry to cheque starts its
+            // lifecycle fresh; an entry that was already cheque keeps
+            // whatever status it had reached.
+            $data['cheque_status'] ??= $model->cheque_status?->value ?? ChequeStatus::Collected->value;
+        } else {
+            // Switching away from cheque clears the lifecycle entirely —
+            // it's not meaningful for any other payment method.
+            $data['cheque_status'] = null;
+        }
+
         return parent::update($model, $data);
     }
 
@@ -83,6 +130,8 @@ class CollectionEntryService extends BaseCrudService
         ?string $remarks,
         ?string $collectionDate,
         ?UploadedFile $chequeImage = null,
+        ?int $otpId = null,
+        ?string $otpCode = null,
     ): CollectionEntry {
         /** @var CollectionEntry $entry */
         $entry = $this->create([
@@ -93,9 +142,70 @@ class CollectionEntryService extends BaseCrudService
             'payment_method' => $paymentMethod->value,
             'reference_no' => $referenceNo,
             'remarks' => $remarks,
+            'otp_id' => $otpId,
+            'otp_code' => $otpCode,
         ], $chequeImage);
 
         return $entry;
+    }
+
+    /**
+     * Advances a cheque's status one step along its lifecycle
+     * (Collected -> Submitted -> Deposited -> Cleared|Bounced). Rejects any
+     * jump that isn't one of the current status's allowed next steps —
+     * enforced here, not just in the UI, so the transition can't be forced
+     * via a raw request either.
+     */
+    public function updateChequeStatus(CollectionEntry $entry, ChequeStatus $newStatus): CollectionEntry
+    {
+        if ($entry->payment_method !== PaymentMethod::Cheque || $entry->cheque_status === null) {
+            throw ValidationException::withMessages([
+                'cheque_status' => 'This collection is not a cheque payment.',
+            ]);
+        }
+
+        if (! in_array($newStatus, $entry->cheque_status->nextOptions(), true)) {
+            throw ValidationException::withMessages([
+                'cheque_status' => "Cannot move from {$entry->cheque_status->label()} to {$newStatus->label()}.",
+            ]);
+        }
+
+        $entry->update(['cheque_status' => $newStatus->value]);
+
+        return $entry->fresh();
+    }
+
+    /**
+     * Forward-only, mirroring updateChequeStatus()/CashHandoverService: only
+     * a Pending collection can be approved or rejected, and both are
+     * terminal — a rejected collection is corrected and resubmitted, not
+     * reopened here.
+     */
+    public function approve(CollectionEntry $entry, int $approverId): CollectionEntry
+    {
+        $this->assertPendingApproval($entry);
+
+        $entry->update(['status' => ApprovalStatus::Approved->value, 'approved_by' => $approverId, 'approved_at' => now()]);
+
+        return $entry->fresh();
+    }
+
+    public function reject(CollectionEntry $entry, int $approverId): CollectionEntry
+    {
+        $this->assertPendingApproval($entry);
+
+        $entry->update(['status' => ApprovalStatus::Rejected->value, 'approved_by' => $approverId, 'approved_at' => now()]);
+
+        return $entry->fresh();
+    }
+
+    private function assertPendingApproval(CollectionEntry $entry): void
+    {
+        if ($entry->status !== ApprovalStatus::Pending) {
+            throw ValidationException::withMessages([
+                'status' => 'This collection has already been '.$entry->status->label().' and cannot be changed.',
+            ]);
+        }
     }
 
     /**
