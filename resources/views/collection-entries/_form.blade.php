@@ -95,16 +95,16 @@
         <div class="col-12">
             <div class="card border-primary">
                 <div class="card-body">
-                    <h6 class="card-title mb-2"><i class="ti ti-shield-lock me-1"></i>Secure Collection — OTP Verification</h6>
-                    <p class="text-muted small mb-2">Optional: send an OTP to the dealer to confirm this collection before submitting. The amount is locked once an OTP is sent.</p>
+                    <h6 class="card-title mb-2"><i class="ti ti-shield-lock me-1"></i>Secure Collection — OTP Verification <span class="text-danger">*</span></h6>
+                    <p class="text-muted small mb-2">Required: send an OTP to the dealer and enter it below to confirm this collection — it cannot be recorded without one. The amount is locked once an OTP is sent.</p>
                     <div id="otpStatus" class="small mb-2"></div>
                     <div class="row g-2 align-items-end">
                         <div class="col-auto">
                             <button type="button" id="sendOtpBtn" class="btn btn-outline-primary btn-sm"><i class="ti ti-send me-1"></i>Send OTP</button>
                         </div>
                         <div class="col-auto" id="otpCodeWrap" style="display:none">
-                            <label class="form-label mb-0 small">OTP from Dealer</label>
-                            <input type="text" id="otpCodeInput" name="otp_code" class="form-control form-control-sm" maxlength="6" placeholder="6-digit code" inputmode="numeric" autocomplete="off">
+                            <label class="form-label mb-0 small">OTP from Dealer <span class="text-danger">*</span></label>
+                            <input type="text" id="otpCodeInput" name="otp_code" class="form-control form-control-sm" maxlength="6" placeholder="6-digit code" inputmode="numeric" autocomplete="off" required>
                         </div>
                         <div class="col-auto" id="otpCancelWrap" style="display:none">
                             <button type="button" id="cancelOtpBtn" class="btn btn-link btn-sm text-danger">Cancel / Unlock Amount</button>
@@ -217,7 +217,7 @@
                 otpCancelWrap.style.display = 'none';
                 otpStatus.textContent = '';
                 if (amountInput) {
-                    amountInput.readOnly = false;
+                    amountInput.disabled = false;
                 }
                 if (sendOtpBtn) {
                     sendOtpBtn.disabled = false;
@@ -258,7 +258,7 @@
                     .then(function (data) {
                         otpIdInput.value = data.otp_id;
                         if (amountInput) {
-                            amountInput.readOnly = true;
+                            amountInput.disabled = true;
                         }
                         otpCodeWrap.style.display = '';
                         otpCancelWrap.style.display = '';
@@ -275,6 +275,15 @@
             });
 
             cancelOtpBtn?.addEventListener('click', resetOtp);
+
+            // A disabled input's value is never included in form submission
+            // — re-enable it right before the browser serializes the form
+            // so the amount the OTP was verified against still gets sent.
+            amountInput?.closest('form')?.addEventListener('submit', function () {
+                if (amountInput.disabled) {
+                    amountInput.disabled = false;
+                }
+            });
         });
     </script>
 @endpush

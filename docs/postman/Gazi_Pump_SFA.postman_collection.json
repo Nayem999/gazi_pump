@@ -1125,7 +1125,7 @@
 								"send-otp"
 							]
 						},
-						"description": "Send (or, in demo mode when no SMS gateway is configured, generate and return as demo_code) an OTP to confirm a collection with the dealer before recording it."
+						"description": "Send (or, in demo mode when no SMS gateway is configured, generate and return as demo_code — always the fixed code 123456 in demo mode) an OTP to confirm a collection with the dealer. Required before Record Collection — a collection cannot be recorded without a verified OTP."
 					}
 				},
 				{
@@ -1178,13 +1178,13 @@
 									"key": "otp_id",
 									"value": "{{otp_id}}",
 									"type": "text",
-									"description": "Optional: from Send Collection OTP — omit both otp_id and otp_code to record without OTP verification"
+									"description": "Required: from Send Collection OTP — a collection cannot be recorded without a verified OTP"
 								},
 								{
 									"key": "otp_code",
-									"value": "",
+									"value": "123456",
 									"type": "text",
-									"description": "Optional: the 6-digit code the dealer read back to the executive"
+									"description": "Required: the 6-digit code the dealer read back to the executive (demo mode always issues 123456)"
 								},
 								{
 									"key": "remarks",
@@ -1202,7 +1202,7 @@
 								"collection-entries"
 							]
 						},
-						"description": "Record a payment collected from a dealer, optionally OTP-verified. New collections always start with approval status \"pending\"."
+						"description": "Record a payment collected from a dealer. Requires a verified OTP (run Send Collection OTP first) — a collection cannot be recorded without one. New collections always start with approval status \"pending\"."
 					}
 				},
 				{

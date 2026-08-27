@@ -315,6 +315,7 @@ class ReportService
             ->get();
 
         return $targets->map(fn (Target $target) => (object) [
+            'id' => $target->id,
             'user' => $target->user,
             'month' => $target->month,
             'year' => $target->year,

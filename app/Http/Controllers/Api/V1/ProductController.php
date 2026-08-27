@@ -28,7 +28,7 @@ class ProductController extends Controller
         summary: 'List active products',
         security: [['sanctum' => []]],
         parameters: [
-            new OA\Parameter(name: 'category_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'category_id', in: 'query', required: false, description: 'Also matches products filed under this category\'s sub-categories.', schema: new OA\Schema(type: 'integer')),
             new OA\Parameter(name: 'search', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
         ],
@@ -68,6 +68,6 @@ class ProductController extends Controller
     {
         $this->authorize('view', $product);
 
-        return ApiResponse::success(new ProductResource($product->load(['category', 'salesTeam'])));
+        return ApiResponse::success(new ProductResource($product->load(['category.parent', 'salesTeam'])));
     }
 }

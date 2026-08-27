@@ -81,6 +81,7 @@
                         <th>Collection Achieved</th>
                         <th>Overall %</th>
                         <th>Grade</th>
+                        <th class="text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -102,10 +103,17 @@
                                     —
                                 @endif
                             </td>
+                            <td class="text-end">
+                                @can('targets.view')
+                                    <a href="{{ route('targets.show', $row->id) }}" class="btn btn-outline-secondary btn-sm" title="View product-wise achievement breakdown">
+                                        <i class="ti ti-eye me-1"></i>View
+                                    </a>
+                                @endcan
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">No targets found for this period.</td>
+                            <td colspan="8" class="text-center text-muted py-4">No targets found for this period.</td>
                         </tr>
                     @endforelse
                 </tbody>

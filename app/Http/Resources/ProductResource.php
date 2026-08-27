@@ -28,6 +28,10 @@ class ProductResource extends JsonResource
             'category' => $this->whenLoaded('category', fn () => $this->category ? [
                 'id' => $this->category->id,
                 'name' => $this->category->name,
+                'parent' => $this->category->relationLoaded('parent') && $this->category->parent ? [
+                    'id' => $this->category->parent->id,
+                    'name' => $this->category->parent->name,
+                ] : null,
             ] : null),
             'sales_team' => $this->whenLoaded('salesTeam', fn () => $this->salesTeam ? [
                 'id' => $this->salesTeam->id,

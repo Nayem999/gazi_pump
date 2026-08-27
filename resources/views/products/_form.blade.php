@@ -9,7 +9,7 @@
         <select name="category_id" class="form-select @error('category_id') is-invalid @enderror" required>
             <option value="">— Select Category —</option>
             @foreach ($categories as $category)
-                <option value="{{ $category->id }}" @selected((string) old('category_id', $product->category_id ?? '') === (string) $category->id)>{{ $category->name }}</option>
+                <option value="{{ $category->id }}" @selected((string) old('category_id', $product->category_id ?? '') === (string) $category->id)>{{ $category->parent_id ? '— ' : '' }}{{ $category->name }}</option>
             @endforeach
         </select>
         @error('category_id') <div class="invalid-feedback">{{ $message }}</div> @enderror

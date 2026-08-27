@@ -179,3 +179,49 @@ dealer's own retailers, only the dealer itself.
   (`List Retailers`, `Get Retailer`) and `Record Order`'s body gained
   `retailer_id`. Verified end-to-end with Newman (40/40 requests passing)
   and a direct authenticated request against `GET /retailers/{id}`.
+
+## OTP became mandatory to record a collection
+
+`otp_id`/`otp_code` had been optional on `POST /collection-entries` since
+the OTP feature first shipped — a deliberate choice at the time to avoid
+breaking every existing collection-entry call site (admin backfill, the
+Excel importer, tests). Confirmed as the actual desired business rule: a
+collection cannot be recorded at all without a verified OTP, on **both**
+the web admin form and this API.
+
+- `otp_id`/`otp_code` changed from `nullable` to `required` in both
+  `StoreCollectionEntryRequest` classes (`Admin` and `Api/V1`) — omitting
+  either now fails with `422` and a dedicated message ("Send an OTP to the
+  dealer before recording this collection." / "Enter the OTP the dealer
+  read back to you.") rather than silently skipping verification.
+- **Enforced at the request-validation layer, not inside
+  `CollectionEntryService::create()`** — the service's own OTP handling
+  stayed conditional (`if ($otpId && $otpCode)`) so
+  `App\Imports\CollectionEntriesImport` (bulk paper-backfill, which builds
+  `CollectionEntry` rows directly and was never routed through either
+  Store request) keeps working unmodified — a spreadsheet import has no
+  live OTP flow to complete.
+- `CollectionOtpService::send()` now issues a **fixed demo code, `123456`**,
+  whenever demo mode applies (no SMS gateway configured) instead of a
+  random 6-digit code — makes manual testing and demos predictable. A real
+  configured gateway still gets a genuinely random code; the fix only
+  applies to the no-gateway fallback.
+- Web admin form (`resources/views/collection-entries/_form.blade.php`)
+  updated to say "Required" instead of "Optional", and the OTP-code input
+  gained the HTML `required` attribute.
+- `POST /collection-entries`'s Swagger requestBody now lists `otp_id`/
+  `otp_code` in its `required` array (previously `nullable`); Postman's
+  `Record Collection` request and its field descriptions updated to
+  match, `otp_code`'s example value set to `123456`.
+- One existing test inverted: `test_a_collection_can_still_be_submitted_without_an_otp`
+  became `test_a_collection_cannot_be_submitted_without_an_otp` (API) — it
+  asserted the old, now-wrong behavior. Every other test that records a
+  collection through either Store request was updated to send a real OTP
+  first via a new `sendOtp()` test helper (both test files); tests that
+  only assert on an unrelated field (e.g. `cheque_image` being required)
+  needed no change, since Laravel returns every failing rule together and
+  those assertions don't care about the extra `otp_id`/`otp_code` errors.
+  Verified live against the running dev server too: a web admin submission
+  without OTP gets `422` with both field errors; the same request with a
+  real `otp_id`/`otp_code` (demo code `123456`) succeeds and the resulting
+  row has `otp_verified_at` set.

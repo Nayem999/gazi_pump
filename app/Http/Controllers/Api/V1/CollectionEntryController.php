@@ -73,7 +73,7 @@ class CollectionEntryController extends Controller
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\MediaType(mediaType: 'multipart/form-data', schema: new OA\Schema(
-                required: ['dealer_id', 'amount', 'payment_method'],
+                required: ['dealer_id', 'amount', 'payment_method', 'otp_id', 'otp_code'],
                 properties: [
                     new OA\Property(property: 'dealer_id', type: 'integer'),
                     new OA\Property(property: 'collection_date', type: 'string', format: 'date', nullable: true),
@@ -81,15 +81,15 @@ class CollectionEntryController extends Controller
                     new OA\Property(property: 'payment_method', type: 'string', enum: ['cash', 'cheque', 'bank_transfer', 'mobile_banking']),
                     new OA\Property(property: 'reference_no', type: 'string', nullable: true),
                     new OA\Property(property: 'cheque_image', type: 'string', format: 'binary', nullable: true, description: 'Required when payment_method is cheque'),
-                    new OA\Property(property: 'otp_id', type: 'integer', nullable: true, description: 'From /collection-entries/send-otp — omit to record without OTP verification'),
-                    new OA\Property(property: 'otp_code', type: 'string', nullable: true, description: 'The 6-digit code the dealer read back to the executive'),
+                    new OA\Property(property: 'otp_id', type: 'integer', description: 'From /collection-entries/send-otp — a collection cannot be recorded without a verified OTP'),
+                    new OA\Property(property: 'otp_code', type: 'string', description: 'The 6-digit code the dealer read back to the executive'),
                     new OA\Property(property: 'remarks', type: 'string', nullable: true),
                 ],
             )),
         ),
         responses: [
             new OA\Response(response: 201, description: 'Collection recorded'),
-            new OA\Response(response: 422, description: 'Validation error, an invalid/expired OTP, or the amount exceeds the outstanding balance tolerance'),
+            new OA\Response(response: 422, description: 'Validation error, a missing/invalid/expired OTP, or the amount exceeds the outstanding balance tolerance'),
         ],
     )]
     public function store(StoreCollectionEntryRequest $request): JsonResponse

@@ -51,6 +51,24 @@ class CollectionEntryManagementTest extends TestCase
         return $user;
     }
 
+    /**
+     * Sends an OTP and returns the otp_id/otp_code pair to merge into a
+     * store() payload — a collection can no longer be recorded without one.
+     * Demo mode always issues the fixed code 123456.
+     *
+     * @return array{otp_id: int, otp_code: string}
+     */
+    private function sendOtp(User $manager, int $dealerId, float $amount, string $paymentMethod = 'cash'): array
+    {
+        $response = $this->actingAs($manager)->postJson(route('collection-entries.send-otp'), [
+            'dealer_id' => $dealerId,
+            'amount' => $amount,
+            'payment_method' => $paymentMethod,
+        ]);
+
+        return ['otp_id' => $response->json('otp_id'), 'otp_code' => '123456'];
+    }
+
     public function test_guest_is_redirected_to_login(): void
     {
         $this->get(route('collection-entries.index'))->assertRedirect(route('login'));
@@ -76,6 +94,7 @@ class CollectionEntryManagementTest extends TestCase
             'collection_date' => Carbon::today()->toDateString(),
             'amount' => 600,
             'payment_method' => 'cash',
+            ...$this->sendOtp($manager, $dealer->id, 600),
         ]);
 
         $response->assertRedirect(route('collection-entries.index'));
@@ -121,6 +140,7 @@ class CollectionEntryManagementTest extends TestCase
             'payment_method' => 'cheque',
             'reference_no' => 'CHQ-001',
             'cheque_image' => UploadedFile::fake()->image('cheque.jpg'),
+            ...$this->sendOtp($manager, $dealer->id, 600, 'cheque'),
         ]);
 
         $response->assertRedirect(route('collection-entries.index'));
@@ -196,6 +216,7 @@ class CollectionEntryManagementTest extends TestCase
             'amount' => 600,
             'payment_method' => 'mobile_banking',
             'reference_no' => 'SHARED-001',
+            ...$this->sendOtp($manager, $dealer->id, 600, 'mobile_banking'),
         ])->assertRedirect(route('collection-entries.index'));
 
         $this->assertDatabaseCount('collection_entries', 2);
@@ -217,6 +238,7 @@ class CollectionEntryManagementTest extends TestCase
             'amount' => 600,
             'payment_method' => 'cheque',
             'cheque_image' => UploadedFile::fake()->image('cheque.jpg'),
+            ...$this->sendOtp($manager, $dealer->id, 600, 'cheque'),
         ]);
 
         $this->assertDatabaseHas('collection_entries', ['dealer_id' => $dealer->id, 'cheque_status' => 'collected']);
@@ -329,6 +351,7 @@ class CollectionEntryManagementTest extends TestCase
             'collection_date' => Carbon::today()->toDateString(),
             'amount' => 2000,
             'payment_method' => 'cash',
+            ...$this->sendOtp($manager, $dealer->id, 2000),
         ]);
 
         $response->assertSessionHasErrors('amount');
@@ -460,7 +483,7 @@ class CollectionEntryManagementTest extends TestCase
 
         $response->assertOk();
         $this->assertFalse($response->json('sent'));
-        $this->assertNotNull($response->json('demo_code'));
+        $this->assertSame('123456', $response->json('demo_code'));
         $this->assertDatabaseHas('collection_otps', ['dealer_id' => $dealer->id, 'user_id' => $manager->id]);
     }
 
@@ -572,6 +595,7 @@ class CollectionEntryManagementTest extends TestCase
             'collection_date' => Carbon::today()->toDateString(),
             'amount' => 600,
             'payment_method' => 'cash',
+            ...$this->sendOtp($manager, $dealer->id, 600),
         ]);
 
         $this->assertDatabaseHas('collection_entries', ['dealer_id' => $dealer->id, 'status' => 'pending']);

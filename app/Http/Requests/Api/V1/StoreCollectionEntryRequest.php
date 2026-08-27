@@ -44,10 +44,11 @@ class StoreCollectionEntryRequest extends FormRequest
                 Rule::requiredIf(fn () => $this->input('payment_method') === PaymentMethod::Cheque->value),
                 'nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:4096',
             ],
-            // Both optional: present only when this submission is going
-            // through the "Send OTP -> dealer confirms -> submit" flow.
-            'otp_id' => ['nullable', 'integer'],
-            'otp_code' => ['nullable', 'string', 'size:6'],
+            // A collection can only ever be recorded through the "Send OTP
+            // -> dealer confirms -> submit" flow — no collection is taken
+            // without it.
+            'otp_id' => ['required', 'integer'],
+            'otp_code' => ['required', 'string', 'size:6'],
             'remarks' => ['nullable', 'string', 'max:1000'],
         ];
     }
@@ -63,6 +64,8 @@ class StoreCollectionEntryRequest extends FormRequest
             'cheque_image.required' => 'A cheque image is required when the payment method is Cheque.',
             'reference_no.required' => 'A transaction ID is required for Bank Transfer and Mobile Banking payments.',
             'reference_no.unique' => 'This transaction ID has already been recorded against another collection.',
+            'otp_id.required' => 'Send an OTP to the dealer before recording this collection.',
+            'otp_code.required' => 'Enter the OTP the dealer read back to you.',
         ];
     }
 }

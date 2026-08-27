@@ -21,6 +21,7 @@
             <tr>
                 <th>Code</th>
                 <th>Name</th>
+                <th>Parent Category</th>
                 <th>Products</th>
                 <th>Status</th>
             </tr>
@@ -30,6 +31,7 @@
                 <tr>
                     <td>{{ $category->code }}</td>
                     <td>{{ $category->name }}</td>
+                    <td>{{ $category->parent->name ?? '—' }}</td>
                     <td>{{ $category->products_count ?? $category->products()->count() }}</td>
                     <td>{{ $category->status ? 'Active' : 'Inactive' }}</td>
                 </tr>

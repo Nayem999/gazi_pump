@@ -6,6 +6,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Models\ProductCategory;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreProductCategoryRequest extends FormRequest
 {
@@ -22,6 +23,9 @@ class StoreProductCategoryRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'code' => ['required', 'string', 'max:50', 'unique:product_categories,code'],
+            // Only a top-level category can be picked as a parent, so
+            // sub-categories are capped at one level deep.
+            'parent_id' => ['nullable', Rule::exists('product_categories', 'id')->whereNull('parent_id')],
             'description' => ['nullable', 'string'],
             'status' => ['boolean'],
         ];

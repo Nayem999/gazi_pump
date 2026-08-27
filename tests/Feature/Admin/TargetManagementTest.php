@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Admin;
 
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Target;
 use App\Models\User;
@@ -229,6 +230,27 @@ class TargetManagementTest extends TestCase
         $this->assertCount(0, $target->items);
         $this->assertFalse($target->isProductWise());
         $this->assertSame(5000.0, (float) $target->order_value_target);
+    }
+
+    public function test_the_detail_page_shows_the_product_wise_achievement_breakdown(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $product = Product::factory()->create(['name' => 'Gazi Test Pump']);
+
+        $target = Target::factory()->create(['user_id' => $executive->id, 'month' => 8, 'year' => 2026]);
+        $target->items()->create(['product_id' => $product->id, 'order_target' => 1000, 'collection_target' => 500, 'quantity_target' => 10]);
+
+        $order = Order::factory()->create(['user_id' => $executive->id, 'order_date' => '2026-08-10', 'total_amount' => 400]);
+        OrderItem::factory()->create(['order_id' => $order->id, 'product_id' => $product->id, 'quantity' => 4, 'unit_price' => 100, 'discount_amount' => 0, 'total_amount' => 400]);
+
+        $response = $this->actingAs($manager)->get(route('targets.show', $target));
+
+        $response->assertOk()
+            ->assertSee('Product-wise Achievement Breakdown')
+            ->assertSee('Gazi Test Pump')
+            ->assertSee('400.00')
+            ->assertSee('40.0%');
     }
 
     public function test_territory_manager_can_assign_a_target_to_their_team(): void

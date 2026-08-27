@@ -18,6 +18,21 @@
         @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
+    <div class="col-md-6">
+        <label class="form-label">Parent Category</label>
+        <select name="parent_id" class="form-select @error('parent_id') is-invalid @enderror"
+                @if (isset($category) && $category->children()->exists()) disabled @endif>
+            <option value="">— None (Top-level Category) —</option>
+            @foreach ($parentCategories as $parentCategory)
+                <option value="{{ $parentCategory->id }}" @selected((string) old('parent_id', $category->parent_id ?? '') === (string) $parentCategory->id)>{{ $parentCategory->name }}</option>
+            @endforeach
+        </select>
+        @error('parent_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @if (isset($category) && $category->children()->exists())
+            <div class="form-text">This category already has sub-categories, so it can't become a sub-category itself.</div>
+        @endif
+    </div>
+
     <div class="col-12">
         <label class="form-label">Description</label>
         <textarea name="description" class="form-control @error('description') is-invalid @enderror" rows="3">{{ old('description', $category->description ?? '') }}</textarea>

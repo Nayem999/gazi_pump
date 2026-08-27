@@ -64,6 +64,41 @@ class ProductTest extends TestCase
             ->assertJsonCount(2, 'data');
     }
 
+    public function test_filtering_by_a_parent_category_also_includes_its_sub_categories_products(): void
+    {
+        $parent = ProductCategory::factory()->create();
+        $child = ProductCategory::factory()->create(['parent_id' => $parent->id]);
+        $other = ProductCategory::factory()->create();
+
+        Product::factory()->create(['category_id' => $parent->id]);
+        Product::factory()->create(['category_id' => $child->id]);
+        Product::factory()->create(['category_id' => $other->id]);
+
+        $executive = User::factory()->create();
+        $executive->assignRole('Sales Executive');
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->getJson("/api/v1/products?category_id={$parent->id}")
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+    }
+
+    public function test_a_products_category_includes_its_parent_when_it_is_a_sub_category(): void
+    {
+        $parent = ProductCategory::factory()->create(['name' => 'Beverages']);
+        $child = ProductCategory::factory()->create(['name' => 'Soft Drinks', 'parent_id' => $parent->id]);
+        $product = Product::factory()->create(['category_id' => $child->id]);
+
+        $executive = User::factory()->create();
+        $executive->assignRole('Sales Executive');
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->getJson("/api/v1/products/{$product->id}")
+            ->assertOk()
+            ->assertJsonPath('data.category.name', 'Soft Drinks')
+            ->assertJsonPath('data.category.parent.name', 'Beverages');
+    }
+
     public function test_an_executive_under_a_team_only_sees_that_teams_and_team_less_products(): void
     {
         $teamA = SalesTeam::factory()->create();

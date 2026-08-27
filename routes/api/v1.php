@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\GpsLogController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\OrgStructureController;
+use App\Http\Controllers\Api\V1\ProductCategoryController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\RetailerController;
 use App\Http\Controllers\Api\V1\TargetController;
@@ -51,6 +52,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
     Route::get('/retailers', [RetailerController::class, 'index']);
     Route::get('/retailers/{retailer}', [RetailerController::class, 'show']);
 
+    Route::get('/product-categories', [ProductCategoryController::class, 'index']);
     Route::get('/products', [ProductController::class, 'index']);
     Route::get('/products/{product}', [ProductController::class, 'show']);
 

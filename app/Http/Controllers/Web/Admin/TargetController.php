@@ -55,8 +55,11 @@ class TargetController extends Controller
     {
         $this->authorize('view', $target);
 
+        $target->load(['user', 'achievement', 'items.product']);
+
         return view('targets.show', [
-            'target' => $target->load(['user', 'achievement', 'items.product']),
+            'target' => $target,
+            'productAchievements' => $target->isProductWise() ? $this->targets->productAchievements($target) : collect(),
         ]);
     }
 

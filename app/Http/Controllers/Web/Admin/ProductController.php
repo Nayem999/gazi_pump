@@ -40,7 +40,7 @@ class ProductController extends Controller
         $this->authorize('create', Product::class);
 
         return view('products.create', [
-            'categories' => ProductCategory::orderBy('name')->get(),
+            'categories' => ProductCategory::orderedForSelect(),
             'salesTeams' => SalesTeam::where('status', true)->orderBy('name')->get(),
         ]);
     }
@@ -58,7 +58,7 @@ class ProductController extends Controller
 
         return view('products.edit', [
             'product' => $product,
-            'categories' => ProductCategory::orderBy('name')->get(),
+            'categories' => ProductCategory::orderedForSelect(),
             'salesTeams' => SalesTeam::where('status', true)->orderBy('name')->get(),
         ]);
     }

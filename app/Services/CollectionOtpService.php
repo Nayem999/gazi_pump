@@ -30,8 +30,12 @@ class CollectionOtpService
     public function send(User $user, int $dealerId, float $amount, PaymentMethod $paymentMethod): array
     {
         $dealer = Dealer::findOrFail($dealerId);
-        $code = (string) random_int(100000, 999999);
-        $expiryMinutes = (int) Setting::current()->collection_otp_expiry_minutes;
+        $settings = Setting::current();
+        $isDemoMode = ! $settings->sms_gateway_enabled || ! $settings->sms_gateway_api_url;
+        // Fixed in demo mode so it's predictable for manual testing/demos —
+        // a real gateway send still gets a genuinely random code.
+        $code = $isDemoMode ? '123456' : (string) random_int(100000, 999999);
+        $expiryMinutes = (int) $settings->collection_otp_expiry_minutes;
 
         $otp = CollectionOtp::create([
             'dealer_id' => $dealer->id,

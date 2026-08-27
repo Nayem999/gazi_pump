@@ -31,7 +31,7 @@ class ProductCategoryPolicy
 
     public function delete(User $user, ProductCategory $productCategory): bool
     {
-        if ($productCategory->products()->exists()) {
+        if ($productCategory->products()->exists() || $productCategory->children()->exists()) {
             return false;
         }
 

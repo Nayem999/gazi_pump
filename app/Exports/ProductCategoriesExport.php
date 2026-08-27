@@ -27,7 +27,7 @@ class ProductCategoriesExport implements FromCollection, WithHeadings, WithMappi
      */
     public function headings(): array
     {
-        return ['Code', 'Name', 'Products', 'Status'];
+        return ['Code', 'Name', 'Parent Category', 'Products', 'Status'];
     }
 
     /**
@@ -38,6 +38,7 @@ class ProductCategoriesExport implements FromCollection, WithHeadings, WithMappi
         return [
             $category->code,
             $category->name,
+            $category->parent?->name ?? '',
             $category->products_count ?? $category->products()->count(),
             $category->status ? 'Active' : 'Inactive',
         ];

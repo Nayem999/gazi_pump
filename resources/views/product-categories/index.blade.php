@@ -20,6 +20,16 @@
                 <option value="inactive" @selected(($filters['status'] ?? '') === 'inactive')>Inactive</option>
             </select>
         </div>
+        <div class="col-md-3">
+            <label class="form-label">Parent</label>
+            <select name="parent_id" class="form-select">
+                <option value="">All</option>
+                <option value="none" @selected(($filters['parent_id'] ?? '') === 'none')>Top-level only</option>
+                @foreach ($topLevelCategories as $parentCategory)
+                    <option value="{{ $parentCategory->id }}" @selected((string) ($filters['parent_id'] ?? '') === (string) $parentCategory->id)>Under: {{ $parentCategory->name }}</option>
+                @endforeach
+            </select>
+        </div>
         @include('partials.trashed-filter', ['filters' => $filters, 'colClass' => 'col-md-3'])
     </x-filter-bar>
 
@@ -38,6 +48,7 @@
                     <th style="width:2rem"><input type="checkbox" id="selectAll" class="form-check-input"></th>
                     <th>Code</th>
                     <th>Name</th>
+                    <th>Parent</th>
                     <th>Products</th>
                     <th>Status</th>
                     <th class="text-end">Actions</th>
@@ -53,6 +64,7 @@
                     </td>
                     <td>{{ $category->code }}</td>
                     <td>{{ $category->name }}</td>
+                    <td>{{ $category->parent?->name ?? '—' }}</td>
                     <td><span class="badge text-bg-secondary">{{ $category->products_count }}</span></td>
                     <td>
                         @if ($category->trashed())
@@ -96,7 +108,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="6" class="text-center text-muted py-4">No product categories found.</td>
+                    <td colspan="7" class="text-center text-muted py-4">No product categories found.</td>
                 </tr>
             @endforelse
 
@@ -112,6 +124,7 @@
                             :status-color="$category->trashed() ? 'danger' : ($category->status ? 'success' : 'secondary')"
                         >
                             <x-slot:meta>
+                                <div>Parent: {{ $category->parent?->name ?? 'Top-level' }}</div>
                                 <div>Products: {{ $category->products_count }}</div>
                             </x-slot:meta>
                             <x-slot:checkbox>
@@ -169,7 +182,7 @@
                 <div class="mb-3">
                     <label class="form-label">Excel/CSV File</label>
                     <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.csv" required>
-                    <div class="form-text">Columns: name, code, description.</div>
+                    <div class="form-text">Columns: name, code, parent_code (optional, must match an existing top-level category's code), description.</div>
                 </div>
             </form>
             <x-slot:footer>

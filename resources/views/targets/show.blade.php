@@ -105,27 +105,37 @@
         @if ($target->isProductWise())
             <div class="col-12">
                 <div class="card">
-                    <div class="card-header">Product-wise Breakdown</div>
+                    <div class="card-header">Product-wise Achievement Breakdown</div>
                     <div class="table-responsive">
-                        <table class="table mb-0">
+                        <table class="table mb-0 align-middle">
                             <thead>
                                 <tr>
                                     <th>Product</th>
                                     <th>Order Target</th>
+                                    <th>Order Achieved</th>
                                     <th>Collection Target</th>
                                     <th>Quantity Target</th>
+                                    <th>Quantity Achieved</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($target->items as $item)
+                                @foreach ($productAchievements as $row)
                                     <tr>
                                         <td>
-                                            {{ $item->product?->name }}
-                                            <div class="text-muted small">{{ $item->product?->sku }}</div>
+                                            {{ $row->product?->name }}
+                                            <div class="text-muted small">{{ $row->product?->sku }}</div>
                                         </td>
-                                        <td>{{ number_format((float) $item->order_target, 2) }}</td>
-                                        <td>{{ number_format((float) $item->collection_target, 2) }}</td>
-                                        <td>{{ $item->quantity_target }}</td>
+                                        <td>{{ number_format($row->order_target, 2) }}</td>
+                                        <td>
+                                            {{ number_format($row->order_achieved, 2) }}
+                                            <span class="text-muted small">({{ number_format($row->order_pct, 1) }}%)</span>
+                                        </td>
+                                        <td>{{ number_format($row->collection_target, 2) }}</td>
+                                        <td>{{ $row->quantity_target }}</td>
+                                        <td>
+                                            {{ $row->quantity_achieved }}
+                                            <span class="text-muted small">({{ number_format($row->quantity_pct, 1) }}%)</span>
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -133,11 +143,14 @@
                                 <tr>
                                     <td class="text-end fw-semibold">Total</td>
                                     <td class="fw-semibold">{{ number_format((float) $target->order_value_target, 2) }}</td>
+                                    <td class="fw-semibold">{{ number_format($productAchievements->sum('order_achieved'), 2) }}</td>
                                     <td class="fw-semibold">{{ number_format((float) $target->collection_target, 2) }}</td>
                                     <td class="fw-semibold">{{ $target->quantity_target }}</td>
+                                    <td class="fw-semibold">{{ $productAchievements->sum('quantity_achieved') }}</td>
                                 </tr>
                             </tfoot>
                         </table>
+                        <div class="text-muted small p-3 pt-0">Collection isn't tracked per product — only the overall collection target is shown here.</div>
                     </div>
                 </div>
             </div>

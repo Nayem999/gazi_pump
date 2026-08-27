@@ -40,6 +40,25 @@ class CollectionEntryTest extends TestCase
         return $user;
     }
 
+    /**
+     * Sends an OTP and returns the otp_id/otp_code pair to merge into a
+     * store() payload — a collection can no longer be recorded without one.
+     * Demo mode always issues the fixed code 123456.
+     *
+     * @return array{otp_id: int, otp_code: string}
+     */
+    private function sendOtp(User $executive, int $dealerId, float $amount, string $paymentMethod = 'cash'): array
+    {
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries/send-otp', [
+                'dealer_id' => $dealerId,
+                'amount' => $amount,
+                'payment_method' => $paymentMethod,
+            ]);
+
+        return ['otp_id' => $response->json('data.otp_id'), 'otp_code' => '123456'];
+    }
+
     public function test_store_requires_authentication(): void
     {
         $this->postJson('/api/v1/collection-entries', [])->assertStatus(401);
@@ -57,6 +76,7 @@ class CollectionEntryTest extends TestCase
                 'amount' => 600,
                 'payment_method' => 'mobile_banking',
                 'reference_no' => 'TXN-9001',
+                ...$this->sendOtp($executive, $dealer->id, 600, 'mobile_banking'),
             ]);
 
         $response->assertStatus(201)->assertJsonPath('success', true);
@@ -98,6 +118,7 @@ class CollectionEntryTest extends TestCase
                 'payment_method' => 'cheque',
                 'reference_no' => 'CHQ-9001',
                 'cheque_image' => UploadedFile::fake()->image('cheque.jpg'),
+                ...$this->sendOtp($executive, $dealer->id, 600, 'cheque'),
             ]);
 
         $response->assertStatus(201)
@@ -120,6 +141,7 @@ class CollectionEntryTest extends TestCase
                 'dealer_id' => $dealer->id,
                 'amount' => 2000,
                 'payment_method' => 'cash',
+                ...$this->sendOtp($executive, $dealer->id, 2000),
             ])
             ->assertStatus(422)
             ->assertJsonPath('success', false);
@@ -153,7 +175,7 @@ class CollectionEntryTest extends TestCase
 
         $response->assertOk()->assertJsonPath('success', true);
         $this->assertFalse($response->json('data.sent'));
-        $this->assertNotNull($response->json('data.demo_code'));
+        $this->assertSame('123456', $response->json('data.demo_code'));
         $this->assertDatabaseCount('collection_otps', 1);
     }
 
@@ -276,22 +298,22 @@ class CollectionEntryTest extends TestCase
         $this->assertDatabaseCount('collection_entries', 0);
     }
 
-    public function test_a_collection_can_still_be_submitted_without_an_otp(): void
+    public function test_a_collection_cannot_be_submitted_without_an_otp(): void
     {
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
             ->postJson('/api/v1/collection-entries', [
                 'dealer_id' => $dealer->id,
                 'amount' => 600,
                 'payment_method' => 'cash',
-            ]);
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['otp_id', 'otp_code']);
 
-        $response->assertStatus(201);
-        $entry = CollectionEntry::where('dealer_id', $dealer->id)->firstOrFail();
-        $this->assertNull($entry->otp_verified_at);
+        $this->assertDatabaseCount('collection_entries', 0);
     }
 
     public function test_a_recorded_collection_reports_a_pending_status(): void
@@ -305,6 +327,7 @@ class CollectionEntryTest extends TestCase
                 'dealer_id' => $dealer->id,
                 'amount' => 600,
                 'payment_method' => 'cash',
+                ...$this->sendOtp($executive, $dealer->id, 600),
             ]);
 
         $response->assertJsonPath('data.status', 'pending')->assertJsonPath('data.status_label', 'Pending');

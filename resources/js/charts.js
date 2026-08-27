@@ -57,6 +57,71 @@ function renderAttendanceChart() {
 }
 
 /**
+ * Admin dashboard: last-6-months order value vs collection amount, scoped
+ * server-side to the viewing admin's own territories when they have any
+ * assigned. Two clustered bars per month (Orders, Collections), each
+ * stacked into its Pending/Approved/Rejected slice — ApexCharts' per-series
+ * `group` combines stacking (same group) with clustering (different
+ * groups) in one chart. Same ApexCharts + theme-listener pattern as
+ * renderAttendanceChart() above.
+ */
+function renderOrderVsCollectionChart() {
+    const el = document.getElementById('orderVsCollectionChart');
+    if (!el || !window.ApexCharts) {
+        return;
+    }
+
+    const data = JSON.parse(el.dataset.chartOrderVsCollection || '[]');
+    const isDark = () => document.documentElement.getAttribute('data-bs-theme') === 'dark';
+
+    // Six distinct colors, one per series, so each Pending/Approved/Rejected
+    // slice is tellable apart by color alone — not just by legend name or
+    // which cluster (Orders vs Collections) it sits in.
+    const seriesColors = ['#fbbf24', '#22c55e', '#ef4444', '#f59e0b', '#0d9488', '#b91c1c'];
+
+    const buildOptions = () => ({
+        chart: {
+            type: 'bar',
+            height: 280,
+            stacked: true,
+            toolbar: { show: false },
+            animations: { enabled: true, easing: 'easeinout', speed: 500 },
+            fontFamily: 'inherit',
+        },
+        theme: { mode: isDark() ? 'dark' : 'light' },
+        series: [
+            { name: 'Order Pending', group: 'orders', data: data.map((row) => row.order_pending) },
+            { name: 'Order Approved', group: 'orders', data: data.map((row) => row.order_approved) },
+            { name: 'Order Rejected', group: 'orders', data: data.map((row) => row.order_rejected) },
+            { name: 'Collection Pending', group: 'collections', data: data.map((row) => row.collection_pending) },
+            { name: 'Collection Approved', group: 'collections', data: data.map((row) => row.collection_approved) },
+            { name: 'Collection Rejected', group: 'collections', data: data.map((row) => row.collection_rejected) },
+        ],
+        xaxis: { categories: data.map((row) => row.label) },
+        colors: seriesColors,
+        plotOptions: { bar: { borderRadius: 4, columnWidth: '70%' } },
+        dataLabels: { enabled: false },
+        legend: { position: 'top' },
+        tooltip: { y: { formatter: (value) => value.toLocaleString() } },
+    });
+
+    el.classList.add('skeleton');
+    el.style.minHeight = '280px';
+
+    let chart = new window.ApexCharts(el, buildOptions());
+    chart.render().then(() => {
+        el.classList.remove('skeleton');
+        el.style.minHeight = '';
+    });
+
+    document.addEventListener('theme:changed', () => {
+        chart.destroy();
+        chart = new window.ApexCharts(el, buildOptions());
+        chart.render();
+    });
+}
+
+/**
  * Customer portal dashboard: last-6-months purchases vs payments (grouped
  * bar) and purchases-by-product breakdown (horizontal bar) — same
  * ApexCharts + theme-listener pattern as renderAttendanceChart() above.
@@ -190,6 +255,7 @@ function initCountUp() {
 
 document.addEventListener('DOMContentLoaded', () => {
     renderAttendanceChart();
+    renderOrderVsCollectionChart();
     renderCustomerPurchaseVsPaymentChart();
     renderCustomerProductBreakdownChart();
     initCountUp();

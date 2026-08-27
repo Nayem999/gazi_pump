@@ -30,6 +30,19 @@
 
     <div class="card mb-4 hover-lift">
         <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+                <h6 class="mb-0">Order vs Collection &mdash; Last 6 Months</h6>
+                @if ($scopedToOwnTerritories)
+                    <span class="badge text-bg-secondary">Your territories only</span>
+                @endif
+            </div>
+            <div class="text-muted small mb-3">Each bar split by approval status.</div>
+            <div id="orderVsCollectionChart" data-chart-order-vs-collection="{{ json_encode($orderVsCollectionTrend) }}"></div>
+        </div>
+    </div>
+
+    <div class="card mb-4 hover-lift">
+        <div class="card-body">
             <h6 class="mb-3">Attendance Trend &mdash; Last 14 Days</h6>
             <div id="attendanceTrendChart" data-chart-attendance="{{ json_encode($attendanceTrend) }}"></div>
         </div>

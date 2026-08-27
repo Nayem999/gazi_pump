@@ -7,6 +7,7 @@ namespace Tests\Feature\Admin;
 use App\Models\CollectionEntry;
 use App\Models\Dealer;
 use App\Models\Order;
+use App\Models\Target;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -120,6 +121,17 @@ class ReportManagementTest extends TestCase
         $response = $this->actingAs($manager)->get(route('reports.collection-summary', ['status' => 'approved']));
 
         $response->assertOk()->assertSee('11,111.00')->assertDontSee('77,777.00');
+    }
+
+    public function test_target_achievement_report_links_to_the_targets_product_wise_breakdown(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $target = Target::factory()->create(['user_id' => $executive->id, 'month' => now()->month, 'year' => now()->year]);
+
+        $response = $this->actingAs($manager)->get(route('reports.target-achievement'));
+
+        $response->assertOk()->assertSee(route('targets.show', $target));
     }
 
     public function test_reports_can_be_exported_to_excel(): void

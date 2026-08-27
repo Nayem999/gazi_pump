@@ -26,8 +26,9 @@ class ProductCategoryController extends Controller
         $this->authorize('viewAny', ProductCategory::class);
 
         return view('product-categories.index', [
-            'categories' => $this->categories->paginate($request->only(['search', 'status', 'trashed']), 15),
-            'filters' => $request->only(['search', 'status', 'trashed']),
+            'categories' => $this->categories->paginate($request->only(['search', 'status', 'parent_id', 'trashed']), 15),
+            'filters' => $request->only(['search', 'status', 'parent_id', 'trashed']),
+            'topLevelCategories' => ProductCategory::whereNull('parent_id')->orderBy('name')->get(),
         ]);
     }
 
@@ -35,7 +36,9 @@ class ProductCategoryController extends Controller
     {
         $this->authorize('create', ProductCategory::class);
 
-        return view('product-categories.create');
+        return view('product-categories.create', [
+            'parentCategories' => ProductCategory::whereNull('parent_id')->where('status', true)->orderBy('name')->get(),
+        ]);
     }
 
     public function store(StoreProductCategoryRequest $request): RedirectResponse
@@ -49,7 +52,10 @@ class ProductCategoryController extends Controller
     {
         $this->authorize('update', $productCategory);
 
-        return view('product-categories.edit', ['category' => $productCategory]);
+        return view('product-categories.edit', [
+            'category' => $productCategory,
+            'parentCategories' => ProductCategory::whereNull('parent_id')->where('status', true)->where('id', '!=', $productCategory->id)->orderBy('name')->get(),
+        ]);
     }
 
     public function update(UpdateProductCategoryRequest $request, ProductCategory $productCategory): RedirectResponse
