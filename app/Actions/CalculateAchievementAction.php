@@ -4,39 +4,34 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Enums\ApprovalStatus;
 use App\Enums\PerformanceGrade;
 use App\Models\Achievement;
-use App\Models\CollectionEntry;
-use App\Models\Order;
-use App\Models\OrderItem;
+use App\Models\AchievementEntry;
 use App\Models\Target;
 use Illuminate\Support\Carbon;
 
 /**
- * Computes one Target's actual performance against real Order/Collection
- * Entry data for its user/month/year, and upserts the single Achievement
- * row that represents it. Pure and synchronous — RecalculateAchievementsJob
- * is the queueable wrapper around this for use from HTTP/CLI callers.
+ * Computes one Target's actual performance against its Sales Executive's
+ * approved daily AchievementEntry rows for its user/month/year, and upserts
+ * the single Achievement row that represents it. Pure and synchronous —
+ * RecalculateAchievementsJob is the queueable wrapper around this for use
+ * from HTTP/CLI callers.
  */
 class CalculateAchievementAction
 {
     public function __invoke(Target $target): Achievement
     {
-        $orderAchieved = (float) Order::where('user_id', $target->user_id)
-            ->whereYear('order_date', $target->year)
-            ->whereMonth('order_date', $target->month)
-            ->sum('total_amount');
+        $achieved = AchievementEntry::where('user_id', $target->user_id)
+            ->where('status', ApprovalStatus::Approved)
+            ->whereYear('entry_date', $target->year)
+            ->whereMonth('entry_date', $target->month)
+            ->selectRaw('SUM(order_value_achieved) as order_achieved, SUM(collection_achieved) as collection_achieved, SUM(quantity_achieved) as quantity_achieved')
+            ->first();
 
-        $collectionAchieved = (float) CollectionEntry::where('user_id', $target->user_id)
-            ->whereYear('collection_date', $target->year)
-            ->whereMonth('collection_date', $target->month)
-            ->sum('amount');
-
-        $quantityAchieved = (int) OrderItem::whereHas('order', function ($query) use ($target) {
-            $query->where('user_id', $target->user_id)
-                ->whereYear('order_date', $target->year)
-                ->whereMonth('order_date', $target->month);
-        })->sum('quantity');
+        $orderAchieved = (float) ($achieved->order_achieved ?? 0);
+        $collectionAchieved = (float) ($achieved->collection_achieved ?? 0);
+        $quantityAchieved = (int) ($achieved->quantity_achieved ?? 0);
 
         $orderPct = $this->percentOf($orderAchieved, (float) $target->order_value_target);
         $collectionPct = $this->percentOf($collectionAchieved, (float) $target->collection_target);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Repositories\Contracts\AchievementEntryRepositoryInterface;
 use App\Repositories\Contracts\AnnouncementRepositoryInterface;
 use App\Repositories\Contracts\AttendanceRepositoryInterface;
 use App\Repositories\Contracts\BrochureRepositoryInterface;
@@ -32,6 +33,7 @@ use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\Contracts\VisitPlanRepositoryInterface;
 use App\Repositories\Contracts\VisitRepositoryInterface;
 use App\Repositories\Contracts\VisitRequestRepositoryInterface;
+use App\Repositories\Eloquent\AchievementEntryRepository;
 use App\Repositories\Eloquent\AnnouncementRepository;
 use App\Repositories\Eloquent\AttendanceRepository;
 use App\Repositories\Eloquent\BrochureRepository;
@@ -100,6 +102,7 @@ class RepositoryServiceProvider extends ServiceProvider
         HolidayRepositoryInterface::class => HolidayRepository::class,
         RetailerRepositoryInterface::class => RetailerRepository::class,
         CashHandoverRepositoryInterface::class => CashHandoverRepository::class,
+        AchievementEntryRepositoryInterface::class => AchievementEntryRepository::class,
     ];
 
     public function register(): void

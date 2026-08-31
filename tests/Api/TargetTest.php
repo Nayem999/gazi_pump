@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Api;
 
 use App\Actions\CalculateAchievementAction;
-use App\Models\Order;
+use App\Models\AchievementEntry;
 use App\Models\Target;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -62,7 +62,7 @@ class TargetTest extends TestCase
             'year' => $today->year,
             'order_value_target' => 1000,
         ]);
-        Order::factory()->create(['user_id' => $executive->id, 'order_date' => $today->toDateString(), 'total_amount' => 500]);
+        AchievementEntry::factory()->approved()->create(['user_id' => $executive->id, 'entry_date' => $today->toDateString(), 'order_value_achieved' => 500]);
 
         app(CalculateAchievementAction::class)($target);
 

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\ApprovalStatus;
 use App\Helpers\DistanceCalculator;
 use App\Models\Achievement;
+use App\Models\AchievementEntry;
 use App\Models\Attendance;
 use App\Models\CollectionEntry;
 use App\Models\Dealer;
@@ -231,6 +233,46 @@ class ReportService
     }
 
     /**
+     * Per-executive daily-achievement totals for the period — replaces the
+     * retired Order Performance + Collection Summary reports now that both
+     * figures live on one AchievementEntry row instead of two separate
+     * tables.
+     *
+     * @param  array{date_from?: string, date_to?: string, user_id?: string, territory_id?: string}  $filters
+     */
+    public function achievementSummary(array $filters): Collection
+    {
+        ['from' => $from, 'to' => $to] = $this->dateRange($filters);
+
+        $rows = AchievementEntry::query()
+            ->where('status', ApprovalStatus::Approved)
+            ->whereBetween('entry_date', [$from->toDateString(), $to->toDateString()])
+            ->when($filters['user_id'] ?? null, fn (Builder $q, $userId) => $q->where('user_id', $userId))
+            ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereHas(
+                'user.territories', fn (Builder $t) => $t->whereIn('territories.id', (array) $territoryId)
+            ))
+            ->selectRaw(
+                'user_id,
+                COUNT(*) as entries_count,
+                SUM(order_value_achieved) as total_order_achieved,
+                SUM(collection_achieved) as total_collection_achieved,
+                SUM(quantity_achieved) as total_quantity_achieved'
+            )
+            ->groupBy('user_id')
+            ->get();
+
+        $users = $this->usersFor($rows->pluck('user_id'));
+
+        return $rows->map(fn ($row) => (object) [
+            'user' => $users->get($row->user_id),
+            'entries_count' => (int) $row->entries_count,
+            'total_order_achieved' => (float) $row->total_order_achieved,
+            'total_collection_achieved' => (float) $row->total_collection_achieved,
+            'total_quantity_achieved' => (int) $row->total_quantity_achieved,
+        ])->sortByDesc('total_order_achieved')->values();
+    }
+
+    /**
      * @param  array{date_from?: string, date_to?: string, territory_id?: string}  $filters
      */
     public function territoryPerformance(array $filters): Collection
@@ -239,21 +281,22 @@ class ReportService
         $dateFrom = $from->toDateString();
         $dateTo = $to->toDateString();
 
-        $orderValueByTerritory = Order::query()
-            ->join('users', 'users.id', '=', 'orders.user_id')
+        $achievedByTerritory = AchievementEntry::query()
+            ->join('users', 'users.id', '=', 'achievement_entries.user_id')
             ->join('territory_user', 'territory_user.user_id', '=', 'users.id')
-            ->whereBetween('orders.order_date', [$dateFrom, $dateTo])
-            ->selectRaw('territory_user.territory_id as territory_id, SUM(orders.total_amount) as total_order_value')
+            ->where('achievement_entries.status', ApprovalStatus::Approved)
+            ->whereBetween('achievement_entries.entry_date', [$dateFrom, $dateTo])
+            ->selectRaw(
+                'territory_user.territory_id as territory_id,
+                SUM(achievement_entries.order_value_achieved) as total_order_value,
+                SUM(achievement_entries.collection_achieved) as total_collection_amount'
+            )
             ->groupBy('territory_user.territory_id')
-            ->pluck('total_order_value', 'territory_id');
+            ->get()
+            ->keyBy('territory_id');
 
-        $collectionsByTerritory = CollectionEntry::query()
-            ->join('users', 'users.id', '=', 'collection_entries.user_id')
-            ->join('territory_user', 'territory_user.user_id', '=', 'users.id')
-            ->whereBetween('collection_entries.collection_date', [$dateFrom, $dateTo])
-            ->selectRaw('territory_user.territory_id as territory_id, SUM(collection_entries.amount) as total_collection_amount')
-            ->groupBy('territory_user.territory_id')
-            ->pluck('total_collection_amount', 'territory_id');
+        $orderValueByTerritory = $achievedByTerritory->map(fn ($row) => $row->total_order_value);
+        $collectionsByTerritory = $achievedByTerritory->map(fn ($row) => $row->total_collection_amount);
 
         $visitsByTerritory = Visit::query()
             ->join('users', 'users.id', '=', 'visits.user_id')
@@ -358,8 +401,7 @@ class ReportService
 
         $attendance = $this->attendanceSummary($dateFilters)->keyBy(fn ($row) => $row->user->id);
         $visits = $this->visitCompliance($dateFilters)->keyBy(fn ($row) => $row->user->id);
-        $orders = $this->orderPerformance($dateFilters)->keyBy(fn ($row) => $row->user->id);
-        $collections = $this->collectionSummary($dateFilters)->keyBy(fn ($row) => $row->user->id);
+        $achieved = $this->achievementSummary($dateFilters)->keyBy(fn ($row) => $row->user->id);
 
         $achievements = Achievement::query()
             ->join('targets', 'targets.id', '=', 'achievements.target_id')
@@ -371,14 +413,13 @@ class ReportService
 
         $userIds = $attendance->keys()
             ->merge($visits->keys())
-            ->merge($orders->keys())
-            ->merge($collections->keys())
+            ->merge($achieved->keys())
             ->merge($achievements->keys())
             ->unique();
 
         $users = $this->usersFor($userIds);
 
-        return $userIds->map(function ($userId) use ($attendance, $visits, $orders, $collections, $achievements, $users) {
+        return $userIds->map(function ($userId) use ($attendance, $visits, $achieved, $achievements, $users) {
             $achievement = $achievements->get($userId);
 
             return (object) [
@@ -386,8 +427,8 @@ class ReportService
                 'attendance_rate' => $attendance->get($userId)->attendance_rate ?? 0.0,
                 'visit_completion_rate' => $visits->get($userId)->completion_rate ?? 0.0,
                 'gps_verified_rate' => $visits->get($userId)->gps_verified_rate ?? 0.0,
-                'total_order_value' => $orders->get($userId)->total_order_value ?? 0.0,
-                'total_collection_amount' => $collections->get($userId)->total_amount ?? 0.0,
+                'total_order_value' => $achieved->get($userId)->total_order_achieved ?? 0.0,
+                'total_collection_amount' => $achieved->get($userId)->total_collection_achieved ?? 0.0,
                 'overall_achievement_pct' => $achievement ? (float) $achievement->overall_pct : 0.0,
                 'grade' => $achievement?->grade,
             ];

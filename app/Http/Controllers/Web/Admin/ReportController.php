@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web\Admin;
 
 use App\Enums\ApprovalStatus;
+use App\Exports\AchievementSummaryExport;
 use App\Exports\AttendanceSummaryExport;
 use App\Exports\CollectionSummaryExport;
 use App\Exports\DealerCoverageExport;
@@ -206,6 +207,49 @@ class ReportController extends Controller
 
         return Pdf::loadView('reports.collection-summary-print', ['rows' => $rows])
             ->stream('collection-summary-'.now()->format('Y-m-d-His').'.pdf');
+    }
+
+    public function achievementSummary(Request $request): View
+    {
+        abort_unless($request->user()?->can(PermissionName::report('achievement-summary')), 403);
+
+        $filters = $request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]);
+        $rows = $this->reports->achievementSummary($this->scopedFilters($filters, $request->user()));
+
+        return view('reports.achievement-summary', [
+            'rows' => $this->paginate($rows, $request),
+            'totals' => [
+                'entries_count' => $rows->sum('entries_count'),
+                'total_order_achieved' => $rows->sum('total_order_achieved'),
+                'total_collection_achieved' => $rows->sum('total_collection_achieved'),
+                'total_quantity_achieved' => $rows->sum('total_quantity_achieved'),
+            ],
+            'executives' => $this->executives($request->user()),
+            'divisions' => $this->divisions(),
+            'territories' => $this->territories($request->user()),
+            'filters' => $filters,
+        ]);
+    }
+
+    public function achievementSummaryExport(Request $request): mixed
+    {
+        abort_unless($request->user()?->can(PermissionName::report('achievement-summary')), 403);
+
+        $filters = $this->scopedFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]), $request->user());
+        $rows = $this->reports->achievementSummary($filters);
+
+        return Excel::download(new AchievementSummaryExport($rows), 'achievement-summary-'.now()->format('Y-m-d-His').'.xlsx');
+    }
+
+    public function achievementSummaryPrint(Request $request): mixed
+    {
+        abort_unless($request->user()?->can(PermissionName::report('achievement-summary')), 403);
+
+        $filters = $this->scopedFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]), $request->user());
+        $rows = $this->reports->achievementSummary($filters);
+
+        return Pdf::loadView('reports.achievement-summary-print', ['rows' => $rows])
+            ->stream('achievement-summary-'.now()->format('Y-m-d-His').'.pdf');
     }
 
     public function territoryPerformance(Request $request): View

@@ -6,11 +6,12 @@ namespace Tests\Unit\Services;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\VisitPlanStatus;
+use App\Models\AchievementEntry;
 use App\Models\Attendance;
 use App\Models\CollectionEntry;
 use App\Models\Dealer;
-use App\Models\Product;
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\Territory;
 use App\Models\User;
 use App\Models\Visit;
@@ -171,8 +172,7 @@ class ReportServiceTest extends TestCase
         $user->assignRole('Sales Executive');
         $dealer = Dealer::factory()->create();
 
-        Order::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'order_date' => '2026-08-05', 'total_amount' => 1000]);
-        CollectionEntry::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'collection_date' => '2026-08-05', 'amount' => 400]);
+        AchievementEntry::factory()->approved()->create(['user_id' => $user->id, 'entry_date' => '2026-08-05', 'order_value_achieved' => 1000, 'collection_achieved' => 400]);
         Visit::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'check_in_at' => Carbon::create(2026, 8, 5, 10), 'is_gps_verified' => true]);
 
         $rows = $this->service()->territoryPerformance(['date_from' => '2026-08-01', 'date_to' => '2026-08-31', 'territory_id' => $territory->id]);
@@ -193,9 +193,8 @@ class ReportServiceTest extends TestCase
         $user = User::factory()->create();
         $user->territories()->attach([$territoryA->id, $territoryB->id]);
         $user->assignRole('Sales Executive');
-        $dealer = Dealer::factory()->create();
 
-        Order::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'order_date' => '2026-08-05', 'total_amount' => 1000]);
+        AchievementEntry::factory()->approved()->create(['user_id' => $user->id, 'entry_date' => '2026-08-05', 'order_value_achieved' => 1000]);
 
         $rows = $this->service()->territoryPerformance(['date_from' => '2026-08-01', 'date_to' => '2026-08-31'])
             ->keyBy(fn ($row) => $row->territory->id);

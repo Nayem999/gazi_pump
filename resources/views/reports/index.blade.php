@@ -36,29 +36,15 @@
             </div>
         @endcan
 
-        @can('report.order-performance')
+        @can('report.achievement-summary')
             <div class="col-md-6 col-lg-4">
-                <a href="{{ route('reports.order-performance') }}" class="card h-100 hover-lift text-decoration-none">
+                <a href="{{ route('reports.achievement-summary') }}" class="card h-100 hover-lift text-decoration-none">
                     <div class="card-body">
                         <div class="stat-card-icon bg-primary-subtle text-primary mb-3" style="width:48px;height:48px;font-size:1.25rem">
-                            <i class="ti ti-receipt"></i>
+                            <i class="ti ti-trophy"></i>
                         </div>
-                        <h6 class="mb-1 text-body">Order Performance</h6>
-                        <p class="text-muted small mb-0">Order count, quantity, and total value per executive.</p>
-                    </div>
-                </a>
-            </div>
-        @endcan
-
-        @can('report.collections')
-            <div class="col-md-6 col-lg-4">
-                <a href="{{ route('reports.collection-summary') }}" class="card h-100 hover-lift text-decoration-none">
-                    <div class="card-body">
-                        <div class="stat-card-icon bg-warning-subtle text-warning mb-3" style="width:48px;height:48px;font-size:1.25rem">
-                            <i class="ti ti-cash"></i>
-                        </div>
-                        <h6 class="mb-1 text-body">Collection Summary</h6>
-                        <p class="text-muted small mb-0">Collections by executive with a payment-method breakdown.</p>
+                        <h6 class="mb-1 text-body">Achievement Summary</h6>
+                        <p class="text-muted small mb-0">Daily achievement entries and totals per executive.</p>
                     </div>
                 </a>
             </div>
@@ -134,20 +120,6 @@
             </div>
         @endcan
 
-        @can('report.dealer-ledger')
-            <div class="col-md-6 col-lg-4">
-                <a href="{{ route('reports.dealer-ledger') }}" class="card h-100 hover-lift text-decoration-none">
-                    <div class="card-body">
-                        <div class="stat-card-icon bg-danger-subtle text-danger mb-3" style="width:48px;height:48px;font-size:1.25rem">
-                            <i class="ti ti-file-invoice"></i>
-                        </div>
-                        <h6 class="mb-1 text-body">Dealer &amp; Ledger Report</h6>
-                        <p class="text-muted small mb-0">Every dealer's outstanding due amount, with a per-dealer ledger statement.</p>
-                    </div>
-                </a>
-            </div>
-        @endcan
-
         @can('report.movement-summary')
             <div class="col-md-6 col-lg-4">
                 <a href="{{ route('reports.movement-summary') }}" class="card h-100 hover-lift text-decoration-none">
@@ -163,7 +135,7 @@
         @endcan
     </div>
 
-    @canany(['report.attendance', 'report.visits', 'report.order-performance', 'report.collections', 'report.territories', 'report.target-achievement', 'report.executive-performance', 'report.dealer-coverage', 'report.gps', 'report.dealer-ledger', 'report.movement-summary'])
+    @canany(['report.attendance', 'report.visits', 'report.achievement-summary', 'report.territories', 'report.target-achievement', 'report.executive-performance', 'report.dealer-coverage', 'report.gps', 'report.movement-summary'])
     @else
         <div class="text-center text-muted py-5">
             <i class="ti ti-lock display-4 d-block mb-2"></i>

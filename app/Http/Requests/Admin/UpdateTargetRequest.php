@@ -21,12 +21,21 @@ class UpdateTargetRequest extends FormRequest
      * fields with no `mode` field, and must keep being treated exactly as
      * "single" so those required_if rules below still fire the same way
      * they always have.
+     *
+     * A plain Sales Executive can only ever edit their own target — the
+     * Executive field is disabled client-side (see targets/_form), but
+     * that alone doesn't stop a tampered request, so it's overridden here
+     * unconditionally before validation runs too.
      */
     protected function prepareForValidation(): void
     {
         $this->merge([
             'mode' => $this->input('mode', $this->filled('product_targets') ? 'product_wise' : 'single'),
         ]);
+
+        if ($this->user()?->isSalesExecutiveOnly()) {
+            $this->merge(['user_id' => $this->user()->id]);
+        }
     }
 
     /**

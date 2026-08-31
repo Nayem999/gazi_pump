@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
+use App\Models\AchievementEntry;
+use App\Models\AchievementItem;
 use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Target;
 use App\Models\User;
@@ -251,8 +252,8 @@ class TargetManagementTest extends TestCase
         $target = Target::factory()->create(['user_id' => $executive->id, 'month' => 8, 'year' => 2026]);
         $target->items()->create(['product_id' => $product->id, 'order_target' => 1000, 'collection_target' => 500, 'quantity_target' => 10]);
 
-        $order = Order::factory()->create(['user_id' => $executive->id, 'order_date' => '2026-08-10', 'total_amount' => 400]);
-        OrderItem::factory()->create(['order_id' => $order->id, 'product_id' => $product->id, 'quantity' => 4, 'unit_price' => 100, 'discount_amount' => 0, 'total_amount' => 400]);
+        $entry = AchievementEntry::factory()->approved()->create(['user_id' => $executive->id, 'entry_date' => '2026-08-10', 'order_value_achieved' => 400, 'quantity_achieved' => 4]);
+        AchievementItem::factory()->create(['achievement_entry_id' => $entry->id, 'product_id' => $product->id, 'quantity_achieved' => 4, 'order_achieved' => 400]);
 
         $response = $this->actingAs($manager)->get(route('targets.show', $target));
 

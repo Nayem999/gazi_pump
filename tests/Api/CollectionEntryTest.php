@@ -17,6 +17,15 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
+/**
+ * Collection Entry mobile self-service is retired for Sales Executive (see
+ * the "version 1" Achievement pivot) — `api.collection-entries.add`/`.view`
+ * are no longer assigned to any role but Super Admin, so a plain Sales
+ * Executive now gets 403 on every one of these endpoints. The underlying
+ * CollectionEntryService/OTP business logic is still real code, still worth
+ * covering — those cases now run as Super Admin, the only role left with
+ * access, rather than being deleted.
+ */
 class CollectionEntryTest extends TestCase
 {
     use RefreshDatabase;
@@ -41,6 +50,14 @@ class CollectionEntryTest extends TestCase
         return $user;
     }
 
+    private function superAdmin(): User
+    {
+        $user = User::factory()->create();
+        $user->assignRole('Super Admin');
+
+        return $user;
+    }
+
     /**
      * Sends an OTP and returns the otp_id/otp_code pair to merge into a
      * store() payload — a collection can no longer be recorded without one.
@@ -48,9 +65,9 @@ class CollectionEntryTest extends TestCase
      *
      * @return array{otp_id: int, otp_code: string}
      */
-    private function sendOtp(User $executive, int $dealerId, float $amount, string $paymentMethod = 'cash'): array
+    private function sendOtp(User $user, int $dealerId, float $amount, string $paymentMethod = 'cash'): array
     {
-        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($user))
             ->postJson('/api/v1/collection-entries/send-otp', [
                 'dealer_id' => $dealerId,
                 'amount' => $amount,
@@ -65,35 +82,61 @@ class CollectionEntryTest extends TestCase
         $this->postJson('/api/v1/collection-entries', [])->assertStatus(401);
     }
 
-    public function test_sales_executive_can_record_a_collection(): void
+    public function test_a_sales_executive_can_no_longer_record_a_mobile_collection(): void
     {
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
+
+        // send-otp and store() are gated by api.collection-entries.add,
+        // which is now retired; index() has no permission gate at all
+        // (pre-existing — it always scoped by the caller's own user_id
+        // instead), so it stays reachable.
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries/send-otp', [
+                'dealer_id' => $dealer->id,
+                'amount' => 600,
+                'payment_method' => 'cash',
+            ])
+            ->assertForbidden();
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries', [
+                'dealer_id' => $dealer->id,
+                'amount' => 600,
+                'payment_method' => 'cash',
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_an_authorized_user_can_record_a_collection(): void
+    {
+        $admin = $this->superAdmin();
+        $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->postJson('/api/v1/collection-entries', [
                 'dealer_id' => $dealer->id,
                 'amount' => 600,
                 'payment_method' => 'mobile_banking',
                 'reference_no' => 'TXN-9001',
-                ...$this->sendOtp($executive, $dealer->id, 600, 'mobile_banking'),
+                ...$this->sendOtp($admin, $dealer->id, 600, 'mobile_banking'),
             ]);
 
         $response->assertStatus(201)->assertJsonPath('success', true);
 
-        $entry = CollectionEntry::where('user_id', $executive->id)->firstOrFail();
+        $entry = CollectionEntry::where('user_id', $admin->id)->firstOrFail();
         $this->assertSame('600.00', (string) $entry->amount);
         $this->assertSame('mobile_banking', $entry->payment_method->value);
     }
 
     public function test_recording_a_cheque_collection_without_an_image_is_rejected(): void
     {
-        $executive = $this->executive();
+        $admin = $this->superAdmin();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->postJson('/api/v1/collection-entries', [
                 'dealer_id' => $dealer->id,
                 'amount' => 600,
@@ -108,18 +151,18 @@ class CollectionEntryTest extends TestCase
     {
         Storage::fake('public');
 
-        $executive = $this->executive();
+        $admin = $this->superAdmin();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->postJson('/api/v1/collection-entries', [
                 'dealer_id' => $dealer->id,
                 'amount' => 600,
                 'payment_method' => 'cheque',
                 'reference_no' => 'CHQ-9001',
                 'cheque_image' => UploadedFile::fake()->image('cheque.jpg'),
-                ...$this->sendOtp($executive, $dealer->id, 600, 'cheque'),
+                ...$this->sendOtp($admin, $dealer->id, 600, 'cheque'),
             ]);
 
         $response->assertStatus(201)
@@ -133,16 +176,16 @@ class CollectionEntryTest extends TestCase
     public function test_a_collection_beyond_the_overpayment_tolerance_is_rejected(): void
     {
         config(['sfa.collections.overpayment_tolerance_percent' => 10]);
-        $executive = $this->executive();
+        $admin = $this->superAdmin();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->postJson('/api/v1/collection-entries', [
                 'dealer_id' => $dealer->id,
                 'amount' => 2000,
                 'payment_method' => 'cash',
-                ...$this->sendOtp($executive, $dealer->id, 2000),
+                ...$this->sendOtp($admin, $dealer->id, 2000),
             ])
             ->assertStatus(422)
             ->assertJsonPath('success', false);
@@ -152,11 +195,11 @@ class CollectionEntryTest extends TestCase
     {
         $territoryA = Territory::factory()->create();
         $territoryB = Territory::factory()->create();
-        $executive = User::factory()->inTerritory($territoryA)->create();
-        $executive->assignRole('Sales Executive');
+        $admin = User::factory()->inTerritory($territoryA)->create();
+        $admin->assignRole('Super Admin');
         $dealer = Dealer::factory()->create(['territory_id' => $territoryB->id]);
 
-        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->postJson('/api/v1/collection-entries/send-otp', [
                 'dealer_id' => $dealer->id,
                 'amount' => 600,
@@ -170,12 +213,12 @@ class CollectionEntryTest extends TestCase
     {
         $territoryA = Territory::factory()->create();
         $territoryB = Territory::factory()->create();
-        $executive = User::factory()->inTerritory($territoryA)->create();
-        $executive->assignRole('Sales Executive');
+        $admin = User::factory()->inTerritory($territoryA)->create();
+        $admin->assignRole('Super Admin');
         $dealer = Dealer::factory()->create(['territory_id' => $territoryB->id]);
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->postJson('/api/v1/collection-entries', [
                 'dealer_id' => $dealer->id,
                 'amount' => 600,
@@ -191,13 +234,13 @@ class CollectionEntryTest extends TestCase
 
     public function test_index_only_returns_the_authenticated_users_own_collections(): void
     {
-        $executive = $this->executive();
-        $otherExecutive = $this->executive();
+        $admin = $this->superAdmin();
+        $otherAdmin = $this->superAdmin();
 
-        CollectionEntry::factory()->create(['user_id' => $executive->id, 'collection_date' => Carbon::yesterday()->toDateString()]);
-        CollectionEntry::factory()->create(['user_id' => $otherExecutive->id, 'collection_date' => Carbon::yesterday()->toDateString()]);
+        CollectionEntry::factory()->create(['user_id' => $admin->id, 'collection_date' => Carbon::yesterday()->toDateString()]);
+        CollectionEntry::factory()->create(['user_id' => $otherAdmin->id, 'collection_date' => Carbon::yesterday()->toDateString()]);
 
-        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->getJson('/api/v1/collection-entries')
             ->assertOk()
             ->assertJsonCount(1, 'data');
@@ -205,10 +248,10 @@ class CollectionEntryTest extends TestCase
 
     public function test_send_otp_returns_a_demo_code_when_no_sms_gateway_is_configured(): void
     {
-        $executive = $this->executive();
+        $admin = $this->superAdmin();
         $dealer = Dealer::factory()->create();
 
-        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->postJson('/api/v1/collection-entries/send-otp', [
                 'dealer_id' => $dealer->id,
                 'amount' => 600,
@@ -223,11 +266,11 @@ class CollectionEntryTest extends TestCase
 
     public function test_a_collection_can_be_submitted_with_a_valid_otp(): void
     {
-        $executive = $this->executive();
+        $admin = $this->superAdmin();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $otpResponse = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $otpResponse = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->postJson('/api/v1/collection-entries/send-otp', [
                 'dealer_id' => $dealer->id,
                 'amount' => 600,
@@ -236,7 +279,7 @@ class CollectionEntryTest extends TestCase
         $otpId = $otpResponse->json('data.otp_id');
         $code = $otpResponse->json('data.demo_code');
 
-        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->postJson('/api/v1/collection-entries', [
                 'dealer_id' => $dealer->id,
                 'amount' => 600,
@@ -254,11 +297,11 @@ class CollectionEntryTest extends TestCase
 
     public function test_a_collection_is_rejected_when_the_otp_code_is_wrong(): void
     {
-        $executive = $this->executive();
+        $admin = $this->superAdmin();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $otpResponse = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $otpResponse = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->postJson('/api/v1/collection-entries/send-otp', [
                 'dealer_id' => $dealer->id,
                 'amount' => 600,
@@ -266,7 +309,7 @@ class CollectionEntryTest extends TestCase
             ]);
         $otpId = $otpResponse->json('data.otp_id');
 
-        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->postJson('/api/v1/collection-entries', [
                 'dealer_id' => $dealer->id,
                 'amount' => 600,
@@ -283,11 +326,11 @@ class CollectionEntryTest extends TestCase
 
     public function test_a_collection_is_rejected_when_the_otp_amount_does_not_match(): void
     {
-        $executive = $this->executive();
+        $admin = $this->superAdmin();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $otpResponse = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $otpResponse = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->postJson('/api/v1/collection-entries/send-otp', [
                 'dealer_id' => $dealer->id,
                 'amount' => 600,
@@ -296,7 +339,7 @@ class CollectionEntryTest extends TestCase
         $otpId = $otpResponse->json('data.otp_id');
         $code = $otpResponse->json('data.demo_code');
 
-        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->postJson('/api/v1/collection-entries', [
                 'dealer_id' => $dealer->id,
                 'amount' => 700,
@@ -312,11 +355,11 @@ class CollectionEntryTest extends TestCase
 
     public function test_an_expired_otp_is_rejected(): void
     {
-        $executive = $this->executive();
+        $admin = $this->superAdmin();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $otpResponse = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $otpResponse = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->postJson('/api/v1/collection-entries/send-otp', [
                 'dealer_id' => $dealer->id,
                 'amount' => 600,
@@ -326,7 +369,7 @@ class CollectionEntryTest extends TestCase
         $code = $otpResponse->json('data.demo_code');
         CollectionOtp::find($otpId)->update(['expires_at' => now()->subMinute()]);
 
-        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->postJson('/api/v1/collection-entries', [
                 'dealer_id' => $dealer->id,
                 'amount' => 600,
@@ -342,11 +385,11 @@ class CollectionEntryTest extends TestCase
 
     public function test_a_collection_cannot_be_submitted_without_an_otp(): void
     {
-        $executive = $this->executive();
+        $admin = $this->superAdmin();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->postJson('/api/v1/collection-entries', [
                 'dealer_id' => $dealer->id,
                 'amount' => 600,
@@ -360,16 +403,16 @@ class CollectionEntryTest extends TestCase
 
     public function test_a_recorded_collection_reports_a_pending_status(): void
     {
-        $executive = $this->executive();
+        $admin = $this->superAdmin();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->postJson('/api/v1/collection-entries', [
                 'dealer_id' => $dealer->id,
                 'amount' => 600,
                 'payment_method' => 'cash',
-                ...$this->sendOtp($executive, $dealer->id, 600),
+                ...$this->sendOtp($admin, $dealer->id, 600),
             ]);
 
         $response->assertJsonPath('data.status', 'pending')->assertJsonPath('data.status_label', 'Pending');
@@ -377,11 +420,11 @@ class CollectionEntryTest extends TestCase
 
     public function test_index_can_be_filtered_by_approval_status(): void
     {
-        $executive = $this->executive();
-        CollectionEntry::factory()->create(['user_id' => $executive->id, 'status' => 'pending']);
-        CollectionEntry::factory()->create(['user_id' => $executive->id, 'status' => 'approved']);
+        $admin = $this->superAdmin();
+        CollectionEntry::factory()->create(['user_id' => $admin->id, 'status' => 'pending']);
+        CollectionEntry::factory()->create(['user_id' => $admin->id, 'status' => 'approved']);
 
-        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($admin))
             ->getJson('/api/v1/collection-entries?status=approved');
 
         $response->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.status', 'approved');

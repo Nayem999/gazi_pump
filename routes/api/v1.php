@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Helpers\ApiResponse;
+use App\Http\Controllers\Api\V1\AchievementController;
 use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CollectionEntryController;
@@ -47,8 +48,6 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
     Route::get('/dealers', [DealerController::class, 'index']);
     Route::post('/dealers', [DealerController::class, 'store']);
     Route::get('/dealers/{dealer}', [DealerController::class, 'show']);
-    Route::get('/dealers/{dealer}/outstanding-balance', [DealerController::class, 'outstandingBalance']);
-    Route::get('/dealers/{dealer}/ledger', [DealerController::class, 'ledger']);
 
     Route::get('/retailers', [RetailerController::class, 'index']);
     Route::get('/retailers/{retailer}', [RetailerController::class, 'show']);
@@ -82,6 +81,10 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
 
     Route::get('/targets/current', [TargetController::class, 'current']);
     Route::get('/targets', [TargetController::class, 'index']);
+
+    Route::post('/achievements', [AchievementController::class, 'store']);
+    Route::get('/achievements/current', [AchievementController::class, 'current']);
+    Route::get('/achievements', [AchievementController::class, 'index']);
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);

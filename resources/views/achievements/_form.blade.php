@@ -1,29 +1,29 @@
 @php
-    if (old('product_targets')) {
-        $existingProductTargetsForJs = collect(old('product_targets'))->values()->all();
-    } elseif (isset($target)) {
-        $existingProductTargetsForJs = $target->items->map(fn ($item) => [
+    if (old('achievement_items')) {
+        $existingItemsForJs = collect(old('achievement_items'))->values()->all();
+    } elseif (isset($entry)) {
+        $existingItemsForJs = $entry->items->map(fn ($item) => [
             'product_id' => $item->product_id,
-            'order_target' => (float) $item->order_target,
-            'collection_target' => (float) $item->collection_target,
-            'quantity_target' => $item->quantity_target,
+            'order_achieved' => (float) $item->order_achieved,
+            'collection_achieved' => (float) $item->collection_achieved,
+            'quantity_achieved' => $item->quantity_achieved,
         ])->all();
     } else {
-        $existingProductTargetsForJs = [];
+        $existingItemsForJs = [];
     }
 
-    $defaultMode = old('mode', isset($target) && $target->isProductWise() ? 'product_wise' : 'single');
+    $defaultMode = old('mode', isset($entry) && $entry->isProductWise() ? 'product_wise' : 'single');
 
-    // A plain Sales Executive can only ever be assigned a target for
-    // themself — locked to their own name instead of offered as a choice.
-    // The select stays disabled (so it can't be tampered with via the UI)
-    // and a matching submit-time re-enable below keeps its value in the
-    // POST body, same pattern already used on the Order form.
+    // A plain Sales Executive can only ever report their own achievement —
+    // locked to their own name instead of offered as a choice. The select
+    // stays disabled (so it can't be tampered with via the UI) and a
+    // matching submit-time re-enable below keeps its value in the POST
+    // body, same pattern already used on the Order and Target forms.
     $lockExecutiveField = auth()->user()->isSalesExecutiveOnly();
 @endphp
 
 @csrf
-@if (isset($target))
+@if (isset($entry))
     @method('PUT')
 @endif
 
@@ -33,115 +33,105 @@
         <select name="user_id" id="executiveSelect" class="form-select @error('user_id') is-invalid @enderror" required @disabled($lockExecutiveField)>
             <option value="">— Select Executive —</option>
             @foreach ($executives as $executive)
-                <option value="{{ $executive->id }}" data-sales-team="{{ $executive->sales_team_id }}" @selected((string) old('user_id', $target->user_id ?? ($lockExecutiveField ? auth()->id() : '')) === (string) $executive->id)>{{ $executive->name }} ({{ $executive->employee_id }})</option>
+                <option value="{{ $executive->id }}" data-sales-team="{{ $executive->sales_team_id }}" @selected((string) old('user_id', $entry->user_id ?? ($lockExecutiveField ? auth()->id() : '')) === (string) $executive->id)>{{ $executive->name }} ({{ $executive->employee_id }})</option>
             @endforeach
         </select>
         @error('user_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
-    <div class="col-md-3">
-        <label class="form-label">Month <span class="text-danger">*</span></label>
-        <select name="month" class="form-select @error('month') is-invalid @enderror" required>
-            @foreach (range(1, 12) as $month)
-                <option value="{{ $month }}" @selected((string) old('month', $target->month ?? now()->month) === (string) $month)>{{ \Illuminate\Support\Carbon::create(2000, $month, 1)->format('F') }}</option>
-            @endforeach
-        </select>
-        @error('month') <div class="invalid-feedback">{{ $message }}</div> @enderror
-    </div>
-
-    <div class="col-md-3">
-        <label class="form-label">Year <span class="text-danger">*</span></label>
-        <input type="number" name="year" class="form-control @error('year') is-invalid @enderror"
-               value="{{ old('year', $target->year ?? now()->year) }}" required>
-        @error('year') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    <div class="col-md-6">
+        <label class="form-label">Date <span class="text-danger">*</span></label>
+        <input type="date" name="entry_date" class="form-control @error('entry_date') is-invalid @enderror"
+               value="{{ old('entry_date', isset($entry) ? $entry->entry_date->toDateString() : now()->toDateString()) }}" required>
+        @error('entry_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
     <div class="col-12">
-        <label class="form-label d-block">Target Type</label>
+        <label class="form-label d-block">Achievement Type</label>
         <div class="btn-group" role="group">
             <input type="radio" class="btn-check" name="mode" id="modeSingle" value="single" autocomplete="off" @checked($defaultMode === 'single')>
-            <label class="btn btn-outline-primary" for="modeSingle">Single Target</label>
+            <label class="btn btn-outline-primary" for="modeSingle">Single Achievement</label>
 
             <input type="radio" class="btn-check" name="mode" id="modeProductWise" value="product_wise" autocomplete="off" @checked($defaultMode === 'product_wise')>
-            <label class="btn btn-outline-primary" for="modeProductWise">Product-wise Targets</label>
+            <label class="btn btn-outline-primary" for="modeProductWise">Product-wise Achievement</label>
         </div>
-        <div class="form-text">Set one overall target, or break it down per product — the totals shown everywhere else always match either way.</div>
+        <div class="form-text">Report one overall figure for the day, or break it down per product — matches however that month's Target was set.</div>
     </div>
 
-    <div class="col-12" id="singleTargetFields">
+    <div class="col-12" id="singleAchievementFields">
         <div class="row g-3">
             <div class="col-md-4">
-                <label class="form-label">Order Value Target <span class="text-danger">*</span></label>
-                <input type="number" min="1" step="0.01" name="order_value_target" class="form-control @error('order_value_target') is-invalid @enderror"
-                       value="{{ old('order_value_target', $target->order_value_target ?? '') }}">
-                @error('order_value_target') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                <label class="form-label">Order Value Achieved <span class="text-danger">*</span></label>
+                <input type="number" min="0" step="0.01" name="order_value_achieved" class="form-control @error('order_value_achieved') is-invalid @enderror"
+                       value="{{ old('order_value_achieved', $entry->order_value_achieved ?? '') }}">
+                @error('order_value_achieved') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-4">
-                <label class="form-label">Collection Target <span class="text-danger">*</span></label>
-                <input type="number" min="1" step="0.01" name="collection_target" class="form-control @error('collection_target') is-invalid @enderror"
-                       value="{{ old('collection_target', $target->collection_target ?? '') }}">
-                @error('collection_target') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                <label class="form-label">Collection Achieved <span class="text-danger">*</span></label>
+                <input type="number" min="0" step="0.01" name="collection_achieved" class="form-control @error('collection_achieved') is-invalid @enderror"
+                       value="{{ old('collection_achieved', $entry->collection_achieved ?? '') }}">
+                @error('collection_achieved') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-4">
-                <label class="form-label">Quantity Target (units) <span class="text-danger">*</span></label>
-                <input type="number" min="1" step="1" name="quantity_target" class="form-control @error('quantity_target') is-invalid @enderror"
-                       value="{{ old('quantity_target', $target->quantity_target ?? '') }}">
-                @error('quantity_target') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                <label class="form-label">Quantity Achieved (units) <span class="text-danger">*</span></label>
+                <input type="number" min="0" step="1" name="quantity_achieved" class="form-control @error('quantity_achieved') is-invalid @enderror"
+                       value="{{ old('quantity_achieved', $entry->quantity_achieved ?? '') }}">
+                @error('quantity_achieved') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
         </div>
     </div>
 
     <div class="col-12" id="productWiseFields">
-        <label class="form-label mb-2">Product Targets</label>
-        @error('product_targets') <div class="text-danger small mb-2">{{ $message }}</div> @enderror
+        <label class="form-label mb-2">Product Achievements</label>
+        @error('achievement_items') <div class="text-danger small mb-2">{{ $message }}</div> @enderror
 
         <div class="table-responsive">
-            <table class="table align-middle" id="productTargetsTable">
+            <table class="table align-middle" id="achievementItemsTable">
                 <thead>
                     <tr>
                         <th style="min-width:220px">Product</th>
-                        <th style="width:150px">Order Target</th>
-                        <th style="width:150px">Collection Target</th>
-                        <th style="width:140px">Quantity Target</th>
+                        <th style="width:150px">Order Achieved</th>
+                        <th style="width:150px">Collection Achieved</th>
+                        <th style="width:140px">Quantity Achieved</th>
                         <th style="width:40px"></th>
                     </tr>
                 </thead>
-                <tbody id="productTargetsBody"></tbody>
+                <tbody id="achievementItemsBody"></tbody>
                 <tfoot>
                     <tr>
                         <td class="text-end fw-semibold">Totals</td>
-                        <td class="fw-semibold" id="orderTargetTotal">0.00</td>
-                        <td class="fw-semibold" id="collectionTargetTotal">0.00</td>
-                        <td class="fw-semibold" id="quantityTargetTotal">0</td>
+                        <td class="fw-semibold" id="orderAchievedTotal">0.00</td>
+                        <td class="fw-semibold" id="collectionAchievedTotal">0.00</td>
+                        <td class="fw-semibold" id="quantityAchievedTotal">0</td>
                         <td></td>
                     </tr>
                 </tfoot>
             </table>
         </div>
 
-        <button type="button" id="addProductTargetBtn" class="btn btn-outline-primary btn-sm">
+        <button type="button" id="addAchievementItemBtn" class="btn btn-outline-primary btn-sm">
             <i class="ti ti-plus me-1"></i>Add Product
         </button>
     </div>
 
     <div class="col-12">
         <label class="form-label">Notes</label>
-        <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" rows="3">{{ old('notes', $target->notes ?? '') }}</textarea>
+        <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" rows="3">{{ old('notes', $entry->notes ?? '') }}</textarea>
         @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 </div>
 
 <div class="mt-4 d-flex gap-2">
-    <button type="submit" class="btn btn-primary"><i class="ti ti-check me-1"></i>{{ isset($target) ? 'Update Target' : 'Assign Target' }}</button>
-    <a href="{{ route('targets.index') }}" class="btn btn-outline-secondary">Cancel</a>
+    <button type="submit" class="btn btn-primary"><i class="ti ti-check me-1"></i>{{ isset($entry) ? 'Update Achievement' : 'Record Achievement' }}</button>
+    <a href="{{ route('achievements.index') }}" class="btn btn-outline-secondary">Cancel</a>
 </div>
 
-{{-- Product options shared by every product-target row; data-sales-team
+{{-- Product options shared by every achievement-item row; data-sales-team
      drives the client-side filter below (empty = company-wide product,
      only shown when the selected executive also has no team). --}}
-<template id="targetProductOptionsTemplate">
+<template id="achievementProductOptionsTemplate">
     <option value="">— Select Product —</option>
     @foreach ($products as $product)
         <option value="{{ $product->id }}" data-sales-team="{{ $product->sales_team_id }}">{{ $product->name }} ({{ $product->sku }})</option>
@@ -153,7 +143,7 @@
         document.addEventListener('DOMContentLoaded', function () {
             const modeSingle = document.getElementById('modeSingle');
             const modeProductWise = document.getElementById('modeProductWise');
-            const singleFields = document.getElementById('singleTargetFields');
+            const singleFields = document.getElementById('singleAchievementFields');
             const productWiseFields = document.getElementById('productWiseFields');
             const singleInputs = singleFields.querySelectorAll('input');
             const executiveSelect = document.getElementById('executiveSelect');
@@ -161,7 +151,7 @@
             // A disabled select's value is never included in form submission
             // — re-enable it right before the browser serializes the form so
             // a locked-in Sales Executive still gets sent (same pattern as
-            // the Order form's own executive lock).
+            // the Order and Target forms' own executive lock).
             executiveSelect?.closest('form')?.addEventListener('submit', function () {
                 executiveSelect.disabled = false;
             });
@@ -174,16 +164,17 @@
 
                 // Disabled (not just hidden) fields don't get submitted at
                 // all, so the server only ever receives the active mode's
-                // values — matching how TargetService/StoreTargetRequest
-                // treat the other mode's fields as absent, not zero.
+                // values — matching how AchievementEntryService/
+                // StoreAchievementEntryRequest treat the other mode's
+                // fields as absent, not zero.
                 singleInputs.forEach((input) => { input.disabled = isProductWise; input.required = ! isProductWise; });
 
                 // The product-wise table always has at least one row built
                 // by JS (see buildRow() below), even while in single mode —
                 // without disabling its inputs too, that blank row's empty
-                // product_id still gets submitted, and product_targets
+                // product_id still gets submitted, and achievement_items
                 // merely being present in the request is enough to trigger
-                // product_targets.*.product_id's required_with rule,
+                // achievement_items.*.product_id's required_with rule,
                 // failing validation with no visible error anywhere on this
                 // page (nothing renders a message for that specific nested key).
                 productWiseFields.querySelectorAll('select, input').forEach((el) => { el.disabled = ! isProductWise; });
@@ -203,9 +194,9 @@
                 }
             });
 
-            const productTargetsBody = document.getElementById('productTargetsBody');
-            const addProductTargetBtn = document.getElementById('addProductTargetBtn');
-            const allProductOptionEls = Array.from(document.getElementById('targetProductOptionsTemplate').content.querySelectorAll('option'));
+            const achievementItemsBody = document.getElementById('achievementItemsBody');
+            const addAchievementItemBtn = document.getElementById('addAchievementItemBtn');
+            const allProductOptionEls = Array.from(document.getElementById('achievementProductOptionsTemplate').content.querySelectorAll('option'));
             let rowIndex = 0;
 
             // The executive's sales_team_id (from the selected <option>'s
@@ -223,8 +214,8 @@
             // every product when they don't. If a previously chosen value
             // (desiredValue, or the select's current value) no longer
             // qualifies, it's preserved anyway rather than silently dropped
-            // — e.g. a target saved before the executive changed teams
-            // should still show what was actually assigned.
+            // — e.g. an achievement saved before the executive changed
+            // teams should still show what was actually reported.
             function applyProductTeamFilter(select, desiredValue) {
                 const teamId = selectedExecutiveTeamId();
                 const value = desiredValue !== undefined ? String(desiredValue) : select.value;
@@ -251,7 +242,7 @@
             }
 
             function refilterAllProductRows() {
-                productTargetsBody.querySelectorAll('.product-select').forEach((select) => {
+                achievementItemsBody.querySelectorAll('.product-select').forEach((select) => {
                     applyProductTeamFilter(select);
                     window.refreshSelect2?.(select);
                 });
@@ -271,30 +262,30 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>
-                        <select name="product_targets[${index}][product_id]" class="form-select form-select-sm product-select"></select>
+                        <select name="achievement_items[${index}][product_id]" class="form-select form-select-sm product-select"></select>
                     </td>
                     <td>
-                        <input type="number" name="product_targets[${index}][order_target]" class="form-control form-control-sm order-target-input" min="0" step="0.01" value="${item.order_target ?? ''}">
+                        <input type="number" name="achievement_items[${index}][order_achieved]" class="form-control form-control-sm order-achieved-input" min="0" step="0.01" value="${item.order_achieved ?? ''}">
                     </td>
                     <td>
-                        <input type="number" name="product_targets[${index}][collection_target]" class="form-control form-control-sm collection-target-input" min="0" step="0.01" value="${item.collection_target ?? ''}">
+                        <input type="number" name="achievement_items[${index}][collection_achieved]" class="form-control form-control-sm collection-achieved-input" min="0" step="0.01" value="${item.collection_achieved ?? ''}">
                     </td>
                     <td>
-                        <input type="number" name="product_targets[${index}][quantity_target]" class="form-control form-control-sm quantity-target-input" min="0" step="1" value="${item.quantity_target ?? ''}">
+                        <input type="number" name="achievement_items[${index}][quantity_achieved]" class="form-control form-control-sm quantity-achieved-input" min="0" step="1" value="${item.quantity_achieved ?? ''}">
                     </td>
                     <td>
                         <button type="button" class="btn btn-outline-danger btn-sm remove-item-btn"><i class="ti ti-trash"></i></button>
                     </td>
                 `;
-                productTargetsBody.appendChild(tr);
+                achievementItemsBody.appendChild(tr);
 
                 const productSelect = tr.querySelector('.product-select');
                 applyProductTeamFilter(productSelect, item.product_id ?? '');
 
                 [
-                    tr.querySelector('.order-target-input'),
-                    tr.querySelector('.collection-target-input'),
-                    tr.querySelector('.quantity-target-input'),
+                    tr.querySelector('.order-achieved-input'),
+                    tr.querySelector('.collection-achieved-input'),
+                    tr.querySelector('.quantity-achieved-input'),
                 ].forEach((el) => el.addEventListener('input', recalculateTotals));
 
                 tr.querySelector('.remove-item-btn').addEventListener('click', function () {
@@ -314,26 +305,26 @@
                 let collectionTotal = 0;
                 let quantityTotal = 0;
 
-                productTargetsBody.querySelectorAll('tr').forEach((tr) => {
-                    orderTotal += parseFloat(tr.querySelector('.order-target-input').value) || 0;
-                    collectionTotal += parseFloat(tr.querySelector('.collection-target-input').value) || 0;
-                    quantityTotal += parseInt(tr.querySelector('.quantity-target-input').value, 10) || 0;
+                achievementItemsBody.querySelectorAll('tr').forEach((tr) => {
+                    orderTotal += parseFloat(tr.querySelector('.order-achieved-input').value) || 0;
+                    collectionTotal += parseFloat(tr.querySelector('.collection-achieved-input').value) || 0;
+                    quantityTotal += parseInt(tr.querySelector('.quantity-achieved-input').value, 10) || 0;
                 });
 
-                document.getElementById('orderTargetTotal').textContent = orderTotal.toFixed(2);
-                document.getElementById('collectionTargetTotal').textContent = collectionTotal.toFixed(2);
-                document.getElementById('quantityTargetTotal').textContent = quantityTotal;
+                document.getElementById('orderAchievedTotal').textContent = orderTotal.toFixed(2);
+                document.getElementById('collectionAchievedTotal').textContent = collectionTotal.toFixed(2);
+                document.getElementById('quantityAchievedTotal').textContent = quantityTotal;
             }
 
-            addProductTargetBtn.addEventListener('click', function () {
+            addAchievementItemBtn.addEventListener('click', function () {
                 buildRow();
                 recalculateTotals();
             });
 
-            const existingProductTargets = @json($existingProductTargetsForJs);
+            const existingItems = @json($existingItemsForJs);
 
-            if (existingProductTargets.length > 0) {
-                existingProductTargets.forEach((item) => buildRow(item));
+            if (existingItems.length > 0) {
+                existingItems.forEach((item) => buildRow(item));
             } else {
                 buildRow();
             }
