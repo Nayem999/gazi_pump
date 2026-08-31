@@ -23,6 +23,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -38,7 +39,14 @@ class CollectionEntryController extends Controller
         $this->authorize('create', CollectionEntry::class);
 
         $data = $request->validate([
-            'dealer_id' => ['required', 'integer', Rule::exists('dealers', 'id')],
+            'dealer_id' => [
+                'required', 'integer', Rule::exists('dealers', 'id'),
+                function ($attribute, $value, $fail) use ($request) {
+                    if (! Dealer::query()->visibleTo($request->user())->whereKey($value)->exists()) {
+                        $fail('This dealer is outside your assigned territories.');
+                    }
+                },
+            ],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'payment_method' => ['required', Rule::enum(PaymentMethod::class)],
         ]);
@@ -60,10 +68,10 @@ class CollectionEntryController extends Controller
         $filters = $request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'payment_method', 'status', 'date_from', 'date_to', 'trashed']);
 
         return view('collection-entries.index', [
-            'collectionEntries' => $this->collectionEntries->paginate($filters, 15),
-            'total' => $this->collectionEntries->total($filters),
-            'executives' => User::role('Sales Executive')->orderBy('name')->get(),
-            'territories' => Territory::where('status', true)->orderBy('name')->get(),
+            'collectionEntries' => $this->collectionEntries->paginate($filters, 15, $request->user()),
+            'total' => $this->collectionEntries->total($filters, $request->user()),
+            'executives' => $this->scopedExecutives($request->user()),
+            'territories' => Territory::query()->visibleTo($request->user())->where('status', true)->orderBy('name')->get(),
             'paymentMethods' => PaymentMethod::cases(),
             'filters' => $filters,
         ]);
@@ -86,15 +94,15 @@ class CollectionEntryController extends Controller
             ->stream('collection-'.$collectionEntry->id.'-'.now()->format('Y-m-d-His').'.pdf');
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('create', CollectionEntry::class);
 
         return view('collection-entries.create', [
-            'executives' => User::role('Sales Executive')->orderBy('name')->get(),
-            'dealers' => Dealer::orderBy('name')->get(),
+            'executives' => $this->scopedExecutives($request->user()),
+            'dealers' => Dealer::query()->visibleTo($request->user())->orderBy('name')->get(),
             'paymentMethods' => PaymentMethod::cases(),
-            'outstandingBalances' => $this->outstandingBalances(),
+            'outstandingBalances' => $this->outstandingBalances($request->user()),
         ]);
     }
 
@@ -105,16 +113,20 @@ class CollectionEntryController extends Controller
         return redirect()->route('collection-entries.index')->with('success', 'Collection recorded successfully.');
     }
 
-    public function edit(CollectionEntry $collectionEntry): View
+    public function edit(Request $request, CollectionEntry $collectionEntry): View
     {
         $this->authorize('update', $collectionEntry);
 
         return view('collection-entries.edit', [
             'collectionEntry' => $collectionEntry,
-            'executives' => User::role('Sales Executive')->orderBy('name')->get(),
-            'dealers' => Dealer::orderBy('name')->get(),
+            'executives' => $this->scopedExecutives($request->user()),
+            // Territory-scoped like the create form, but also keeps this
+            // entry's own dealer even if it's since fallen outside the
+            // viewer's territories, so re-editing an old entry never
+            // silently drops its dealer selection.
+            'dealers' => Dealer::query()->visibleTo($request->user())->orWhere('id', $collectionEntry->dealer_id)->orderBy('name')->get(),
             'paymentMethods' => PaymentMethod::cases(),
-            'outstandingBalances' => $this->outstandingBalances(),
+            'outstandingBalances' => $this->outstandingBalances($request->user()),
         ]);
     }
 
@@ -209,7 +221,7 @@ class CollectionEntryController extends Controller
     {
         $this->authorize('export', CollectionEntry::class);
 
-        $collectionEntries = $this->collectionEntries->paginate($request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'payment_method', 'status', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
+        $collectionEntries = $this->collectionEntries->paginate($request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'payment_method', 'status', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX, $request->user())->getCollection();
 
         return Excel::download(new CollectionEntriesExport($collectionEntries), 'collection-entries-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -229,7 +241,7 @@ class CollectionEntryController extends Controller
     {
         $this->authorize('print', CollectionEntry::class);
 
-        $collectionEntries = $this->collectionEntries->paginate($request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'payment_method', 'status', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
+        $collectionEntries = $this->collectionEntries->paginate($request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'payment_method', 'status', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX, $request->user())->getCollection();
 
         return Pdf::loadView('collection-entries.print', ['collectionEntries' => $collectionEntries])
             ->stream('collection-entries-'.now()->format('Y-m-d-His').'.pdf');
@@ -238,10 +250,26 @@ class CollectionEntryController extends Controller
     /**
      * @return array<int, float>
      */
-    private function outstandingBalances(): array
+    private function outstandingBalances(User $viewer): array
     {
-        return Dealer::all()->mapWithKeys(
+        return Dealer::query()->visibleTo($viewer)->get()->mapWithKeys(
             fn (Dealer $dealer) => [$dealer->id => $this->collectionEntries->outstandingBalance($dealer->id)]
         )->all();
+    }
+
+    /**
+     * Sales Executives selectable in the filter dropdown — restricted to the
+     * viewer's own territories when they have any assigned, or to themself
+     * alone when Sales Executive is their sole role.
+     */
+    private function scopedExecutives(User $viewer): Collection
+    {
+        $territoryIds = $viewer->territories->pluck('id')->all();
+
+        return User::role('Sales Executive')
+            ->when($territoryIds !== [], fn ($q) => $q->whereHas('territories', fn ($t) => $t->whereIn('territories.id', $territoryIds)))
+            ->when($viewer->isSalesExecutiveOnly(), fn ($q) => $q->where('id', $viewer->id))
+            ->orderBy('name')
+            ->get();
     }
 }

@@ -311,6 +311,21 @@ body.admin-body {
         color: var(--bs-body-color);
     }
 
+    // The theme also ships a hardcoded light disabled state (#e9ecef bg /
+    // #6c757d text) that qualifies both container classes, so it beats the
+    // plain `.select2-selection` rule above on specificity — a disabled
+    // Select2 field (e.g. the locked "Sales Executive" field on the Order/
+    // Collection forms for a plain Sales Executive) kept that light
+    // background while `.select2-selection__rendered` above still switched
+    // its text to this app's light dark-mode body color, reading as
+    // light-on-light. Matches that selector's own specificity so this wins
+    // by source order, and mirrors Bootstrap's own .form-select:disabled —
+    // just a muted background, same body text color as an enabled field.
+    &.select2-container--disabled .select2-selection {
+        background-color: var(--bs-secondary-bg);
+        border-color: var(--bs-border-color);
+    }
+
     .select2-selection__placeholder,
     .select2-results__option.select2-results__message {
         color: var(--bs-secondary-color);

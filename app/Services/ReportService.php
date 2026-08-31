@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Helpers\DistanceCalculator;
 use App\Models\Achievement;
 use App\Models\Attendance;
 use App\Models\CollectionEntry;
@@ -551,6 +552,87 @@ class ReportService
 
                 return $row;
             });
+    }
+
+    /**
+     * One executive's full day, for the "Daily Activity / Movement Summary"
+     * report: attendance hours, GPS-derived distance/idle time, visit
+     * count/time, and the day's route — everything computed from that same
+     * day's Attendance/GpsLog/Visit rows, nothing pre-aggregated or stored.
+     *
+     * "Active"/"idle" time is derived by walking consecutive GPS pings: a
+     * gap where the later ping's own reported `speed` is at or below the
+     * configured threshold counts as idle, otherwise active — the same
+     * `speed` column the mobile app already streams per ping, just not
+     * used by any other report. First/Last Location come from that day's
+     * first/last Visit's dealer (falling back to its thana), since the app
+     * has no reverse-geocoding to name a bare lat/lng.
+     */
+    public function movementSummary(User $user, string $date): object
+    {
+        $day = Carbon::parse($date);
+        $dayStart = $day->copy()->startOfDay();
+        $dayEnd = $day->copy()->endOfDay();
+
+        $attendance = Attendance::where('user_id', $user->id)->whereDate('date', $day)->first();
+
+        $logs = GpsLog::where('user_id', $user->id)
+            ->whereBetween('recorded_at', [$dayStart, $dayEnd])
+            ->orderBy('recorded_at')
+            ->get();
+
+        $visits = Visit::with(['dealer.thana'])
+            ->where('user_id', $user->id)
+            ->whereBetween('check_in_at', [$dayStart, $dayEnd])
+            ->orderBy('check_in_at')
+            ->get();
+
+        $idleThresholdKmh = (float) config('sfa.movement.idle_speed_threshold_kmh', 1.0);
+        $activeSeconds = 0;
+        $idleSeconds = 0;
+
+        for ($i = 1; $i < $logs->count(); $i++) {
+            // abs(): Carbon 3's diffInSeconds() is signed by argument order
+            // (negative when the argument is earlier), but this is always
+            // meant as an elapsed, unsigned duration.
+            $seconds = abs($logs[$i]->recorded_at->diffInSeconds($logs[$i - 1]->recorded_at));
+
+            if ($logs[$i]->speed !== null && (float) $logs[$i]->speed <= $idleThresholdKmh) {
+                $idleSeconds += $seconds;
+            } else {
+                $activeSeconds += $seconds;
+            }
+        }
+
+        $visitSeconds = $visits->filter(fn (Visit $v) => $v->check_out_at !== null)
+            ->sum(fn (Visit $v) => abs($v->check_out_at->diffInSeconds($v->check_in_at)));
+
+        $workingSeconds = $attendance?->check_in_at
+            ? abs(($attendance->check_out_at ?? Carbon::now())->diffInSeconds($attendance->check_in_at))
+            : null;
+
+        $firstVisit = $visits->first();
+        $lastVisit = $visits->last();
+
+        return (object) [
+            'user' => $user,
+            'date' => $day,
+            'attendance' => $attendance,
+            'working_seconds' => $workingSeconds,
+            'active_seconds' => $activeSeconds,
+            'idle_seconds' => $idleSeconds,
+            'visits_count' => $visits->count(),
+            'visit_seconds' => $visitSeconds,
+            'distance_km' => round(DistanceCalculator::totalDistanceKm(
+                $logs->map(fn (GpsLog $log) => ['lat' => (float) $log->lat, 'lng' => (float) $log->lng])
+            ), 2),
+            'locations_captured' => $logs->count(),
+            'first_location' => $firstVisit ? ($firstVisit->dealer?->name ?? $firstVisit->dealer?->thana?->name) : null,
+            'last_location' => $lastVisit ? ($lastVisit->dealer?->name ?? $lastVisit->dealer?->thana?->name) : null,
+            'first_ping_at' => $logs->first()?->recorded_at,
+            'last_ping_at' => $logs->last()?->recorded_at,
+            'route' => $logs->map(fn (GpsLog $log) => ['lat' => (float) $log->lat, 'lng' => (float) $log->lng])->values(),
+        ];
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\DealerFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -82,5 +83,19 @@ class Dealer extends BaseModel
     public function imageUrl(): ?string
     {
         return $this->image ? asset('storage/'.$this->image) : null;
+    }
+
+    /**
+     * Restricts to dealers in the viewer's own territories — dealers have
+     * no owning executive of their own, so unlike Order/CollectionEntry
+     * there's no self-only tier, just "has territories assigned" or not.
+     * A viewer with no territories (Super Admin, General Manager, and any
+     * Sales Executive not yet assigned one) sees every dealer unfiltered.
+     */
+    public function scopeVisibleTo(Builder $query, User $viewer): Builder
+    {
+        $territoryIds = $viewer->territories->pluck('id')->all();
+
+        return $territoryIds === [] ? $query : $query->whereIn('territory_id', $territoryIds);
     }
 }

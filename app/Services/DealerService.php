@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Territory;
+use App\Models\User;
 use App\Repositories\Contracts\DealerRepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
@@ -21,9 +22,9 @@ class DealerService extends BaseCrudService
     /**
      * @param  array{search?: string, territory_id?: string, status?: string, trashed?: string}  $filters
      */
-    public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
+    public function paginate(array $filters, int $perPage = 15, ?User $viewer = null): LengthAwarePaginator
     {
-        return $this->dealers->paginateWithFilters($filters, $perPage);
+        return $this->dealers->paginateWithFilters($filters, $perPage, $viewer);
     }
 
     /**

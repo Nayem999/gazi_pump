@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Attendance;
 use App\Models\CollectionEntry;
 use App\Models\Dealer;
+use App\Models\GpsLog;
 use App\Models\Order;
 use App\Models\Target;
+use App\Models\Territory;
 use App\Models\User;
+use App\Models\Visit;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -53,15 +57,149 @@ class ReportManagementTest extends TestCase
         $this->get(route('reports.index'))->assertRedirect(route('login'));
     }
 
-    public function test_sales_executive_has_no_access_to_any_report(): void
+    public function test_sales_executive_can_view_only_the_reports_with_a_per_executive_projection(): void
     {
         $executive = $this->executive();
 
-        $this->actingAs($executive)->get(route('reports.attendance-summary'))->assertForbidden();
-        $this->actingAs($executive)->get(route('reports.visit-compliance'))->assertForbidden();
-        $this->actingAs($executive)->get(route('reports.order-performance'))->assertForbidden();
-        $this->actingAs($executive)->get(route('reports.collection-summary'))->assertForbidden();
+        // Reports with a meaningful "just mine" view are granted...
+        $this->actingAs($executive)->get(route('reports.attendance-summary'))->assertOk();
+        $this->actingAs($executive)->get(route('reports.visit-compliance'))->assertOk();
+        $this->actingAs($executive)->get(route('reports.order-performance'))->assertOk();
+        $this->actingAs($executive)->get(route('reports.collection-summary'))->assertOk();
+        $this->actingAs($executive)->get(route('reports.target-achievement'))->assertOk();
+        $this->actingAs($executive)->get(route('reports.gps-report'))->assertOk();
+        $this->actingAs($executive)->get(route('reports.movement-summary'))->assertOk();
+
+        // ...cross-executive aggregate/comparison reports are not.
         $this->actingAs($executive)->get(route('reports.territory-performance'))->assertForbidden();
+        $this->actingAs($executive)->get(route('reports.executive-performance'))->assertForbidden();
+        $this->actingAs($executive)->get(route('reports.dealer-coverage'))->assertForbidden();
+    }
+
+    public function test_movement_summary_computes_working_hours_active_idle_visits_and_location_from_the_days_data(): void
+    {
+        $today = now()->startOfDay();
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create(['name' => 'Tangail Hardware']);
+
+        Attendance::factory()->create([
+            'user_id' => $executive->id,
+            'date' => $today->toDateString(),
+            'check_in_at' => $today->copy()->setTime(9, 0),
+            'check_out_at' => $today->copy()->setTime(17, 0),
+        ]);
+
+        // Idle for 30 min (2nd ping reports 0 speed), then active for 30 min
+        // (3rd ping reports 20 km/h) — 30m idle, 30m active.
+        GpsLog::factory()->create(['user_id' => $executive->id, 'recorded_at' => $today->copy()->setTime(9, 0), 'speed' => 20]);
+        GpsLog::factory()->create(['user_id' => $executive->id, 'recorded_at' => $today->copy()->setTime(9, 30), 'speed' => 0]);
+        GpsLog::factory()->create(['user_id' => $executive->id, 'recorded_at' => $today->copy()->setTime(10, 0), 'speed' => 20]);
+
+        Visit::factory()->create([
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'check_in_at' => $today->copy()->setTime(9, 15),
+            'check_out_at' => $today->copy()->setTime(9, 45),
+        ]);
+
+        $response = $this->actingAs($executive)->get(route('reports.movement-summary', ['date' => $today->toDateString()]));
+
+        $response->assertOk()
+            ->assertSee('8h 0m') // working hours
+            ->assertSee('Tangail Hardware'); // first/last location (only visit of the day)
+
+        // Active Movement and Idle Time both independently compute the same
+        // 30-minute duration — appears at least twice, not just once.
+        $this->assertGreaterThanOrEqual(2, substr_count($response->getContent(), '0h 30m'));
+    }
+
+    public function test_a_plain_sales_executive_can_only_see_their_own_movement_summary(): void
+    {
+        $executive = $this->executive();
+        $otherExecutive = $this->executive();
+
+        $response = $this->actingAs($executive)->get(route('reports.movement-summary', ['user_id' => $otherExecutive->id]));
+
+        // The Executive filter is ignored entirely for a plain Sales
+        // Executive — it's always their own day, never another's.
+        $response->assertOk()->assertSee($executive->name)->assertDontSee($otherExecutive->name);
+    }
+
+    public function test_movement_summary_can_be_printed_as_pdf(): void
+    {
+        $manager = $this->generalManager();
+        User::factory()->create()->assignRole('Sales Executive');
+
+        $this->actingAs($manager)->get(route('reports.movement-summary.print'))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_a_territory_managers_movement_summary_is_limited_to_their_own_territorys_executives(): void
+    {
+        $territoryA = Territory::factory()->create();
+        $territoryB = Territory::factory()->create();
+        $inTerritory = User::factory()->inTerritory($territoryA)->create();
+        $inTerritory->assignRole('Sales Executive');
+        $outsideTerritory = User::factory()->inTerritory($territoryB)->create();
+        $outsideTerritory->assignRole('Sales Executive');
+
+        $manager = $this->territoryManager();
+        $manager->territories()->attach($territoryA);
+
+        // The dropdown only offers their own territory's executive...
+        $response = $this->actingAs($manager)->get(route('reports.movement-summary'));
+        $response->assertOk()->assertSee($inTerritory->name)->assertDontSee($outsideTerritory->name);
+
+        // ...and requesting the other one directly doesn't work either.
+        $response = $this->actingAs($manager)->get(route('reports.movement-summary', ['user_id' => $outsideTerritory->id]));
+        $response->assertOk()->assertDontSee($outsideTerritory->name);
+    }
+
+    public function test_sales_executives_order_performance_report_is_scoped_to_their_own_orders(): void
+    {
+        $executive = $this->executive();
+        $otherExecutive = $this->executive();
+        Order::factory()->create(['user_id' => $executive->id, 'order_date' => now()->toDateString(), 'total_amount' => 12345]);
+        Order::factory()->create(['user_id' => $otherExecutive->id, 'order_date' => now()->toDateString(), 'total_amount' => 54321]);
+
+        $response = $this->actingAs($executive)->get(route('reports.order-performance'));
+
+        $response->assertOk()->assertSee('12,345.00')->assertDontSee('54,321.00');
+    }
+
+    public function test_a_territory_managers_order_performance_report_is_scoped_to_their_own_territory(): void
+    {
+        $territoryA = Territory::factory()->create();
+        $territoryB = Territory::factory()->create();
+        $executiveA = User::factory()->inTerritory($territoryA)->create();
+        $executiveB = User::factory()->inTerritory($territoryB)->create();
+        Order::factory()->create(['user_id' => $executiveA->id, 'order_date' => now()->toDateString(), 'total_amount' => 11111]);
+        Order::factory()->create(['user_id' => $executiveB->id, 'order_date' => now()->toDateString(), 'total_amount' => 22222]);
+
+        $manager = $this->territoryManager();
+        $manager->territories()->attach($territoryA);
+
+        $response = $this->actingAs($manager)->get(route('reports.order-performance'));
+
+        $response->assertOk()->assertSee('11,111.00')->assertDontSee('22,222.00');
+    }
+
+    public function test_a_territory_manager_cannot_widen_a_report_by_requesting_another_territory(): void
+    {
+        $territoryA = Territory::factory()->create();
+        $territoryB = Territory::factory()->create();
+        $executiveB = User::factory()->inTerritory($territoryB)->create();
+        Order::factory()->create(['user_id' => $executiveB->id, 'order_date' => now()->toDateString(), 'total_amount' => 99999]);
+
+        $manager = $this->territoryManager();
+        $manager->territories()->attach($territoryA);
+
+        // Explicitly requesting territoryB's id doesn't widen access — it
+        // just intersects with the manager's own (empty) result.
+        $response = $this->actingAs($manager)->get(route('reports.order-performance', ['territory_id' => $territoryB->id]));
+
+        $response->assertOk()->assertDontSee('99,999.00');
     }
 
     public function test_general_manager_can_view_every_report(): void

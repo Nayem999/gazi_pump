@@ -26,7 +26,7 @@
         <select name="user_id" class="form-select @error('user_id') is-invalid @enderror" required>
             <option value="">— Select Executive —</option>
             @foreach ($executives as $executive)
-                <option value="{{ $executive->id }}" @selected((string) old('user_id', $target->user_id ?? '') === (string) $executive->id)>{{ $executive->name }} ({{ $executive->employee_id }})</option>
+                <option value="{{ $executive->id }}" data-sales-team="{{ $executive->sales_team_id }}" @selected((string) old('user_id', $target->user_id ?? '') === (string) $executive->id)>{{ $executive->name }} ({{ $executive->employee_id }})</option>
             @endforeach
         </select>
         @error('user_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -131,11 +131,13 @@
     <a href="{{ route('targets.index') }}" class="btn btn-outline-secondary">Cancel</a>
 </div>
 
-{{-- Product options shared by every product-target row --}}
+{{-- Product options shared by every product-target row; data-sales-team
+     drives the client-side filter below (empty = company-wide product,
+     only shown when the selected executive also has no team). --}}
 <template id="targetProductOptionsTemplate">
     <option value="">— Select Product —</option>
     @foreach ($products as $product)
-        <option value="{{ $product->id }}">{{ $product->name }} ({{ $product->sku }})</option>
+        <option value="{{ $product->id }}" data-sales-team="{{ $product->sales_team_id }}">{{ $product->name }} ({{ $product->sku }})</option>
     @endforeach
 </template>
 
@@ -147,6 +149,7 @@
             const singleFields = document.getElementById('singleTargetFields');
             const productWiseFields = document.getElementById('productWiseFields');
             const singleInputs = singleFields.querySelectorAll('input');
+            const executiveSelect = document.querySelector('select[name="user_id"]');
 
             function syncMode() {
                 const isProductWise = modeProductWise.checked;
@@ -165,10 +168,77 @@
             modeProductWise.addEventListener('change', syncMode);
             syncMode();
 
+            // Product-wise mode needs an executive selected up front — that's
+            // what the product list below gets filtered by team against —
+            // so nudge the user straight there instead of letting them start
+            // filling rows against an unfiltered/blank team.
+            modeProductWise.addEventListener('change', function () {
+                if (this.checked && executiveSelect && ! executiveSelect.value) {
+                    window.$?.fn.select2 ? window.$(executiveSelect).select2('open') : executiveSelect.focus();
+                }
+            });
+
             const productTargetsBody = document.getElementById('productTargetsBody');
             const addProductTargetBtn = document.getElementById('addProductTargetBtn');
-            const productOptionsHtml = document.getElementById('targetProductOptionsTemplate').innerHTML;
+            const allProductOptionEls = Array.from(document.getElementById('targetProductOptionsTemplate').content.querySelectorAll('option'));
             let rowIndex = 0;
+
+            // The executive's sales_team_id (from the selected <option>'s
+            // data attribute), or '' when none is selected / they have no
+            // team — matches Product::scopeOwnedByTeam()'s own rule that a
+            // team-less viewer sees everything unrestricted, but a viewer
+            // with a team sees ONLY that team's products (not team-less
+            // ones too).
+            function selectedExecutiveTeamId() {
+                return executiveSelect?.selectedOptions[0]?.dataset.salesTeam || '';
+            }
+
+            // Rebuilds a product <select>'s options to strictly the
+            // executive's own team's products when they have a team, or
+            // every product when they don't. If a previously chosen value
+            // (desiredValue, or the select's current value) no longer
+            // qualifies, it's preserved anyway rather than silently dropped
+            // — e.g. a target saved before the executive changed teams
+            // should still show what was actually assigned.
+            function applyProductTeamFilter(select, desiredValue) {
+                const teamId = selectedExecutiveTeamId();
+                const value = desiredValue !== undefined ? String(desiredValue) : select.value;
+
+                select.innerHTML = '';
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = '— Select Product —';
+                select.appendChild(placeholder);
+
+                allProductOptionEls.forEach((opt) => {
+                    if (!opt.value) return;
+                    const optTeam = opt.dataset.salesTeam || '';
+                    if (teamId && optTeam !== teamId) return;
+                    select.appendChild(opt.cloneNode(true));
+                });
+
+                if (value && ! Array.from(select.options).some((o) => o.value === value)) {
+                    const original = allProductOptionEls.find((o) => o.value === value);
+                    if (original) select.appendChild(original.cloneNode(true));
+                }
+
+                select.value = value || '';
+            }
+
+            function refilterAllProductRows() {
+                productTargetsBody.querySelectorAll('.product-select').forEach((select) => {
+                    applyProductTeamFilter(select);
+                    window.refreshSelect2?.(select);
+                });
+            }
+
+            if (executiveSelect) {
+                if (window.$) {
+                    window.$(executiveSelect).on('change', refilterAllProductRows);
+                } else {
+                    executiveSelect.addEventListener('change', refilterAllProductRows);
+                }
+            }
 
             function buildRow(item) {
                 item = item || {};
@@ -176,7 +246,7 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>
-                        <select name="product_targets[${index}][product_id]" class="form-select form-select-sm product-select">${productOptionsHtml}</select>
+                        <select name="product_targets[${index}][product_id]" class="form-select form-select-sm product-select"></select>
                     </td>
                     <td>
                         <input type="number" name="product_targets[${index}][order_target]" class="form-control form-control-sm order-target-input" min="0" step="0.01" value="${item.order_target ?? ''}">
@@ -194,9 +264,7 @@
                 productTargetsBody.appendChild(tr);
 
                 const productSelect = tr.querySelector('.product-select');
-                if (item.product_id) {
-                    productSelect.value = item.product_id;
-                }
+                applyProductTeamFilter(productSelect, item.product_id ?? '');
 
                 [
                     tr.querySelector('.order-target-input'),

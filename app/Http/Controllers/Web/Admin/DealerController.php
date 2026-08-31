@@ -31,7 +31,7 @@ class DealerController extends Controller
         $filterKeys = ['search', 'division_id', 'district_id', 'thana_id', 'territory_id', 'status', 'trashed'];
 
         return view('dealers.index', [
-            'dealers' => $this->dealers->paginate($request->only($filterKeys), 15),
+            'dealers' => $this->dealers->paginate($request->only($filterKeys), 15, $request->user()),
             'divisions' => Division::where('status', true)->orderBy('name')->get(),
             'filters' => $request->only($filterKeys),
         ]);
@@ -142,7 +142,7 @@ class DealerController extends Controller
     {
         $this->authorize('export', Dealer::class);
 
-        $dealers = $this->dealers->paginate($request->only(['search', 'territory_id', 'status', 'trashed']), PHP_INT_MAX)->getCollection();
+        $dealers = $this->dealers->paginate($request->only(['search', 'territory_id', 'status', 'trashed']), PHP_INT_MAX, $request->user())->getCollection();
 
         return Excel::download(new DealersExport($dealers), 'dealers-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -162,7 +162,7 @@ class DealerController extends Controller
     {
         $this->authorize('print', Dealer::class);
 
-        $dealers = $this->dealers->paginate($request->only(['search', 'territory_id', 'status', 'trashed']), PHP_INT_MAX)->getCollection();
+        $dealers = $this->dealers->paginate($request->only(['search', 'territory_id', 'status', 'trashed']), PHP_INT_MAX, $request->user())->getCollection();
 
         return Pdf::loadView('dealers.print', ['dealers' => $dealers])
             ->stream('dealers-'.now()->format('Y-m-d-His').'.pdf');
@@ -189,6 +189,7 @@ class DealerController extends Controller
         if ($request->integer('territory_id')) {
             return response()->json(
                 Dealer::query()
+                    ->visibleTo($request->user())
                     ->where('status', true)
                     ->where('territory_id', $request->integer('territory_id'))
                     ->orderBy('name')
@@ -200,6 +201,7 @@ class DealerController extends Controller
 
         return response()->json(
             Dealer::query()
+                ->visibleTo($request->user())
                 ->where('status', true)
                 ->when($search !== '', function ($query) use ($search) {
                     $query->where(function ($inner) use ($search) {

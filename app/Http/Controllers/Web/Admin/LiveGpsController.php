@@ -27,10 +27,15 @@ class LiveGpsController extends Controller
         abort_unless($request->user()?->can('live-gps.view'), 403);
 
         $filters = $request->only(['territory_id', 'user_id']);
+        $territoryIds = $request->user()->territories->pluck('id')->all();
 
         return view('live-gps.index', [
-            'territories' => Territory::orderBy('name')->get(),
-            'executives' => User::role('Sales Executive')->orderBy('name')->get(),
+            'territories' => Territory::query()->visibleTo($request->user())->orderBy('name')->get(),
+            'executives' => User::role('Sales Executive')
+                ->when($territoryIds !== [], fn ($q) => $q->whereHas('territories', fn ($t) => $t->whereIn('territories.id', $territoryIds)))
+                ->when($request->user()->isSalesExecutiveOnly(), fn ($q) => $q->where('id', $request->user()->id))
+                ->orderBy('name')
+                ->get(),
             'filters' => $filters,
             'staleAfterMinutes' => (int) config('sfa.live_gps.stale_after_minutes'),
         ]);
@@ -41,7 +46,7 @@ class LiveGpsController extends Controller
         abort_unless($request->user()?->can('live-gps.view'), 403);
 
         $filters = $request->only(['territory_id', 'user_id']);
-        $positions = $this->liveGps->latestPositions($filters);
+        $positions = $this->liveGps->latestPositions($filters, $request->user());
 
         return response()->json([
             'data' => $positions->map(fn (object $row) => [

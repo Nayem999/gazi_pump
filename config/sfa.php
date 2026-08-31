@@ -79,4 +79,12 @@ return [
         // out of signal, or simply hasn't pinged again yet.
         'stale_after_minutes' => (int) env('SFA_LIVE_GPS_STALE_MINUTES', 30),
     ],
+
+    'movement' => [
+        // The Movement Summary report splits a day's GPS trail into
+        // "active" vs "idle" time by walking consecutive pings — a gap
+        // where the later ping's own reported speed is at or below this
+        // (km/h) counts as idle (stationary/GPS drift), otherwise active.
+        'idle_speed_threshold_kmh' => (float) env('SFA_MOVEMENT_IDLE_SPEED_KMH', 1.0),
+    ],
 ];

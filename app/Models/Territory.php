@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\TerritoryFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -66,5 +67,16 @@ class Territory extends BaseModel
     public function dealers(): HasMany
     {
         return $this->hasMany(Dealer::class);
+    }
+
+    /**
+     * Restricts to the viewer's own assigned territories — see
+     * Dealer::scopeVisibleTo() for the identical shape/rationale.
+     */
+    public function scopeVisibleTo(Builder $query, User $viewer): Builder
+    {
+        $territoryIds = $viewer->territories->pluck('id')->all();
+
+        return $territoryIds === [] ? $query : $query->whereIn('id', $territoryIds);
     }
 }

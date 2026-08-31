@@ -34,7 +34,7 @@ class TerritoryMapController extends Controller
         $filters = $request->only(['month', 'year', 'division_id', 'district_id', 'thana_id']);
 
         return view('territory-map.index', [
-            'territories' => $this->territoryMap->markers($filters),
+            'territories' => $this->territoryMap->markers($filters, $request->user()),
             'divisions' => Division::where('status', true)->orderBy('name')->get(),
             'filters' => [
                 'month' => (int) ($filters['month'] ?? Carbon::now()->month),
@@ -54,6 +54,7 @@ class TerritoryMapController extends Controller
     public function show(Request $request, Territory $territory): JsonResponse
     {
         abort_unless($request->user()?->can('territory-map.view'), 403);
+        abort_unless(Territory::query()->visibleTo($request->user())->whereKey($territory->id)->exists(), 403);
 
         $month = (int) ($request->integer('month') ?: Carbon::now()->month);
         $year = (int) ($request->integer('year') ?: Carbon::now()->year);
@@ -62,7 +63,7 @@ class TerritoryMapController extends Controller
 
         $dealers = $this->dealers->paginateWithFilters([
             'territory_id' => $territory->id,
-        ], 10);
+        ], 10, $request->user());
 
         $territory->load(['division', 'district', 'thana']);
 

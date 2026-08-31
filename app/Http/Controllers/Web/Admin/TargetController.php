@@ -17,6 +17,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Facades\Excel;
 
 class TargetController extends Controller
@@ -28,8 +29,8 @@ class TargetController extends Controller
         $this->authorize('viewAny', Target::class);
 
         return view('targets.index', [
-            'targets' => $this->targets->paginate($request->only(['search', 'user_id', 'month', 'year', 'grade', 'trashed']), 15),
-            'executives' => User::role('Sales Executive')->orderBy('name')->get(),
+            'targets' => $this->targets->paginate($request->only(['search', 'user_id', 'month', 'year', 'grade', 'trashed']), 15, $request->user()),
+            'executives' => $this->scopedExecutives($request->user()),
             'filters' => $request->only(['search', 'user_id', 'month', 'year', 'grade', 'trashed']),
         ]);
     }
@@ -149,7 +150,7 @@ class TargetController extends Controller
     {
         $this->authorize('export', Target::class);
 
-        $targets = $this->targets->paginate($request->only(['search', 'user_id', 'month', 'year', 'grade', 'trashed']), PHP_INT_MAX)->getCollection();
+        $targets = $this->targets->paginate($request->only(['search', 'user_id', 'month', 'year', 'grade', 'trashed']), PHP_INT_MAX, $request->user())->getCollection();
 
         return Excel::download(new TargetsExport($targets), 'targets-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -169,9 +170,25 @@ class TargetController extends Controller
     {
         $this->authorize('print', Target::class);
 
-        $targets = $this->targets->paginate($request->only(['search', 'user_id', 'month', 'year', 'grade', 'trashed']), PHP_INT_MAX)->getCollection();
+        $targets = $this->targets->paginate($request->only(['search', 'user_id', 'month', 'year', 'grade', 'trashed']), PHP_INT_MAX, $request->user())->getCollection();
 
         return Pdf::loadView('targets.print', ['targets' => $targets])
             ->stream('targets-'.now()->format('Y-m-d-His').'.pdf');
+    }
+
+    /**
+     * Sales Executives selectable in the filter dropdown — restricted to the
+     * viewer's own territories when they have any assigned, or to themself
+     * alone when Sales Executive is their sole role.
+     */
+    private function scopedExecutives(User $viewer): Collection
+    {
+        $territoryIds = $viewer->territories->pluck('id')->all();
+
+        return User::role('Sales Executive')
+            ->when($territoryIds !== [], fn ($q) => $q->whereHas('territories', fn ($t) => $t->whereIn('territories.id', $territoryIds)))
+            ->when($viewer->isSalesExecutiveOnly(), fn ($q) => $q->where('id', $viewer->id))
+            ->orderBy('name')
+            ->get();
     }
 }

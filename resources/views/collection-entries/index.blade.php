@@ -59,9 +59,16 @@
         @include('partials.trashed-filter', ['filters' => $filters, 'colClass' => 'col-md-3'])
     </x-filter-bar>
 
+    {{-- Standalone (not wrapping the table) — the table's per-row forms
+         (approve/reject/destroy/etc.) can't be nested inside another form,
+         since nested <form> elements are invalid HTML and browsers silently
+         merge them, so the checkboxes and submit button below link to this
+         one via the `form="bulkForm"` attribute instead. --}}
     <form id="bulkForm" method="POST" action="{{ route('collection-entries.bulk-destroy') }}" data-confirm data-confirm-title="Delete selected collections?">
         @csrf
-        <x-data-table
+    </form>
+
+    <x-data-table
             title="Collection Entries"
             :create-url="auth()->user()->can('create', \App\Models\CollectionEntry::class) ? route('collection-entries.create') : null"
             create-label="Record Collection"
@@ -89,7 +96,7 @@
                 <tr>
                     <td>
                         @if (! $collectionEntry->trashed())
-                            <input type="checkbox" name="ids[]" value="{{ $collectionEntry->id }}" class="form-check-input row-checkbox">
+                            <input type="checkbox" name="ids[]" value="{{ $collectionEntry->id }}" class="form-check-input row-checkbox" form="bulkForm">
                         @endif
                     </td>
                     <td>
@@ -219,7 +226,7 @@
                             </x-slot:meta>
                             <x-slot:checkbox>
                                 @if (! $collectionEntry->trashed())
-                                    <input type="checkbox" name="ids[]" value="{{ $collectionEntry->id }}" class="form-check-input row-checkbox">
+                                    <input type="checkbox" name="ids[]" value="{{ $collectionEntry->id }}" class="form-check-input row-checkbox" form="bulkForm">
                                 @endif
                             </x-slot:checkbox>
                             <x-slot:actions>
@@ -273,14 +280,13 @@
                     <div class="col-12 text-center text-muted py-4">No collection entries found.</div>
                 @endforelse
             </x-slot:cards>
-        </x-data-table>
+    </x-data-table>
 
-        @can('collection-entries.delete')
-            <div class="mt-2">
-                <button type="submit" class="btn btn-outline-danger btn-sm"><i class="ti ti-trash me-1"></i>Delete Selected</button>
-            </div>
-        @endcan
-    </form>
+    @can('collection-entries.delete')
+        <div class="mt-2">
+            <button type="submit" form="bulkForm" class="btn btn-outline-danger btn-sm"><i class="ti ti-trash me-1"></i>Delete Selected</button>
+        </div>
+    @endcan
 
     @can('import', \App\Models\CollectionEntry::class)
         <x-modal id="importModal" title="Import Collection Entries">

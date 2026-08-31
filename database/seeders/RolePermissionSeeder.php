@@ -43,6 +43,7 @@ class RolePermissionSeeder extends Seeder
         'dealer-coverage',
         'gps',
         'dealer-ledger',
+        'movement-summary',
     ];
 
     public function run(): void
@@ -361,6 +362,39 @@ class RolePermissionSeeder extends Seeder
             PermissionName::menu('notifications'),
             PermissionName::button('notifications', ButtonAction::View),
             PermissionName::api('notifications', ButtonAction::View),
+            // Admin-panel access to their own historical records, plus
+            // recording their own new ones the same as the mobile app
+            // allows (add only — editing an already-recorded order/
+            // collection still stays a manager action). Order/
+            // CollectionEntry/Target::scopeVisibleTo() and the matching
+            // Policy checks enforce that a plain Sales Executive only ever
+            // sees or acts on their own rows here, never another
+            // executive's.
+            PermissionName::menu('orders'),
+            PermissionName::button('orders', ButtonAction::View),
+            PermissionName::button('orders', ButtonAction::Add),
+            PermissionName::button('orders', ButtonAction::Export),
+            PermissionName::button('orders', ButtonAction::Print),
+            PermissionName::menu('collection-entries'),
+            PermissionName::button('collection-entries', ButtonAction::View),
+            PermissionName::button('collection-entries', ButtonAction::Add),
+            PermissionName::button('collection-entries', ButtonAction::Export),
+            PermissionName::button('collection-entries', ButtonAction::Print),
+            PermissionName::menu('targets'),
+            PermissionName::button('targets', ButtonAction::View),
+            PermissionName::button('targets', ButtonAction::Export),
+            PermissionName::button('targets', ButtonAction::Print),
+            // Only the report types with a meaningful "just mine" view —
+            // territories/dealer-coverage/dealer-ledger/executive-performance
+            // are cross-executive aggregate/comparison views with no sensible
+            // per-executive projection, so they're deliberately withheld.
+            PermissionName::report('attendance'),
+            PermissionName::report('visits'),
+            PermissionName::report('order-performance'),
+            PermissionName::report('collections'),
+            PermissionName::report('target-achievement'),
+            PermissionName::report('gps'),
+            PermissionName::report('movement-summary'),
         ];
 
         foreach ($productModules as $module) {

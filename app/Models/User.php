@@ -146,4 +146,15 @@ class User extends Authenticatable
     {
         return $this->date_of_birth !== null && $this->date_of_birth->isBirthday();
     }
+
+    /**
+     * True only when Sales Executive is this user's sole role — a user
+     * holding Sales Executive alongside any other role (roles aren't
+     * mutually exclusive here, see UserService) gets that other role's
+     * broader visibility instead of being restricted to their own records.
+     */
+    public function isSalesExecutiveOnly(): bool
+    {
+        return $this->roles->count() === 1 && $this->hasRole('Sales Executive');
+    }
 }

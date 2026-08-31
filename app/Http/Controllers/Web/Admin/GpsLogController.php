@@ -34,7 +34,7 @@ class GpsLogController extends Controller
     {
         $this->authorize('viewAny', GpsLog::class);
 
-        $executives = User::role('Sales Executive')->orderBy('name')->get();
+        $executives = $this->scopedExecutives($request->user());
         $selectedUser = $executives->firstWhere('id', (int) $request->input('user_id')) ?? $executives->first();
         $date = $request->input('date') ?: Carbon::today()->toDateString();
         $trashed = $request->input('trashed');
@@ -118,7 +118,7 @@ class GpsLogController extends Controller
         $this->authorize('print', GpsLog::class);
 
         $logs = $this->logsForRequest($request);
-        $user = User::find((int) $request->input('user_id'));
+        $user = $this->scopedExecutives($request->user())->firstWhere('id', (int) $request->input('user_id'));
 
         return Pdf::loadView('gps-logs.print', [
             'logs' => $logs,
@@ -130,11 +130,30 @@ class GpsLogController extends Controller
 
     private function logsForRequest(Request $request): Collection
     {
-        $userId = (int) $request->input('user_id');
+        // Resolved against the viewer's own scoped executive list rather
+        // than trusting the raw `user_id` query param directly — otherwise
+        // export/print could be pointed at another territory's executive.
+        $userId = $this->scopedExecutives($request->user())->firstWhere('id', (int) $request->input('user_id'))?->id;
         $date = $request->input('date') ?: Carbon::today()->toDateString();
 
         return $userId
             ? $this->gpsLogs->historyForUserOnDate($userId, $date, $request->input('trashed'))
             : collect();
+    }
+
+    /**
+     * Sales Executives selectable in the "Location History" dropdown/export —
+     * restricted to the viewer's own territories when they have any assigned,
+     * or to themself alone when Sales Executive is their sole role.
+     */
+    private function scopedExecutives(User $viewer): Collection
+    {
+        $territoryIds = $viewer->territories->pluck('id')->all();
+
+        return User::role('Sales Executive')
+            ->when($territoryIds !== [], fn ($q) => $q->whereHas('territories', fn ($t) => $t->whereIn('territories.id', $territoryIds)))
+            ->when($viewer->isSalesExecutiveOnly(), fn ($q) => $q->where('id', $viewer->id))
+            ->orderBy('name')
+            ->get();
     }
 }

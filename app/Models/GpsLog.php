@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\HasVisibilityScope;
 use App\Traits\HasAudit;
 use Database\Factories\GpsLogFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -28,6 +29,7 @@ class GpsLog extends Model
     /** @use HasFactory<GpsLogFactory> */
     use HasFactory;
 
+    use HasVisibilityScope;
     use SoftDeletes;
 
     protected $fillable = [

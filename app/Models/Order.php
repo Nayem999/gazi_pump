@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\ApprovalStatus;
 use Database\Factories\OrderFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -60,5 +61,27 @@ class Order extends BaseModel
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    /**
+     * Restricts to what the viewer is allowed to see: their own orders only
+     * when Sales Executive is their sole role, orders for dealers in their
+     * own territories when they have territories assigned, or every order
+     * otherwise (Super Admin, General Manager, and Sales/Area Manager — a
+     * `sales_team_id` doesn't gate this, see Concerns\HasVisibilityScope for
+     * why). Same shape as CollectionEntry::scopeVisibleTo(), just via the
+     * dealer's territory rather than the executive's own.
+     */
+    public function scopeVisibleTo(Builder $query, User $viewer): Builder
+    {
+        if ($viewer->isSalesExecutiveOnly()) {
+            return $query->where('user_id', $viewer->id);
+        }
+
+        $territoryIds = $viewer->territories->pluck('id')->all();
+
+        return $territoryIds === []
+            ? $query
+            : $query->whereHas('dealer', fn ($d) => $d->whereIn('territory_id', $territoryIds));
     }
 }

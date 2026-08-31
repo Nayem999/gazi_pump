@@ -99,7 +99,7 @@ class ProductTest extends TestCase
             ->assertJsonPath('data.category.parent.name', 'Beverages');
     }
 
-    public function test_an_executive_under_a_team_only_sees_that_teams_and_team_less_products(): void
+    public function test_an_executive_under_a_team_only_sees_that_teams_own_products(): void
     {
         $teamA = SalesTeam::factory()->create();
         $teamB = SalesTeam::factory()->create();
@@ -111,10 +111,12 @@ class ProductTest extends TestCase
         $executive = User::factory()->create(['sales_team_id' => $teamA->id]);
         $executive->assignRole('Sales Executive');
 
+        // Strictly teamA's own product — the other team's and the
+        // team-less one are both excluded.
         $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
             ->getJson('/api/v1/products')
             ->assertOk()
-            ->assertJsonCount(2, 'data');
+            ->assertJsonCount(1, 'data');
     }
 
     public function test_show_returns_a_single_product_with_category(): void

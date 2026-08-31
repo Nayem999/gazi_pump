@@ -21,11 +21,19 @@ class LiveGpsService
      * @param  array{territory_id?: string, user_id?: string}  $filters
      * @return Collection<int, object>
      */
-    public function latestPositions(array $filters): Collection
+    public function latestPositions(array $filters, User $viewer): Collection
     {
         $cutoff = Carbon::now()->subMinutes((int) config('sfa.live_gps.stale_after_minutes'));
+        $territoryIds = $viewer->territories->pluck('id')->all();
 
         $executives = User::role('Sales Executive')
+            // The viewer's own territories (or themself, if they're a plain
+            // Sales Executive) are enforced unconditionally — the filters
+            // below only narrow further within what's already visible.
+            ->when($territoryIds !== [], fn ($query) => $query->whereHas(
+                'territories', fn ($t) => $t->whereIn('territories.id', $territoryIds)
+            ))
+            ->when($viewer->isSalesExecutiveOnly(), fn ($query) => $query->where('id', $viewer->id))
             ->when($filters['territory_id'] ?? null, fn ($query, $territoryId) => $query->whereHas(
                 'territories', fn ($t) => $t->where('territories.id', $territoryId)
             ))

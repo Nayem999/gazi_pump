@@ -1,3 +1,12 @@
+@php
+    // A plain Sales Executive can only ever record a collection for
+    // themself — locked to their own name instead of offered as a choice.
+    // The select stays disabled (so it can't be tampered with via the UI)
+    // and a matching submit-time re-enable below keeps its value in the
+    // POST body, same pattern already used for the Amount field's OTP lock.
+    $lockExecutiveField = auth()->user()->isSalesExecutiveOnly();
+@endphp
+
 @csrf
 @if (isset($collectionEntry))
     @method('PUT')
@@ -6,10 +15,10 @@
 <div class="row g-3">
     <div class="col-md-6">
         <label class="form-label">Sales Executive <span class="text-danger">*</span></label>
-        <select name="user_id" class="form-select @error('user_id') is-invalid @enderror" required>
+        <select name="user_id" id="executiveSelect" class="form-select @error('user_id') is-invalid @enderror" required @disabled($lockExecutiveField)>
             <option value="">— Select Executive —</option>
             @foreach ($executives as $executive)
-                <option value="{{ $executive->id }}" @selected((string) old('user_id', $collectionEntry->user_id ?? '') === (string) $executive->id)>{{ $executive->name }} ({{ $executive->employee_id }})</option>
+                <option value="{{ $executive->id }}" @selected((string) old('user_id', $collectionEntry->user_id ?? ($lockExecutiveField ? auth()->id() : '')) === (string) $executive->id)>{{ $executive->name }} ({{ $executive->employee_id }})</option>
             @endforeach
         </select>
         @error('user_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -138,6 +147,15 @@
         // function" and silently skips the rest of the block, which is why
         // the balance preview never updated.
         document.addEventListener('DOMContentLoaded', function () {
+            // A disabled select's value is never included in form submission
+            // — re-enable it right before the browser serializes the form so
+            // the locked-in executive still gets sent (same pattern as the
+            // Amount field's OTP lock below).
+            const executiveSelect = document.getElementById('executiveSelect');
+            executiveSelect?.closest('form')?.addEventListener('submit', function () {
+                executiveSelect.disabled = false;
+            });
+
             const dealerSelect = document.getElementById('dealerSelect');
             const balancePreview = document.getElementById('balancePreview');
 

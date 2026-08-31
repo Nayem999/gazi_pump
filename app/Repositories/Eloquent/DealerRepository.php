@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories\Eloquent;
 
 use App\Models\Dealer;
+use App\Models\User;
 use App\Repositories\Contracts\DealerRepositoryInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -15,10 +16,11 @@ class DealerRepository extends BaseRepository implements DealerRepositoryInterfa
         parent::__construct($model);
     }
 
-    public function paginateWithFilters(array $filters, int $perPage = 15): LengthAwarePaginator
+    public function paginateWithFilters(array $filters, int $perPage = 15, ?User $viewer = null): LengthAwarePaginator
     {
         return $this->query()
             ->with(['territory', 'thana', 'district', 'division'])
+            ->when($viewer, fn ($query, $viewer) => $query->visibleTo($viewer))
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('name', 'like', "%{$search}%")

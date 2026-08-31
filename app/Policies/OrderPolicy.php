@@ -16,7 +16,7 @@ class OrderPolicy
 
     public function view(User $user, Order $order): bool
     {
-        return $user->can('orders.view');
+        return $user->can('orders.view') && $this->isVisible($user, $order);
     }
 
     public function create(User $user): bool
@@ -26,22 +26,22 @@ class OrderPolicy
 
     public function update(User $user, Order $order): bool
     {
-        return $user->can('orders.edit');
+        return $user->can('orders.edit') && $this->isVisible($user, $order);
     }
 
     public function approve(User $user, Order $order): bool
     {
-        return $user->can('orders.approve');
+        return $user->can('orders.approve') && $this->isVisible($user, $order);
     }
 
     public function delete(User $user, Order $order): bool
     {
-        return $user->can('orders.delete');
+        return $user->can('orders.delete') && $this->isVisible($user, $order);
     }
 
     public function restore(User $user, Order $order): bool
     {
-        return $user->can('orders.restore');
+        return $user->can('orders.restore') && $this->isVisible($user, $order);
     }
 
     public function forceDelete(User $user, Order $order): bool
@@ -62,5 +62,17 @@ class OrderPolicy
     public function print(User $user): bool
     {
         return $user->can('orders.print');
+    }
+
+    /**
+     * Whether this order falls within the viewer's own visibility scope —
+     * reuses Order::scopeVisibleTo() so list and single-record checks can
+     * never drift out of sync with each other. withTrashed() so restore/
+     * forceDelete (checked against an already soft-deleted record) don't
+     * always fail.
+     */
+    private function isVisible(User $user, Order $order): bool
+    {
+        return Order::withTrashed()->visibleTo($user)->whereKey($order->id)->exists();
     }
 }

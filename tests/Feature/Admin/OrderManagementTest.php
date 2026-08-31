@@ -70,9 +70,99 @@ class OrderManagementTest extends TestCase
         $this->get(route('orders.index'))->assertRedirect(route('login'));
     }
 
-    public function test_sales_executive_has_no_web_access_to_orders(): void
+    public function test_sales_executive_can_view_only_their_own_orders(): void
     {
-        $this->actingAs($this->executive())->get(route('orders.index'))->assertForbidden();
+        $executive = $this->executive();
+        $otherExecutive = $this->executive();
+        $ownOrder = Order::factory()->create(['user_id' => $executive->id]);
+        $otherOrder = Order::factory()->create(['user_id' => $otherExecutive->id]);
+
+        $this->actingAs($executive)->get(route('orders.create'))->assertOk();
+
+        $response = $this->actingAs($executive)->get(route('orders.index'));
+        $response->assertOk()->assertSee($ownOrder->dealer->name)->assertDontSee($otherOrder->dealer->name);
+
+        $this->actingAs($executive)->get(route('orders.show', $otherOrder))->assertForbidden();
+    }
+
+    public function test_the_create_form_locks_a_plain_sales_executive_to_themself(): void
+    {
+        $executive = $this->executive();
+        $otherExecutive = $this->executive();
+
+        $response = $this->actingAs($executive)->get(route('orders.create'));
+
+        $response->assertOk();
+        $html = $response->getContent();
+        $this->assertMatchesRegularExpression('/<select[^>]*name="user_id"[^>]*disabled[^>]*>/', $html);
+        $this->assertStringContainsString((string) $executive->id, $html);
+
+        // Only the executive themself is offered as an option — not every
+        // Sales Executive in the company.
+        $response->assertSee($executive->name)->assertDontSee($otherExecutive->name);
+    }
+
+    public function test_a_plain_sales_executive_cannot_record_an_order_for_someone_else_even_by_tampering_the_request(): void
+    {
+        $executive = $this->executive();
+        $otherExecutive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        $product = Product::factory()->create(['price' => 100]);
+
+        $response = $this->actingAs($executive)->post(route('orders.store'), [
+            'user_id' => $otherExecutive->id,
+            'dealer_id' => $dealer->id,
+            'order_date' => Carbon::today()->toDateString(),
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 1, 'unit_price' => 100, 'discount_amount' => 0],
+            ],
+        ]);
+
+        $response->assertRedirect(route('orders.index'));
+        $this->assertDatabaseHas('orders', ['dealer_id' => $dealer->id, 'user_id' => $executive->id]);
+        $this->assertDatabaseMissing('orders', ['dealer_id' => $dealer->id, 'user_id' => $otherExecutive->id]);
+    }
+
+    public function test_a_territory_scoped_viewer_can_only_pick_a_dealer_in_their_own_territory_on_the_order_form(): void
+    {
+        $territoryA = Territory::factory()->create();
+        $territoryB = Territory::factory()->create();
+        $dealerA = Dealer::factory()->create(['territory_id' => $territoryA->id]);
+        $dealerB = Dealer::factory()->create(['territory_id' => $territoryB->id]);
+
+        // orders.add is a General/Super Admin ability — territories can be
+        // assigned to any role via the Users form, so this exercises a
+        // regionally-scoped General Manager.
+        $manager = $this->generalManager();
+        $manager->territories()->attach($territoryA);
+
+        $response = $this->actingAs($manager)->get(route('orders.create'));
+
+        $response->assertOk()->assertSee($dealerA->name)->assertDontSee($dealerB->name);
+    }
+
+    public function test_recording_an_order_for_a_dealer_outside_the_viewers_territory_is_rejected(): void
+    {
+        $territoryA = Territory::factory()->create();
+        $territoryB = Territory::factory()->create();
+        $dealerB = Dealer::factory()->create(['territory_id' => $territoryB->id]);
+        $product = Product::factory()->create(['price' => 100]);
+
+        $manager = $this->generalManager();
+        $manager->territories()->attach($territoryA);
+        $executive = $this->executive();
+
+        $response = $this->actingAs($manager)->post(route('orders.store'), [
+            'user_id' => $executive->id,
+            'dealer_id' => $dealerB->id,
+            'order_date' => Carbon::today()->toDateString(),
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 1, 'unit_price' => 100, 'discount_amount' => 0],
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('dealer_id');
+        $this->assertDatabaseCount('orders', 0);
     }
 
     public function test_general_manager_can_view_and_record_an_order_with_multiple_products(): void

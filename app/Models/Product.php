@@ -65,4 +65,18 @@ class Product extends BaseModel
             fn (Builder $q) => $q->where('sales_team_id', $viewer->sales_team_id)->orWhereNull('sales_team_id')
         );
     }
+
+    /**
+     * Like scopeVisibleTo(), but strict: a viewer with a sales team sees
+     * only that team's own products, not team-less ones too. Used by the
+     * Products module's own list/export/print/API — Order/Target creation
+     * still uses scopeVisibleTo() since a team-less (company-wide) product
+     * should remain orderable/targetable by anyone regardless of team.
+     */
+    public function scopeOwnedByTeam(Builder $query, ?User $viewer): Builder
+    {
+        return $viewer?->sales_team_id
+            ? $query->where('sales_team_id', $viewer->sales_team_id)
+            : $query;
+    }
 }

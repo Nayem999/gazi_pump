@@ -123,7 +123,7 @@ class ProductManagementTest extends TestCase
         $this->assertDatabaseHas('products', ['sku' => 'SKU-TEAM-01', 'sales_team_id' => $team->id]);
     }
 
-    public function test_products_list_only_shows_the_viewers_team_and_team_less_products(): void
+    public function test_products_list_only_shows_the_viewers_own_team_products(): void
     {
         $teamA = SalesTeam::factory()->create();
         $teamB = SalesTeam::factory()->create();
@@ -137,9 +137,12 @@ class ProductManagementTest extends TestCase
 
         $response = $this->actingAs($viewer)->get(route('products.index'));
 
+        // Strictly their own team's products — team-less/company-wide
+        // products aren't included here (unlike Order/Target creation,
+        // where a team-less product stays selectable by anyone).
         $response->assertOk()
             ->assertSee($ownTeamProduct->name)
-            ->assertSee($teamLessProduct->name)
+            ->assertDontSee($teamLessProduct->name)
             ->assertDontSee($otherTeamProduct->name);
     }
 
@@ -170,5 +173,25 @@ class ProductManagementTest extends TestCase
 
         $this->actingAs($admin)->delete(route('products.destroy', $product))->assertRedirect(route('products.index'));
         $this->assertSoftDeleted('products', ['id' => $product->id]);
+    }
+
+    public function test_a_team_scoped_viewer_cannot_view_or_edit_another_teams_product_directly(): void
+    {
+        $teamA = SalesTeam::factory()->create();
+        $teamB = SalesTeam::factory()->create();
+        $otherTeamProduct = Product::factory()->create(['sales_team_id' => $teamB->id]);
+
+        $viewer = User::factory()->create(['sales_team_id' => $teamA->id]);
+        $viewer->assignRole('General Manager');
+
+        $this->actingAs($viewer)->get(route('products.edit', $otherTeamProduct))->assertForbidden();
+        $this->actingAs($viewer)->put(route('products.update', $otherTeamProduct), [
+            'category_id' => $otherTeamProduct->category_id,
+            'name' => 'Hijacked Name',
+            'sku' => $otherTeamProduct->sku,
+            'price' => '1.00',
+            'status' => '1',
+        ])->assertForbidden();
+        $this->actingAs($viewer)->delete(route('products.destroy', $otherTeamProduct))->assertForbidden();
     }
 }

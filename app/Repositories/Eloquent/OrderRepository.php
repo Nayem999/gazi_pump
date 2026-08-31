@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories\Eloquent;
 
 use App\Models\Order;
+use App\Models\User;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -16,23 +17,24 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
         parent::__construct($model);
     }
 
-    public function paginateWithFilters(array $filters, int $perPage = 15): LengthAwarePaginator
+    public function paginateWithFilters(array $filters, int $perPage = 15, ?User $viewer = null): LengthAwarePaginator
     {
-        return $this->filtered($filters)
+        return $this->filtered($filters, $viewer)
             ->with(['user', 'dealer.territory', 'items.product'])
             ->latest('order_date')
             ->paginate($perPage)
             ->withQueryString();
     }
 
-    public function sumWithFilters(array $filters): float
+    public function sumWithFilters(array $filters, ?User $viewer = null): float
     {
-        return (float) $this->filtered($filters)->sum('total_amount');
+        return (float) $this->filtered($filters, $viewer)->sum('total_amount');
     }
 
-    private function filtered(array $filters): Builder
+    private function filtered(array $filters, ?User $viewer = null): Builder
     {
         return $this->query()
+            ->when($viewer, fn ($query, $viewer) => $query->visibleTo($viewer))
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->whereHas('dealer', function ($q) use ($search) {

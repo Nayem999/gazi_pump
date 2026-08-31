@@ -399,6 +399,9 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
         Route::get('/dealer-ledger/print', [ReportController::class, 'dealerLedgerSummaryPrint'])->name('dealer-ledger.print');
         Route::get('/dealer-ledger/{dealer}', [ReportController::class, 'dealerLedger'])->name('dealer-ledger.show');
         Route::get('/dealer-ledger/{dealer}/print', [ReportController::class, 'dealerLedgerPrint'])->name('dealer-ledger.show-print');
+
+        Route::get('/movement-summary', [ReportController::class, 'movementSummary'])->name('movement-summary');
+        Route::get('/movement-summary/print', [ReportController::class, 'movementSummaryPrint'])->name('movement-summary.print');
     });
 
     /**

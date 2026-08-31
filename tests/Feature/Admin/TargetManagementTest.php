@@ -53,9 +53,19 @@ class TargetManagementTest extends TestCase
         $this->get(route('targets.index'))->assertRedirect(route('login'));
     }
 
-    public function test_sales_executive_has_no_web_access_to_targets(): void
+    public function test_sales_executive_can_view_only_their_own_targets(): void
     {
-        $this->actingAs($this->executive())->get(route('targets.index'))->assertForbidden();
+        $executive = $this->executive();
+        $otherExecutive = $this->executive();
+        Target::factory()->create(['user_id' => $executive->id]);
+        $otherTarget = Target::factory()->create(['user_id' => $otherExecutive->id]);
+
+        $this->actingAs($executive)->get(route('targets.create'))->assertForbidden();
+
+        $response = $this->actingAs($executive)->get(route('targets.index'));
+        $response->assertOk()->assertSee($executive->name)->assertDontSee($otherExecutive->name);
+
+        $this->actingAs($executive)->get(route('targets.show', $otherTarget))->assertForbidden();
     }
 
     public function test_general_manager_can_view_and_assign_a_target(): void

@@ -16,7 +16,7 @@ class DealerPolicy
 
     public function view(User $user, Dealer $dealer): bool
     {
-        return $user->can('dealers.view');
+        return $user->can('dealers.view') && $this->isVisible($user, $dealer);
     }
 
     public function create(User $user): bool
@@ -26,17 +26,17 @@ class DealerPolicy
 
     public function update(User $user, Dealer $dealer): bool
     {
-        return $user->can('dealers.edit');
+        return $user->can('dealers.edit') && $this->isVisible($user, $dealer);
     }
 
     public function delete(User $user, Dealer $dealer): bool
     {
-        return $user->can('dealers.delete');
+        return $user->can('dealers.delete') && $this->isVisible($user, $dealer);
     }
 
     public function restore(User $user, Dealer $dealer): bool
     {
-        return $user->can('dealers.restore');
+        return $user->can('dealers.restore') && $this->isVisible($user, $dealer);
     }
 
     public function forceDelete(User $user, Dealer $dealer): bool
@@ -57,5 +57,16 @@ class DealerPolicy
     public function print(User $user): bool
     {
         return $user->can('dealers.print');
+    }
+
+    /**
+     * Whether this dealer falls within the viewer's own territories — reuses
+     * Dealer::scopeVisibleTo() so list and single-record checks can never
+     * drift out of sync with each other. withTrashed() so restore/forceDelete
+     * (checked against an already soft-deleted record) don't always fail.
+     */
+    private function isVisible(User $user, Dealer $dealer): bool
+    {
+        return Dealer::withTrashed()->visibleTo($user)->whereKey($dealer->id)->exists();
     }
 }

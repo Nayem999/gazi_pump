@@ -8,6 +8,7 @@ use App\Jobs\RecalculateAchievementsJob;
 use App\Models\OrderItem;
 use App\Models\Target;
 use App\Models\TargetItem;
+use App\Models\User;
 use App\Repositories\Contracts\TargetRepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -24,9 +25,9 @@ class TargetService extends BaseCrudService
     /**
      * @param  array{search?: string, user_id?: string, month?: string, year?: string, grade?: string, trashed?: string}  $filters
      */
-    public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
+    public function paginate(array $filters, int $perPage = 15, ?User $viewer = null): LengthAwarePaginator
     {
-        return $this->targets->paginateWithFilters($filters, $perPage);
+        return $this->targets->paginateWithFilters($filters, $perPage, $viewer);
     }
 
     /**

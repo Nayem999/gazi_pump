@@ -101,6 +101,35 @@ class DealerManagementTest extends TestCase
         $response->assertSessionHasErrors('gps_lat');
     }
 
+    public function test_a_territory_manager_only_sees_their_own_territorys_dealers(): void
+    {
+        $territoryA = Territory::factory()->create();
+        $territoryB = Territory::factory()->create();
+        $dealerInTerritory = Dealer::factory()->create(['territory_id' => $territoryA->id, 'name' => 'In Territory']);
+        $dealerOutsideTerritory = Dealer::factory()->create(['territory_id' => $territoryB->id, 'name' => 'Outside Territory']);
+
+        $manager = User::factory()->create();
+        $manager->assignRole('Territory Manager');
+        $manager->territories()->attach($territoryA);
+
+        $response = $this->actingAs($manager)->get(route('dealers.index'));
+
+        $response->assertOk()->assertSee($dealerInTerritory->name)->assertDontSee($dealerOutsideTerritory->name);
+    }
+
+    public function test_a_territory_manager_cannot_view_a_dealer_outside_their_territory_directly(): void
+    {
+        $territoryA = Territory::factory()->create();
+        $territoryB = Territory::factory()->create();
+        $dealerOutsideTerritory = Dealer::factory()->create(['territory_id' => $territoryB->id]);
+
+        $manager = User::factory()->create();
+        $manager->assignRole('Territory Manager');
+        $manager->territories()->attach($territoryA);
+
+        $this->actingAs($manager)->get(route('dealers.show', $dealerOutsideTerritory))->assertForbidden();
+    }
+
     public function test_super_admin_can_view_edit_and_delete_a_dealer(): void
     {
         $admin = $this->superAdmin();

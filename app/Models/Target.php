@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\HasVisibilityScope;
 use Database\Factories\TargetFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,6 +16,8 @@ class Target extends BaseModel
 {
     /** @use HasFactory<TargetFactory> */
     use HasFactory;
+
+    use HasVisibilityScope;
 
     protected $fillable = [
         'user_id',

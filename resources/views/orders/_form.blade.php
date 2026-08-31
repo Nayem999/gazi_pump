@@ -13,6 +13,15 @@
     }
 @endphp
 
+@php
+    // A plain Sales Executive can only ever record an order for themself —
+    // locked to their own name instead of offered as a choice. The select
+    // stays disabled (so it can't be tampered with via the UI) and a
+    // matching submit-time re-enable below keeps its value in the POST
+    // body, same pattern already used for the Amount field's OTP lock.
+    $lockExecutiveField = auth()->user()->isSalesExecutiveOnly();
+@endphp
+
 @csrf
 @if (isset($order))
     @method('PUT')
@@ -21,10 +30,10 @@
 <div class="row g-3">
     <div class="col-md-4">
         <label class="form-label">Sales Executive <span class="text-danger">*</span></label>
-        <select name="user_id" class="form-select @error('user_id') is-invalid @enderror" required>
+        <select name="user_id" id="executiveSelect" class="form-select @error('user_id') is-invalid @enderror" required @disabled($lockExecutiveField)>
             <option value="">— Select Executive —</option>
             @foreach ($executives as $executive)
-                <option value="{{ $executive->id }}" @selected((string) old('user_id', $order->user_id ?? '') === (string) $executive->id)>{{ $executive->name }} ({{ $executive->employee_id }})</option>
+                <option value="{{ $executive->id }}" @selected((string) old('user_id', $order->user_id ?? ($lockExecutiveField ? auth()->id() : '')) === (string) $executive->id)>{{ $executive->name }} ({{ $executive->employee_id }})</option>
             @endforeach
         </select>
         @error('user_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -117,6 +126,15 @@
         // once the deferred module bundle (app.js) finishes executing —
         // which happens at/before DOMContentLoaded, not before.
         document.addEventListener('DOMContentLoaded', function () {
+            // A disabled select's value is never included in form submission
+            // — re-enable it right before the browser serializes the form so
+            // the locked-in executive still gets sent (same pattern as the
+            // Amount field's OTP lock in collection-entries/_form).
+            const executiveSelect = document.getElementById('executiveSelect');
+            executiveSelect?.closest('form')?.addEventListener('submit', function () {
+                executiveSelect.disabled = false;
+            });
+
             // Retailer options are all pre-rendered (small per-dealer counts
             // don't justify an AJAX round trip like the Territory/Thana
             // cascades use) — switching Dealer just hides/disables every

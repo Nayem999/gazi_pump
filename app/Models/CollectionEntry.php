@@ -8,6 +8,7 @@ use App\Enums\ApprovalStatus;
 use App\Enums\ChequeStatus;
 use App\Enums\PaymentMethod;
 use Database\Factories\CollectionEntryFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -79,5 +80,25 @@ class CollectionEntry extends BaseModel
         $path = storage_path('app/public/'.$this->cheque_image);
 
         return is_file($path) ? $path : null;
+    }
+
+    /**
+     * Restricts to what the viewer is allowed to see — same shape as
+     * Order::scopeVisibleTo() (own records only when Sales Executive is
+     * their sole role, own territories' dealers, else unrestricted), via
+     * the dealer's territory since CollectionEntry has no territory of its
+     * own.
+     */
+    public function scopeVisibleTo(Builder $query, User $viewer): Builder
+    {
+        if ($viewer->isSalesExecutiveOnly()) {
+            return $query->where('user_id', $viewer->id);
+        }
+
+        $territoryIds = $viewer->territories->pluck('id')->all();
+
+        return $territoryIds === []
+            ? $query
+            : $query->whereHas('dealer', fn ($d) => $d->whereIn('territory_id', $territoryIds));
     }
 }

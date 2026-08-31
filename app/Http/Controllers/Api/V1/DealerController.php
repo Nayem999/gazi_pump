@@ -11,6 +11,7 @@ use App\Http\Resources\DealerResource;
 use App\Models\Dealer;
 use App\Services\CollectionEntryService;
 use App\Services\DealerService;
+use App\Services\ReportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
@@ -25,6 +26,7 @@ class DealerController extends Controller
     public function __construct(
         private readonly DealerService $dealers,
         private readonly CollectionEntryService $collectionEntries,
+        private readonly ReportService $reports,
     ) {}
 
     #[OA\Get(
@@ -44,10 +46,13 @@ class DealerController extends Controller
         $this->authorize('viewAny', Dealer::class);
 
         $filters = $request->only(['search', 'territory_id']);
-        $filters['territory_id'] ??= $request->user()?->territories->pluck('id')->all();
         $filters['status'] = 'active';
 
-        $dealers = $this->dealers->paginate($filters, (int) $request->integer('per_page', 20));
+        // The viewer's own territories are enforced unconditionally by
+        // Dealer::scopeVisibleTo() below — an explicit `territory_id` here
+        // only narrows further within what's already visible, it can't
+        // widen access to another territory.
+        $dealers = $this->dealers->paginate($filters, (int) $request->integer('per_page', 20), $request->user());
 
         return ApiResponse::success(
             DealerResource::collection($dealers->items()),
@@ -128,6 +133,33 @@ class DealerController extends Controller
         return ApiResponse::success([
             'dealer_id' => $dealer->id,
             'outstanding_balance' => $this->collectionEntries->outstandingBalance($dealer->id),
+        ]);
+    }
+
+    #[OA\Get(
+        path: '/dealers/{id}/ledger',
+        tags: ['Dealers'],
+        summary: 'Get a dealer\'s full due history — every order (debit) and collection (credit), chronologically, with a running balance',
+        security: [['sanctum' => []]],
+        parameters: [new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))],
+        responses: [new OA\Response(response: 200, description: 'Dealer ledger'), new OA\Response(response: 404, description: 'Not found')],
+    )]
+    public function ledger(Dealer $dealer): JsonResponse
+    {
+        $this->authorize('view', $dealer);
+
+        $rows = $this->reports->dealerLedger($dealer);
+
+        return ApiResponse::success([
+            'dealer_id' => $dealer->id,
+            'balance' => $rows->last()->balance ?? 0.0,
+            'transactions' => $rows->map(fn ($row) => [
+                'date' => $row->date->toDateString(),
+                'description' => $row->description,
+                'debit' => $row->debit,
+                'credit' => $row->credit,
+                'balance' => $row->balance,
+            ]),
         ]);
     }
 }

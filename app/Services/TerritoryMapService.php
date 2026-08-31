@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Enums\PerformanceGrade;
 use App\Models\Target;
 use App\Models\Territory;
+use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -26,9 +27,10 @@ class TerritoryMapService
      * @param  array{division_id?: string, district_id?: string, thana_id?: string}  $filters
      * @return Collection<int, Territory>
      */
-    public function markers(array $filters = []): Collection
+    public function markers(array $filters, User $viewer): Collection
     {
         return Territory::query()
+            ->visibleTo($viewer)
             ->select(['id', 'name', 'code', 'center_lat', 'center_lng', 'boundary', 'manager_id', 'division_id', 'district_id', 'thana_id'])
             ->when($filters['division_id'] ?? null, fn ($query, $id) => $query->where('division_id', $id))
             ->when($filters['district_id'] ?? null, fn ($query, $id) => $query->where('district_id', $id))

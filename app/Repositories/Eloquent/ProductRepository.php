@@ -21,7 +21,7 @@ class ProductRepository extends BaseRepository implements ProductRepositoryInter
     {
         return $this->query()
             ->with(['category.parent', 'salesTeam'])
-            ->visibleTo($viewer)
+            ->ownedByTeam($viewer)
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%");

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories\Contracts;
 
+use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 interface OrderRepositoryInterface extends BaseRepositoryInterface
@@ -11,7 +12,7 @@ interface OrderRepositoryInterface extends BaseRepositoryInterface
     /**
      * @param  array{search?: string, user_id?: string, dealer_id?: string, product_id?: string, status?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
      */
-    public function paginateWithFilters(array $filters, int $perPage = 15): LengthAwarePaginator;
+    public function paginateWithFilters(array $filters, int $perPage = 15, ?User $viewer = null): LengthAwarePaginator;
 
     /**
      * Sum of total_amount across every record matching the same filters as
@@ -19,5 +20,5 @@ interface OrderRepositoryInterface extends BaseRepositoryInterface
      *
      * @param  array{search?: string, user_id?: string, dealer_id?: string, product_id?: string, status?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
      */
-    public function sumWithFilters(array $filters): float;
+    public function sumWithFilters(array $filters, ?User $viewer = null): float;
 }

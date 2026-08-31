@@ -16,7 +16,7 @@ class TerritoryPolicy
 
     public function view(User $user, Territory $territory): bool
     {
-        return $user->can('territories.view');
+        return $user->can('territories.view') && Territory::query()->visibleTo($user)->whereKey($territory->id)->exists();
     }
 
     public function create(User $user): bool

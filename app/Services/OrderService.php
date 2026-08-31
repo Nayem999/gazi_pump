@@ -25,17 +25,17 @@ class OrderService extends BaseCrudService
     /**
      * @param  array{search?: string, user_id?: string, dealer_id?: string, territory_id?: string, product_id?: string, status?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
      */
-    public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
+    public function paginate(array $filters, int $perPage = 15, ?User $viewer = null): LengthAwarePaginator
     {
-        return $this->orders->paginateWithFilters($filters, $perPage);
+        return $this->orders->paginateWithFilters($filters, $perPage, $viewer);
     }
 
     /**
      * @param  array{search?: string, user_id?: string, dealer_id?: string, territory_id?: string, product_id?: string, status?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
      */
-    public function total(array $filters): float
+    public function total(array $filters, ?User $viewer = null): float
     {
-        return $this->orders->sumWithFilters($filters);
+        return $this->orders->sumWithFilters($filters, $viewer);
     }
 
     /**

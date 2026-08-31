@@ -8,6 +8,7 @@ use App\Models\CollectionEntry;
 use App\Models\CollectionOtp;
 use App\Models\Dealer;
 use App\Models\Order;
+use App\Models\Territory;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -145,6 +146,47 @@ class CollectionEntryTest extends TestCase
             ])
             ->assertStatus(422)
             ->assertJsonPath('success', false);
+    }
+
+    public function test_sending_an_otp_for_a_dealer_outside_the_executives_territory_is_rejected(): void
+    {
+        $territoryA = Territory::factory()->create();
+        $territoryB = Territory::factory()->create();
+        $executive = User::factory()->inTerritory($territoryA)->create();
+        $executive->assignRole('Sales Executive');
+        $dealer = Dealer::factory()->create(['territory_id' => $territoryB->id]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries/send-otp', [
+                'dealer_id' => $dealer->id,
+                'amount' => 600,
+                'payment_method' => 'cash',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('dealer_id');
+    }
+
+    public function test_recording_a_collection_for_a_dealer_outside_the_executives_territory_is_rejected(): void
+    {
+        $territoryA = Territory::factory()->create();
+        $territoryB = Territory::factory()->create();
+        $executive = User::factory()->inTerritory($territoryA)->create();
+        $executive->assignRole('Sales Executive');
+        $dealer = Dealer::factory()->create(['territory_id' => $territoryB->id]);
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/collection-entries', [
+                'dealer_id' => $dealer->id,
+                'amount' => 600,
+                'payment_method' => 'cash',
+                'otp_id' => 1,
+                'otp_code' => '123456',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('dealer_id');
+
+        $this->assertDatabaseCount('collection_entries', 0);
     }
 
     public function test_index_only_returns_the_authenticated_users_own_collections(): void

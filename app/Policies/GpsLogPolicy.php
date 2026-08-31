@@ -16,17 +16,17 @@ class GpsLogPolicy
 
     public function view(User $user, GpsLog $gpsLog): bool
     {
-        return $user->can('gps-logs.view');
+        return $user->can('gps-logs.view') && $this->isVisible($user, $gpsLog);
     }
 
     public function delete(User $user, GpsLog $gpsLog): bool
     {
-        return $user->can('gps-logs.delete');
+        return $user->can('gps-logs.delete') && $this->isVisible($user, $gpsLog);
     }
 
     public function restore(User $user, GpsLog $gpsLog): bool
     {
-        return $user->can('gps-logs.restore');
+        return $user->can('gps-logs.restore') && $this->isVisible($user, $gpsLog);
     }
 
     public function forceDelete(User $user, GpsLog $gpsLog): bool
@@ -42,5 +42,14 @@ class GpsLogPolicy
     public function print(User $user): bool
     {
         return $user->can('gps-logs.print');
+    }
+
+    /**
+     * withTrashed() so restore/forceDelete (checked against an already
+     * soft-deleted record) don't always fail.
+     */
+    private function isVisible(User $user, GpsLog $gpsLog): bool
+    {
+        return GpsLog::withTrashed()->visibleTo($user)->whereKey($gpsLog->id)->exists();
     }
 }

@@ -21,6 +21,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Facades\Excel;
 
 class OrderController extends Controller
@@ -34,10 +35,10 @@ class OrderController extends Controller
         $filters = $request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'product_id', 'status', 'date_from', 'date_to', 'trashed']);
 
         return view('orders.index', [
-            'orders' => $this->orders->paginate($filters, 15),
-            'total' => $this->orders->total($filters),
-            'executives' => User::role('Sales Executive')->orderBy('name')->get(),
-            'territories' => Territory::where('status', true)->orderBy('name')->get(),
+            'orders' => $this->orders->paginate($filters, 15, $request->user()),
+            'total' => $this->orders->total($filters, $request->user()),
+            'executives' => $this->scopedExecutives($request->user()),
+            'territories' => Territory::query()->visibleTo($request->user())->where('status', true)->orderBy('name')->get(),
             'filters' => $filters,
         ]);
     }
@@ -47,8 +48,8 @@ class OrderController extends Controller
         $this->authorize('create', Order::class);
 
         return view('orders.create', [
-            'executives' => User::role('Sales Executive')->orderBy('name')->get(),
-            'dealers' => Dealer::orderBy('name')->get(),
+            'executives' => $this->scopedExecutives($request->user()),
+            'dealers' => Dealer::query()->visibleTo($request->user())->orderBy('name')->get(),
             'retailers' => Retailer::where('status', true)->orderBy('name')->get(),
             'products' => Product::where('status', true)->visibleTo($request->user())->orderBy('name')->get(),
         ]);
@@ -88,8 +89,13 @@ class OrderController extends Controller
 
         return view('orders.edit', [
             'order' => $order,
-            'executives' => User::role('Sales Executive')->orderBy('name')->get(),
-            'dealers' => Dealer::orderBy('name')->get(),
+            'executives' => $this->scopedExecutives($request->user()),
+            // Territory-scoped like the create form, but also keeps this
+            // order's own dealer even if it's since fallen outside the
+            // viewer's territories — same reasoning as the products fix
+            // below, so re-editing an old order never silently drops its
+            // dealer selection.
+            'dealers' => Dealer::query()->visibleTo($request->user())->orWhere('id', $order->dealer_id)->orderBy('name')->get(),
             // Active retailers, plus this order's own retailer if it was
             // since deactivated — mirrors the products fix below so editing
             // an old order never silently drops its retailer selection.
@@ -187,7 +193,7 @@ class OrderController extends Controller
     {
         $this->authorize('export', Order::class);
 
-        $orders = $this->orders->paginate($request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'product_id', 'status', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
+        $orders = $this->orders->paginate($request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'product_id', 'status', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX, $request->user())->getCollection();
 
         return Excel::download(new OrdersExport($orders), 'orders-'.now()->format('Y-m-d-His').'.xlsx');
     }
@@ -207,9 +213,25 @@ class OrderController extends Controller
     {
         $this->authorize('print', Order::class);
 
-        $orders = $this->orders->paginate($request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'product_id', 'status', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX)->getCollection();
+        $orders = $this->orders->paginate($request->only(['search', 'user_id', 'dealer_id', 'territory_id', 'product_id', 'status', 'date_from', 'date_to', 'trashed']), PHP_INT_MAX, $request->user())->getCollection();
 
         return Pdf::loadView('orders.print', ['orders' => $orders])
             ->stream('orders-'.now()->format('Y-m-d-His').'.pdf');
+    }
+
+    /**
+     * Sales Executives selectable in the filter dropdown — restricted to the
+     * viewer's own territories when they have any assigned, or to themself
+     * alone when Sales Executive is their sole role.
+     */
+    private function scopedExecutives(User $viewer): Collection
+    {
+        $territoryIds = $viewer->territories->pluck('id')->all();
+
+        return User::role('Sales Executive')
+            ->when($territoryIds !== [], fn ($q) => $q->whereHas('territories', fn ($t) => $t->whereIn('territories.id', $territoryIds)))
+            ->when($viewer->isSalesExecutiveOnly(), fn ($q) => $q->where('id', $viewer->id))
+            ->orderBy('name')
+            ->get();
     }
 }

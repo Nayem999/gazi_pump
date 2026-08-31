@@ -30,17 +30,17 @@ class CollectionEntryService extends BaseCrudService
     /**
      * @param  array{search?: string, user_id?: string, dealer_id?: string, territory_id?: string, payment_method?: string, status?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
      */
-    public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
+    public function paginate(array $filters, int $perPage = 15, ?User $viewer = null): LengthAwarePaginator
     {
-        return $this->collectionEntries->paginateWithFilters($filters, $perPage);
+        return $this->collectionEntries->paginateWithFilters($filters, $perPage, $viewer);
     }
 
     /**
      * @param  array{search?: string, user_id?: string, dealer_id?: string, territory_id?: string, payment_method?: string, status?: string, date_from?: string, date_to?: string, trashed?: string}  $filters
      */
-    public function total(array $filters): float
+    public function total(array $filters, ?User $viewer = null): float
     {
-        return $this->collectionEntries->sumWithFilters($filters);
+        return $this->collectionEntries->sumWithFilters($filters, $viewer);
     }
 
     /**

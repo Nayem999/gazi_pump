@@ -71,6 +71,25 @@ class DealerTest extends TestCase
             ->assertJsonCount(2, 'data');
     }
 
+    public function test_an_explicit_territory_id_cannot_widen_access_beyond_the_users_own_territory(): void
+    {
+        $territoryA = Territory::factory()->create();
+        $territoryB = Territory::factory()->create();
+        Dealer::factory()->count(2)->create(['territory_id' => $territoryA->id]);
+        Dealer::factory()->create(['territory_id' => $territoryB->id]);
+
+        $executive = User::factory()->inTerritory($territoryA)->create();
+        $executive->assignRole('Sales Executive');
+
+        // Requesting another territory's id no longer leaks its dealers —
+        // the viewer's own territory is enforced unconditionally, so this
+        // request just intersects with what's already visible (nothing).
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->getJson("/api/v1/dealers?territory_id={$territoryB->id}")
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
     public function test_sales_executive_can_register_a_new_dealer(): void
     {
         $executive = User::factory()->create();
@@ -111,5 +130,48 @@ class DealerTest extends TestCase
         $dealer = Dealer::factory()->create();
 
         $this->getJson("/api/v1/dealers/{$dealer->id}/outstanding-balance")->assertStatus(401);
+    }
+
+    public function test_sales_executive_can_fetch_a_dealers_ledger(): void
+    {
+        $executive = User::factory()->create();
+        $executive->assignRole('Sales Executive');
+        $dealer = Dealer::factory()->create();
+
+        Order::factory()->create(['dealer_id' => $dealer->id, 'order_date' => now()->subDays(5)->toDateString(), 'total_amount' => 1000]);
+        CollectionEntry::factory()->create(['dealer_id' => $dealer->id, 'collection_date' => now()->subDays(2)->toDateString(), 'amount' => 400]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->getJson("/api/v1/dealers/{$dealer->id}/ledger");
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.dealer_id', $dealer->id)
+            ->assertJsonPath('data.balance', 600)
+            ->assertJsonCount(2, 'data.transactions')
+            ->assertJsonPath('data.transactions.0.debit', 1000)
+            ->assertJsonPath('data.transactions.0.balance', 1000)
+            ->assertJsonPath('data.transactions.1.credit', 400)
+            ->assertJsonPath('data.transactions.1.balance', 600);
+    }
+
+    public function test_ledger_endpoint_requires_authentication(): void
+    {
+        $dealer = Dealer::factory()->create();
+
+        $this->getJson("/api/v1/dealers/{$dealer->id}/ledger")->assertStatus(401);
+    }
+
+    public function test_a_territory_scoped_viewer_cannot_fetch_a_dealers_ledger_outside_their_territory(): void
+    {
+        $territoryA = Territory::factory()->create();
+        $territoryB = Territory::factory()->create();
+        $executive = User::factory()->inTerritory($territoryA)->create();
+        $executive->assignRole('Sales Executive');
+        $dealer = Dealer::factory()->create(['territory_id' => $territoryB->id]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->getJson("/api/v1/dealers/{$dealer->id}/ledger")
+            ->assertForbidden();
     }
 }

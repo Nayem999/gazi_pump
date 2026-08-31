@@ -65,4 +65,29 @@ class TerritoryMapManagementTest extends TestCase
 
         $this->actingAs($this->territoryManager())->get(route('territory-map.index'))->assertOk();
     }
+
+    public function test_a_territory_manager_only_sees_their_own_territory_on_the_map(): void
+    {
+        $territoryA = Territory::factory()->create(['name' => 'Own Territory']);
+        $territoryB = Territory::factory()->create(['name' => 'Other Territory']);
+
+        $manager = $this->territoryManager();
+        $manager->territories()->attach($territoryA);
+
+        $response = $this->actingAs($manager)->get(route('territory-map.index'));
+
+        $response->assertOk()->assertSee('Own Territory')->assertDontSee('Other Territory');
+    }
+
+    public function test_a_territory_manager_cannot_drill_into_a_territory_outside_their_own(): void
+    {
+        $territoryA = Territory::factory()->create();
+        $territoryB = Territory::factory()->create();
+
+        $manager = $this->territoryManager();
+        $manager->territories()->attach($territoryA);
+
+        $this->actingAs($manager)->getJson(route('territory-map.show', $territoryB))->assertForbidden();
+        $this->actingAs($manager)->getJson(route('territory-map.show', $territoryA))->assertOk();
+    }
 }

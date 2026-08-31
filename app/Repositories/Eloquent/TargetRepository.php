@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories\Eloquent;
 
 use App\Models\Target;
+use App\Models\User;
 use App\Repositories\Contracts\TargetRepositoryInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -15,10 +16,11 @@ class TargetRepository extends BaseRepository implements TargetRepositoryInterfa
         parent::__construct($model);
     }
 
-    public function paginateWithFilters(array $filters, int $perPage = 15): LengthAwarePaginator
+    public function paginateWithFilters(array $filters, int $perPage = 15, ?User $viewer = null): LengthAwarePaginator
     {
         return $this->query()
             ->with(['user', 'achievement', 'items'])
+            ->when($viewer, fn ($query, $viewer) => $query->visibleTo($viewer))
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->whereHas('user', function ($inner) use ($search) {
                     $inner->where('name', 'like', "%{$search}%")->orWhere('employee_id', 'like', "%{$search}%");

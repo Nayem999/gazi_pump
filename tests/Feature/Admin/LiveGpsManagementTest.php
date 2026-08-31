@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Admin;
 
 use App\Models\GpsLog;
+use App\Models\Territory;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -69,5 +70,27 @@ class LiveGpsManagementTest extends TestCase
         $response->assertOk()->assertJsonCount(1, 'data');
         $this->assertSame($executive->id, $response->json('data.0.userId'));
         $this->assertFalse($response->json('data.0.isStale'));
+    }
+
+    public function test_a_territory_manager_only_sees_positions_for_their_own_territorys_executives(): void
+    {
+        $territoryA = Territory::factory()->create();
+        $territoryB = Territory::factory()->create();
+        $inTerritory = User::factory()->inTerritory($territoryA)->create();
+        $inTerritory->assignRole('Sales Executive');
+        $outsideTerritory = User::factory()->inTerritory($territoryB)->create();
+        $outsideTerritory->assignRole('Sales Executive');
+
+        GpsLog::factory()->create(['user_id' => $inTerritory->id, 'recorded_at' => Carbon::now()]);
+        GpsLog::factory()->create(['user_id' => $outsideTerritory->id, 'recorded_at' => Carbon::now()]);
+
+        $manager = User::factory()->create();
+        $manager->assignRole('Territory Manager');
+        $manager->territories()->attach($territoryA);
+
+        $response = $this->actingAs($manager)->getJson(route('live-gps.positions'));
+
+        $response->assertOk()->assertJsonCount(1, 'data');
+        $this->assertSame($inTerritory->id, $response->json('data.0.userId'));
     }
 }

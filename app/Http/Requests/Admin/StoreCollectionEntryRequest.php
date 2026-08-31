@@ -6,15 +6,31 @@ namespace App\Http\Requests\Admin;
 
 use App\Enums\PaymentMethod;
 use App\Models\CollectionEntry;
+use App\Models\Dealer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
+use Illuminate\Validation\Validator;
 
 class StoreCollectionEntryRequest extends FormRequest
 {
     public function authorize(): bool
     {
         return $this->user()?->can('create', CollectionEntry::class) ?? false;
+    }
+
+    /**
+     * A plain Sales Executive can only ever record a collection for
+     * themself — the Executive field is disabled client-side (see
+     * collection-entries/_form), but that alone doesn't stop a tampered
+     * request, so it's overridden here unconditionally before validation
+     * runs too.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->user()?->isSalesExecutiveOnly()) {
+            $this->merge(['user_id' => $this->user()->id]);
+        }
     }
 
     /**
@@ -70,5 +86,16 @@ class StoreCollectionEntryRequest extends FormRequest
             'otp_id.required' => 'Send an OTP to the dealer before recording this collection.',
             'otp_code.required' => 'Enter the OTP the dealer read back to you.',
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $dealerId = $this->input('dealer_id');
+
+            if ($dealerId && ! Dealer::query()->visibleTo($this->user())->whereKey($dealerId)->exists()) {
+                $validator->errors()->add('dealer_id', 'This dealer is outside your assigned territories.');
+            }
+        });
     }
 }

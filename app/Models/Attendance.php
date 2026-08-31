@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\AttendanceStatus;
+use App\Models\Concerns\HasVisibilityScope;
 use Database\Factories\AttendanceFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +14,8 @@ class Attendance extends BaseModel
 {
     /** @use HasFactory<AttendanceFactory> */
     use HasFactory;
+
+    use HasVisibilityScope;
 
     protected $fillable = [
         'user_id',

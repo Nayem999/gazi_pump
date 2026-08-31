@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Models\Dealer;
+use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Self-service field order entry: a Sales Executive records what they sold,
@@ -37,5 +40,28 @@ class StoreOrderRequest extends FormRequest
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
         ];
+    }
+
+    /**
+     * The mobile app is expected to only ever offer dealers/products from
+     * GET /dealers and /products, which are already scoped to the
+     * executive's own territory/sales team — this is the server-side
+     * backstop in case a tampered request skips that.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $dealerId = $this->input('dealer_id');
+            if ($dealerId && ! Dealer::query()->visibleTo($this->user())->whereKey($dealerId)->exists()) {
+                $validator->errors()->add('dealer_id', 'This dealer is outside your assigned territories.');
+            }
+
+            foreach ((array) $this->input('items', []) as $index => $item) {
+                $productId = $item['product_id'] ?? null;
+                if ($productId && ! Product::query()->visibleTo($this->user())->whereKey($productId)->exists()) {
+                    $validator->errors()->add("items.{$index}.product_id", 'This product is outside your sales team.');
+                }
+            }
+        });
     }
 }

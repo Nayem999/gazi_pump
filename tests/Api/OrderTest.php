@@ -8,6 +8,8 @@ use App\Models\Dealer;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Retailer;
+use App\Models\SalesTeam;
+use App\Models\Territory;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -162,6 +164,46 @@ class OrderTest extends TestCase
 
         $response->assertStatus(201);
         $this->assertDatabaseHas('orders', ['dealer_id' => $dealer->id, 'retailer_id' => $retailer->id]);
+    }
+
+    public function test_recording_an_order_for_a_dealer_outside_the_executives_territory_is_rejected(): void
+    {
+        $territoryA = Territory::factory()->create();
+        $territoryB = Territory::factory()->create();
+        $executive = User::factory()->inTerritory($territoryA)->create();
+        $executive->assignRole('Sales Executive');
+        $dealer = Dealer::factory()->create(['territory_id' => $territoryB->id]);
+        $product = Product::factory()->create(['price' => 100]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/orders', [
+                'dealer_id' => $dealer->id,
+                'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('dealer_id');
+
+        $this->assertDatabaseCount('orders', 0);
+    }
+
+    public function test_recording_an_order_with_a_product_outside_the_executives_sales_team_is_rejected(): void
+    {
+        $teamA = SalesTeam::factory()->create();
+        $teamB = SalesTeam::factory()->create();
+        $executive = User::factory()->create(['sales_team_id' => $teamA->id]);
+        $executive->assignRole('Sales Executive');
+        $dealer = Dealer::factory()->create();
+        $otherTeamProduct = Product::factory()->create(['sales_team_id' => $teamB->id, 'price' => 100]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/orders', [
+                'dealer_id' => $dealer->id,
+                'items' => [['product_id' => $otherTeamProduct->id, 'quantity' => 1]],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('items.0.product_id');
+
+        $this->assertDatabaseCount('orders', 0);
     }
 
     public function test_index_can_be_filtered_by_approval_status(): void

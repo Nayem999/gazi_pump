@@ -122,6 +122,68 @@ function renderOrderVsCollectionChart() {
 }
 
 /**
+ * Admin dashboard: today's approved collections broken down by payment
+ * mode (Cash/Bank Transfer/Cheque/MFS) as a donut chart with the total
+ * shown in its center — the per-mode amounts/percentages themselves are
+ * server-rendered in the table beside it, so this only needs to draw the
+ * rings. Same ApexCharts + theme-listener pattern as renderAttendanceChart()
+ * above.
+ */
+function renderPaymentModeChart() {
+    const el = document.getElementById('paymentModeChart');
+    if (!el || !window.ApexCharts) {
+        return;
+    }
+
+    const labels = JSON.parse(el.dataset.labels || '[]');
+    const series = JSON.parse(el.dataset.series || '[]');
+    const colors = JSON.parse(el.dataset.colors || '[]');
+    const totalLabel = el.dataset.totalLabel || '';
+    const isDark = () => document.documentElement.getAttribute('data-bs-theme') === 'dark';
+
+    const buildOptions = () => ({
+        chart: {
+            type: 'donut',
+            height: 220,
+            animations: { enabled: true, easing: 'easeinout', speed: 500 },
+            fontFamily: 'inherit',
+        },
+        theme: { mode: isDark() ? 'dark' : 'light' },
+        series,
+        labels,
+        colors,
+        legend: { show: false },
+        dataLabels: { enabled: false },
+        stroke: { width: 2 },
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '72%',
+                    labels: {
+                        show: true,
+                        total: {
+                            show: true,
+                            label: 'Total Collected',
+                            formatter: () => totalLabel,
+                        },
+                    },
+                },
+            },
+        },
+        tooltip: { y: { formatter: (value) => value.toLocaleString() } },
+    });
+
+    let chart = new window.ApexCharts(el, buildOptions());
+    chart.render();
+
+    document.addEventListener('theme:changed', () => {
+        chart.destroy();
+        chart = new window.ApexCharts(el, buildOptions());
+        chart.render();
+    });
+}
+
+/**
  * Customer portal dashboard: last-6-months purchases vs payments (grouped
  * bar) and purchases-by-product breakdown (horizontal bar) — same
  * ApexCharts + theme-listener pattern as renderAttendanceChart() above.
@@ -256,6 +318,7 @@ function initCountUp() {
 document.addEventListener('DOMContentLoaded', () => {
     renderAttendanceChart();
     renderOrderVsCollectionChart();
+    renderPaymentModeChart();
     renderCustomerPurchaseVsPaymentChart();
     renderCustomerProductBreakdownChart();
     initCountUp();
