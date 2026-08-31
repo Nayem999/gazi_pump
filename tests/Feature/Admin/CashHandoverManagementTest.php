@@ -13,6 +13,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
+/**
+ * Cash Handover is retired (see the "version 1" Achievement pivot) — no
+ * role except Super Admin holds its permissions any more, so General
+ * Manager/Sales Manager now get 403 everywhere they used to have access.
+ * The underlying business logic (cash-in-hand math, forward-only confirm/
+ * reject) is still real code, still worth covering — those cases now run
+ * as Super Admin, the only role left with access, rather than being deleted.
+ */
 class CashHandoverManagementTest extends TestCase
 {
     use RefreshDatabase;
@@ -22,6 +30,14 @@ class CashHandoverManagementTest extends TestCase
         parent::setUp();
 
         $this->seed(RolePermissionSeeder::class);
+    }
+
+    private function superAdmin(): User
+    {
+        $user = User::factory()->create();
+        $user->assignRole('Super Admin');
+
+        return $user;
     }
 
     private function generalManager(): User
@@ -62,12 +78,27 @@ class CashHandoverManagementTest extends TestCase
         $this->actingAs($executive)->get(route('cash-handovers.index'))->assertForbidden();
     }
 
-    public function test_general_manager_can_record_a_handover_within_cash_in_hand(): void
+    public function test_general_manager_no_longer_has_web_access(): void
     {
         $manager = $this->generalManager();
+
+        $this->actingAs($manager)->get(route('cash-handovers.index'))->assertForbidden();
+        $this->actingAs($manager)->post(route('cash-handovers.store'), ['user_id' => 1, 'amount' => 100])->assertForbidden();
+    }
+
+    public function test_sales_manager_no_longer_has_web_access(): void
+    {
+        $manager = $this->salesManager();
+
+        $this->actingAs($manager)->get(route('cash-handovers.index'))->assertForbidden();
+    }
+
+    public function test_super_admin_can_record_a_handover_within_cash_in_hand(): void
+    {
+        $admin = $this->superAdmin();
         $executive = $this->executiveWithCash(5000);
 
-        $response = $this->actingAs($manager)->post(route('cash-handovers.store'), [
+        $response = $this->actingAs($admin)->post(route('cash-handovers.store'), [
             'user_id' => $executive->id,
             'amount' => 2000,
             'handover_date' => Carbon::today()->toDateString(),
@@ -79,10 +110,10 @@ class CashHandoverManagementTest extends TestCase
 
     public function test_a_handover_beyond_cash_in_hand_is_rejected(): void
     {
-        $manager = $this->generalManager();
+        $admin = $this->superAdmin();
         $executive = $this->executiveWithCash(1000);
 
-        $this->actingAs($manager)->post(route('cash-handovers.store'), [
+        $this->actingAs($admin)->post(route('cash-handovers.store'), [
             'user_id' => $executive->id,
             'amount' => 5000,
         ])->assertSessionHasErrors('amount');
@@ -92,18 +123,18 @@ class CashHandoverManagementTest extends TestCase
 
     public function test_confirming_a_handover_reduces_cash_in_hand(): void
     {
-        $manager = $this->generalManager();
+        $admin = $this->superAdmin();
         $executive = $this->executiveWithCash(5000);
         $handover = CashHandover::factory()->create(['user_id' => $executive->id, 'amount' => 2000, 'status' => 'pending']);
 
-        $this->actingAs($manager)->patch(route('cash-handovers.confirm', $handover))->assertRedirect();
+        $this->actingAs($admin)->patch(route('cash-handovers.confirm', $handover))->assertRedirect();
 
-        $this->assertDatabaseHas('cash_handovers', ['id' => $handover->id, 'status' => 'confirmed', 'confirmed_by' => $manager->id]);
+        $this->assertDatabaseHas('cash_handovers', ['id' => $handover->id, 'status' => 'confirmed', 'confirmed_by' => $admin->id]);
 
         // A further handover for exactly the remaining 3000 should now
         // succeed, but the original 2000 (already confirmed) should not be
         // available again.
-        $this->actingAs($manager)->post(route('cash-handovers.store'), [
+        $this->actingAs($admin)->post(route('cash-handovers.store'), [
             'user_id' => $executive->id,
             'amount' => 3000,
         ])->assertRedirect(route('cash-handovers.index'));
@@ -111,7 +142,7 @@ class CashHandoverManagementTest extends TestCase
         // 3001 exceeds it (the second handover above is only Pending, so it
         // doesn't itself reduce cash-in-hand further at create time — see
         // the confirm-time guard tested separately below).
-        $this->actingAs($manager)->post(route('cash-handovers.store'), [
+        $this->actingAs($admin)->post(route('cash-handovers.store'), [
             'user_id' => $executive->id,
             'amount' => 3001,
         ])->assertSessionHasErrors('amount');
@@ -119,7 +150,7 @@ class CashHandoverManagementTest extends TestCase
 
     public function test_confirming_a_second_overlapping_pending_handover_is_rejected(): void
     {
-        $manager = $this->generalManager();
+        $admin = $this->superAdmin();
         $executive = $this->executiveWithCash(5000);
         // Two pending handovers that each individually fit within the
         // uncommitted 5000, but together overcommit it — the create-time
@@ -127,25 +158,25 @@ class CashHandoverManagementTest extends TestCase
         $first = CashHandover::factory()->create(['user_id' => $executive->id, 'amount' => 2000, 'status' => 'pending']);
         $second = CashHandover::factory()->create(['user_id' => $executive->id, 'amount' => 4000, 'status' => 'pending']);
 
-        $this->actingAs($manager)->patch(route('cash-handovers.confirm', $first))->assertRedirect();
+        $this->actingAs($admin)->patch(route('cash-handovers.confirm', $first))->assertRedirect();
         $this->assertDatabaseHas('cash_handovers', ['id' => $first->id, 'status' => 'confirmed']);
 
         // Only 3000 remains — confirming the second (4000) must now fail.
-        $this->actingAs($manager)->patch(route('cash-handovers.confirm', $second))->assertSessionHasErrors('amount');
+        $this->actingAs($admin)->patch(route('cash-handovers.confirm', $second))->assertSessionHasErrors('amount');
         $this->assertDatabaseHas('cash_handovers', ['id' => $second->id, 'status' => 'pending']);
     }
 
     public function test_rejecting_a_handover_does_not_reduce_cash_in_hand(): void
     {
-        $manager = $this->generalManager();
+        $admin = $this->superAdmin();
         $executive = $this->executiveWithCash(5000);
         $handover = CashHandover::factory()->create(['user_id' => $executive->id, 'amount' => 2000, 'status' => 'pending']);
 
-        $this->actingAs($manager)->patch(route('cash-handovers.reject', $handover))->assertRedirect();
+        $this->actingAs($admin)->patch(route('cash-handovers.reject', $handover))->assertRedirect();
         $this->assertDatabaseHas('cash_handovers', ['id' => $handover->id, 'status' => 'rejected']);
 
         // Full 5000 is still available since the rejected handover never counted.
-        $this->actingAs($manager)->post(route('cash-handovers.store'), [
+        $this->actingAs($admin)->post(route('cash-handovers.store'), [
             'user_id' => $executive->id,
             'amount' => 5000,
         ])->assertRedirect(route('cash-handovers.index'));
@@ -153,34 +184,19 @@ class CashHandoverManagementTest extends TestCase
 
     public function test_a_confirmed_handover_cannot_be_confirmed_again(): void
     {
-        $manager = $this->generalManager();
-        $handover = CashHandover::factory()->create(['status' => 'confirmed', 'confirmed_by' => $manager->id, 'confirmed_at' => now()]);
+        $admin = $this->superAdmin();
+        $handover = CashHandover::factory()->create(['status' => 'confirmed', 'confirmed_by' => $admin->id, 'confirmed_at' => now()]);
 
-        $this->actingAs($manager)->patch(route('cash-handovers.confirm', $handover))->assertSessionHasErrors('status');
-    }
-
-    public function test_a_sales_manager_can_record_but_not_confirm_a_handover(): void
-    {
-        $salesManager = $this->salesManager();
-        $executive = $this->executiveWithCash(5000);
-
-        $this->actingAs($salesManager)->post(route('cash-handovers.store'), [
-            'user_id' => $executive->id,
-            'amount' => 1000,
-        ])->assertRedirect(route('cash-handovers.index'));
-
-        $handover = CashHandover::where('user_id', $executive->id)->firstOrFail();
-
-        $this->actingAs($salesManager)->patch(route('cash-handovers.confirm', $handover))->assertForbidden();
+        $this->actingAs($admin)->patch(route('cash-handovers.confirm', $handover))->assertSessionHasErrors('status');
     }
 
     public function test_index_shows_a_daily_limit_warning_when_configured(): void
     {
         Setting::current()->update(['cash_daily_limit_amount' => 1000]);
-        $manager = $this->generalManager();
+        $admin = $this->superAdmin();
         $executive = $this->executiveWithCash(5000);
 
-        $this->actingAs($manager)
+        $this->actingAs($admin)
             ->get(route('cash-handovers.index', ['user_id' => $executive->id]))
             ->assertOk()
             ->assertSee('5,000.00');

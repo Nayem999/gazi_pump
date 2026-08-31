@@ -8,6 +8,10 @@
     <i class="ti ti-gauge icon-blue"></i> Dashboard
 </a>
 
+{{-- Orders, Collection Entry, and Cash Handover are retired (see the
+     "version 1" Achievement pivot) — no role holds their menu permission
+     any more except Super Admin (via Permission::all()), so these links
+     naturally disappear for everyone else without deleting them here. --}}
 @canany(['menu.orders', 'menu.collection-entries', 'menu.cash-handovers'])
     <div class="nav-section-title">Order Operations</div>
 @endcanany
@@ -30,13 +34,19 @@
     </a>
 @endcan
 
-@canany(['menu.targets'])
+@canany(['menu.targets', 'menu.achievements'])
     <div class="nav-section-title">Performance</div>
 @endcanany
 
 @can('menu.targets')
     <a href="{{ route('targets.index') }}" class="nav-link {{ request()->routeIs('targets.*') ? 'active' : '' }}">
         <i class="ti ti-target-arrow icon-orange"></i> Targets
+    </a>
+@endcan
+
+@can('menu.achievements')
+    <a href="{{ route('achievements.index') }}" class="nav-link {{ request()->routeIs('achievements.*') ? 'active' : '' }}">
+        <i class="ti ti-trophy icon-green"></i> Achievement
     </a>
 @endcan
 
@@ -84,7 +94,7 @@
     </a>
 @endcan
 
-@canany(['report.attendance', 'report.visits', 'report.order-performance', 'report.collections', 'report.territories', 'report.dealer-ledger'])
+@canany(['report.attendance', 'report.visits', 'report.achievement-summary', 'report.territories', 'report.target-achievement'])
     <div class="nav-section-title">Reports</div>
 
     <a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">

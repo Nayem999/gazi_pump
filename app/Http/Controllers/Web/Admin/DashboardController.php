@@ -6,12 +6,10 @@ namespace App\Http\Controllers\Web\Admin;
 
 use App\Enums\ApprovalStatus;
 use App\Enums\AttendanceStatus;
-use App\Enums\PaymentMethod;
 use App\Http\Controllers\Controller;
+use App\Models\AchievementEntry;
 use App\Models\Attendance;
-use App\Models\CollectionEntry;
 use App\Models\Dealer;
-use App\Models\Order;
 use App\Models\Product;
 use App\Models\Territory;
 use App\Models\User;
@@ -26,7 +24,6 @@ class DashboardController extends Controller
     public function index(Request $request): View
     {
         $viewer = $request->user();
-        $paymentModeSummary = $this->paymentModeSummary($viewer);
 
         return view('dashboard.index', [
             'activeUserCount' => $this->scopedUsers($viewer)->where('status', true)->count(),
@@ -35,11 +32,10 @@ class DashboardController extends Controller
             'dealerCount' => Dealer::query()->visibleTo($viewer)->where('status', true)->count(),
             'productCount' => Product::query()->visibleTo($viewer)->where('status', true)->count(),
             'presentTodayCount' => Attendance::query()->visibleTo($viewer)->whereDate('date', Carbon::today())->whereNotNull('check_in_at')->count(),
-            'todaysSalesAmount' => $this->todaysSalesAmount($viewer),
-            'todaysCollectionAmount' => $paymentModeSummary['total'],
-            'paymentModeSummary' => $paymentModeSummary['breakdown'],
+            'todaysOrderAchieved' => $this->todaysOrderAchieved($viewer),
+            'todaysCollectionAchieved' => $this->todaysCollectionAchieved($viewer),
             'attendanceTrend' => $this->attendanceTrend($viewer),
-            'orderVsCollectionTrend' => $this->orderVsCollectionTrend($viewer),
+            'achievementTrend' => $this->achievementTrend($viewer),
             'scopedToOwnTerritories' => $viewer->territories->isNotEmpty(),
             'recentActivity' => Activity::with('causer')
                 ->whereIn('causer_id', $this->scopedUsers($viewer)->pluck('id'))
@@ -73,61 +69,28 @@ class DashboardController extends Controller
     }
 
     /**
-     * Today's approved order value, scoped to what the viewer is allowed
-     * to see (see Order::scopeVisibleTo()).
+     * Today's approved order-value achieved, scoped to what the viewer is
+     * allowed to see (see AchievementEntry::scopeVisibleTo()).
      */
-    private function todaysSalesAmount(User $viewer): float
+    private function todaysOrderAchieved(User $viewer): float
     {
-        return (float) Order::query()
+        return (float) AchievementEntry::query()
             ->visibleTo($viewer)
-            ->whereDate('order_date', Carbon::today())
+            ->whereDate('entry_date', Carbon::today())
             ->where('status', ApprovalStatus::Approved)
-            ->sum('total_amount');
+            ->sum('order_value_achieved');
     }
 
     /**
-     * Today's approved collections broken down by payment mode (Cash, Bank
-     * Transfer, Cheque, MFS) for the dashboard's donut chart, scoped to what
-     * the viewer is allowed to see (see CollectionEntry::scopeVisibleTo()).
-     * The total is derived from this same breakdown (rather than a separate
-     * sum query) so the "Today's Collection" stat card can never drift out
-     * of sync with the chart.
-     *
-     * @return array{total: float, breakdown: list<array{label: string, color: string, amount: float, percentage: float}>}
+     * Today's approved collection achieved, scoped the same way.
      */
-    private function paymentModeSummary(User $viewer): array
+    private function todaysCollectionAchieved(User $viewer): float
     {
-        $amountsByMethod = CollectionEntry::query()
+        return (float) AchievementEntry::query()
             ->visibleTo($viewer)
-            ->whereDate('collection_date', Carbon::today())
+            ->whereDate('entry_date', Carbon::today())
             ->where('status', ApprovalStatus::Approved)
-            ->selectRaw('payment_method, SUM(amount) as total')
-            ->groupBy('payment_method')
-            ->pluck('total', 'payment_method');
-
-        $total = (float) $amountsByMethod->sum();
-
-        // Same badge-color convention as the rest of the app (green/amber
-        // etc. for status), just applied to payment modes here instead.
-        $colors = [
-            PaymentMethod::Cash->value => '#16a34a',
-            PaymentMethod::BankTransfer->value => '#2563eb',
-            PaymentMethod::Cheque->value => '#f59e0b',
-            PaymentMethod::MobileBanking->value => '#7c3aed',
-        ];
-
-        $breakdown = collect(PaymentMethod::cases())->map(function (PaymentMethod $method) use ($amountsByMethod, $total, $colors) {
-            $amount = (float) ($amountsByMethod->get($method->value) ?? 0);
-
-            return [
-                'label' => $method === PaymentMethod::MobileBanking ? 'MFS (bKash/Nagad)' : $method->label(),
-                'color' => $colors[$method->value],
-                'amount' => $amount,
-                'percentage' => $total > 0 ? round($amount / $total * 100, 2) : 0.0,
-            ];
-        })->all();
-
-        return ['total' => $total, 'breakdown' => $breakdown];
+            ->sum('collection_achieved');
     }
 
     /**
@@ -162,48 +125,41 @@ class DashboardController extends Controller
     }
 
     /**
-     * Order value vs collection amount for each of the last 6 months
-     * (oldest first), each split into its Pending/Approved/Rejected slice
-     * so the chart can render two stacked-and-grouped bars per month (one
-     * for Orders, one for Collections) — scoped to what the viewer is
-     * allowed to see (see Order/CollectionEntry::scopeVisibleTo()). Same
-     * shape as the customer portal's Purchases vs Payments chart it's
-     * modeled on, just with each bar broken down by approval status instead
-     * of a single total. Grouped in PHP rather than a DB date-format
-     * function so it behaves the same on MySQL (prod) and SQLite (tests).
+     * Order value vs collection amount achieved for each of the last 6
+     * months (oldest first), each split into its Pending/Approved/Rejected
+     * slice so the chart can render two stacked-and-grouped bars per month
+     * (one for order value, one for collection) — scoped to what the viewer
+     * is allowed to see (see AchievementEntry::scopeVisibleTo()). Both
+     * figures now live on the same AchievementEntry row (unlike the old
+     * Order/CollectionEntry split), so this only needs one query. Grouped
+     * in PHP rather than a DB date-format function so it behaves the same
+     * on MySQL (prod) and SQLite (tests).
      *
      * @return list<array{label: string, order_pending: float, order_approved: float, order_rejected: float, collection_pending: float, collection_approved: float, collection_rejected: float}>
      */
-    private function orderVsCollectionTrend(User $viewer): array
+    private function achievementTrend(User $viewer): array
     {
         $months = collect(range(5, 0))->map(fn (int $i) => Carbon::now()->subMonths($i)->startOfMonth());
         $since = $months->first();
 
-        $ordersByMonth = Order::query()
+        $entriesByMonth = AchievementEntry::query()
             ->visibleTo($viewer)
-            ->where('order_date', '>=', $since)
-            ->get(['order_date', 'total_amount', 'status'])
-            ->groupBy(fn (Order $order) => $order->order_date->format('Y-m'));
+            ->where('entry_date', '>=', $since)
+            ->get(['entry_date', 'order_value_achieved', 'collection_achieved', 'status'])
+            ->groupBy(fn (AchievementEntry $entry) => $entry->entry_date->format('Y-m'));
 
-        $collectionsByMonth = CollectionEntry::query()
-            ->visibleTo($viewer)
-            ->where('collection_date', '>=', $since)
-            ->get(['collection_date', 'amount', 'status'])
-            ->groupBy(fn (CollectionEntry $entry) => $entry->collection_date->format('Y-m'));
-
-        return $months->map(function (Carbon $month) use ($ordersByMonth, $collectionsByMonth) {
+        return $months->map(function (Carbon $month) use ($entriesByMonth) {
             $key = $month->format('Y-m');
-            $orders = $ordersByMonth->get($key, collect());
-            $collections = $collectionsByMonth->get($key, collect());
+            $entries = $entriesByMonth->get($key, collect());
 
             return [
                 'label' => $month->format('M Y'),
-                'order_pending' => (float) $orders->where('status', ApprovalStatus::Pending)->sum('total_amount'),
-                'order_approved' => (float) $orders->where('status', ApprovalStatus::Approved)->sum('total_amount'),
-                'order_rejected' => (float) $orders->where('status', ApprovalStatus::Rejected)->sum('total_amount'),
-                'collection_pending' => (float) $collections->where('status', ApprovalStatus::Pending)->sum('amount'),
-                'collection_approved' => (float) $collections->where('status', ApprovalStatus::Approved)->sum('amount'),
-                'collection_rejected' => (float) $collections->where('status', ApprovalStatus::Rejected)->sum('amount'),
+                'order_pending' => (float) $entries->where('status', ApprovalStatus::Pending)->sum('order_value_achieved'),
+                'order_approved' => (float) $entries->where('status', ApprovalStatus::Approved)->sum('order_value_achieved'),
+                'order_rejected' => (float) $entries->where('status', ApprovalStatus::Rejected)->sum('order_value_achieved'),
+                'collection_pending' => (float) $entries->where('status', ApprovalStatus::Pending)->sum('collection_achieved'),
+                'collection_approved' => (float) $entries->where('status', ApprovalStatus::Approved)->sum('collection_achieved'),
+                'collection_rejected' => (float) $entries->where('status', ApprovalStatus::Rejected)->sum('collection_achieved'),
             ];
         })->all();
     }

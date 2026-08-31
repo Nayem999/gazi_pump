@@ -30,20 +30,32 @@ class RolePermissionSeeder extends Seeder
 
     /**
      * Read-only aggregate reports — no button/add/edit actions, just a
-     * single `report.{key}` permission gating each report page.
+     * single `report.{key}` permission gating each report page. Assigned to
+     * General Manager, Sales/Area/Territory Manager, and (a subset of)
+     * Sales Executive below.
      */
     private const REPORTS = [
         'attendance',
         'visits',
-        'order-performance',
-        'collections',
         'territories',
         'target-achievement',
+        'achievement-summary',
         'executive-performance',
         'dealer-coverage',
         'gps',
-        'dealer-ledger',
         'movement-summary',
+    ];
+
+    /**
+     * Retired reports (Order/Collection Entry/Dealer Ledger — see the
+     * "version 1" Achievement pivot): the `report.{key}` permission still
+     * exists so Super Admin keeps historical access via Permission::all(),
+     * but it's no longer assigned to any other role below.
+     */
+    private const RETIRED_REPORTS = [
+        'order-performance',
+        'collections',
+        'dealer-ledger',
     ];
 
     public function run(): void
@@ -83,8 +95,10 @@ class RolePermissionSeeder extends Seeder
         Permission::firstOrCreate(['name' => PermissionName::api('collection-entries', ButtonAction::Add), 'guard_name' => 'web']);
         $this->createModulePermissions('cash-handovers', withApi: false);
         $this->createModulePermissions('targets');
+        $this->createModulePermissions('achievements');
+        Permission::firstOrCreate(['name' => PermissionName::api('achievements', ButtonAction::Add), 'guard_name' => 'web']);
 
-        foreach (self::REPORTS as $reportKey) {
+        foreach ([...self::REPORTS, ...self::RETIRED_REPORTS] as $reportKey) {
             Permission::firstOrCreate(['name' => PermissionName::report($reportKey), 'guard_name' => 'web']);
         }
 
@@ -181,33 +195,10 @@ class RolePermissionSeeder extends Seeder
             $generalManagerPermissions[] = PermissionName::button($module, ButtonAction::Print);
         }
 
-        $generalManagerPermissions[] = PermissionName::menu('orders');
-        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::View);
-        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Add);
-        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Edit);
-        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Export);
-        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Print);
-        // Approve/reject sits with General Manager and Super Admin only —
-        // same separation-of-accountability rule as cash handovers below.
-        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Approve);
-
-        $generalManagerPermissions[] = PermissionName::menu('collection-entries');
-        $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::View);
-        $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::Add);
-        $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::Edit);
-        $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::Export);
-        $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::Print);
-        $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::Approve);
-
-        // Approve/reject sits with General Manager and Super Admin only —
-        // separation of accountability from whichever manager recorded the
-        // handover in the first place.
-        $generalManagerPermissions[] = PermissionName::menu('cash-handovers');
-        $generalManagerPermissions[] = PermissionName::button('cash-handovers', ButtonAction::View);
-        $generalManagerPermissions[] = PermissionName::button('cash-handovers', ButtonAction::Add);
-        $generalManagerPermissions[] = PermissionName::button('cash-handovers', ButtonAction::Approve);
-        $generalManagerPermissions[] = PermissionName::button('cash-handovers', ButtonAction::Delete);
-        $generalManagerPermissions[] = PermissionName::button('cash-handovers', ButtonAction::Restore);
+        // Orders, Collection Entries, and Cash Handovers are retired
+        // (version 1 pivot to daily Achievement reporting) — no longer
+        // assigned here. Their permissions still exist (created in run())
+        // so Super Admin keeps historical access via Permission::all().
 
         $generalManagerPermissions[] = PermissionName::menu('targets');
         $generalManagerPermissions[] = PermissionName::button('targets', ButtonAction::View);
@@ -215,6 +206,16 @@ class RolePermissionSeeder extends Seeder
         $generalManagerPermissions[] = PermissionName::button('targets', ButtonAction::Edit);
         $generalManagerPermissions[] = PermissionName::button('targets', ButtonAction::Export);
         $generalManagerPermissions[] = PermissionName::button('targets', ButtonAction::Print);
+
+        $generalManagerPermissions[] = PermissionName::menu('achievements');
+        $generalManagerPermissions[] = PermissionName::button('achievements', ButtonAction::View);
+        $generalManagerPermissions[] = PermissionName::button('achievements', ButtonAction::Add);
+        $generalManagerPermissions[] = PermissionName::button('achievements', ButtonAction::Edit);
+        $generalManagerPermissions[] = PermissionName::button('achievements', ButtonAction::Export);
+        $generalManagerPermissions[] = PermissionName::button('achievements', ButtonAction::Print);
+        // Approve/reject sits with General Manager and Super Admin only —
+        // same separation-of-accountability rule Orders/Collections used.
+        $generalManagerPermissions[] = PermissionName::button('achievements', ButtonAction::Approve);
 
         foreach (self::REPORTS as $reportKey) {
             $generalManagerPermissions[] = PermissionName::report($reportKey);
@@ -293,25 +294,20 @@ class RolePermissionSeeder extends Seeder
                 PermissionName::button('visits', ButtonAction::View),
                 PermissionName::button('visits', ButtonAction::Export),
                 PermissionName::button('visits', ButtonAction::Print),
-                PermissionName::menu('orders'),
-                PermissionName::button('orders', ButtonAction::View),
-                PermissionName::button('orders', ButtonAction::Export),
-                PermissionName::button('orders', ButtonAction::Print),
-                PermissionName::menu('collection-entries'),
-                PermissionName::button('collection-entries', ButtonAction::View),
-                PermissionName::button('collection-entries', ButtonAction::Export),
-                PermissionName::button('collection-entries', ButtonAction::Print),
-                // They record handovers from their own executives, but
-                // don't approve them — that stays with General Manager.
-                PermissionName::menu('cash-handovers'),
-                PermissionName::button('cash-handovers', ButtonAction::View),
-                PermissionName::button('cash-handovers', ButtonAction::Add),
+                // Orders, Collection Entries, and Cash Handovers are retired
+                // (version 1 pivot to daily Achievement reporting).
                 PermissionName::menu('targets'),
                 PermissionName::button('targets', ButtonAction::View),
                 PermissionName::button('targets', ButtonAction::Add),
                 PermissionName::button('targets', ButtonAction::Edit),
                 PermissionName::button('targets', ButtonAction::Export),
                 PermissionName::button('targets', ButtonAction::Print),
+                // View/export/print only, same as Targets — approval stays
+                // with General Manager.
+                PermissionName::menu('achievements'),
+                PermissionName::button('achievements', ButtonAction::View),
+                PermissionName::button('achievements', ButtonAction::Export),
+                PermissionName::button('achievements', ButtonAction::Print),
                 PermissionName::menu('notifications'),
                 PermissionName::button('notifications', ButtonAction::View),
                 PermissionName::menu('territory-map'),
@@ -354,44 +350,36 @@ class RolePermissionSeeder extends Seeder
             PermissionName::api('visit-plans', ButtonAction::Add),
             PermissionName::api('visits', ButtonAction::View),
             PermissionName::api('visits', ButtonAction::Add),
-            PermissionName::api('orders', ButtonAction::View),
-            PermissionName::api('orders', ButtonAction::Add),
-            PermissionName::api('collection-entries', ButtonAction::View),
-            PermissionName::api('collection-entries', ButtonAction::Add),
             PermissionName::api('targets', ButtonAction::View),
+            PermissionName::api('achievements', ButtonAction::View),
+            PermissionName::api('achievements', ButtonAction::Add),
             PermissionName::menu('notifications'),
             PermissionName::button('notifications', ButtonAction::View),
             PermissionName::api('notifications', ButtonAction::View),
-            // Admin-panel access to their own historical records, plus
-            // recording their own new ones the same as the mobile app
-            // allows (add only — editing an already-recorded order/
-            // collection still stays a manager action). Order/
-            // CollectionEntry/Target::scopeVisibleTo() and the matching
-            // Policy checks enforce that a plain Sales Executive only ever
-            // sees or acts on their own rows here, never another
-            // executive's.
-            PermissionName::menu('orders'),
-            PermissionName::button('orders', ButtonAction::View),
-            PermissionName::button('orders', ButtonAction::Add),
-            PermissionName::button('orders', ButtonAction::Export),
-            PermissionName::button('orders', ButtonAction::Print),
-            PermissionName::menu('collection-entries'),
-            PermissionName::button('collection-entries', ButtonAction::View),
-            PermissionName::button('collection-entries', ButtonAction::Add),
-            PermissionName::button('collection-entries', ButtonAction::Export),
-            PermissionName::button('collection-entries', ButtonAction::Print),
+            // Admin-panel access to their own historical records. Order/
+            // Collection Entry are retired (version 1 pivot to daily
+            // Achievement reporting) — Achievement takes their place:
+            // add only (editing an already-reviewed entry still stays a
+            // manager action once approved/rejected). Target/
+            // AchievementEntry::scopeVisibleTo() and the matching Policy
+            // checks enforce that a plain Sales Executive only ever sees or
+            // acts on their own rows here, never another executive's.
             PermissionName::menu('targets'),
             PermissionName::button('targets', ButtonAction::View),
             PermissionName::button('targets', ButtonAction::Export),
             PermissionName::button('targets', ButtonAction::Print),
+            PermissionName::menu('achievements'),
+            PermissionName::button('achievements', ButtonAction::View),
+            PermissionName::button('achievements', ButtonAction::Add),
+            PermissionName::button('achievements', ButtonAction::Export),
+            PermissionName::button('achievements', ButtonAction::Print),
             // Only the report types with a meaningful "just mine" view —
-            // territories/dealer-coverage/dealer-ledger/executive-performance
-            // are cross-executive aggregate/comparison views with no sensible
+            // territories/dealer-coverage/executive-performance are
+            // cross-executive aggregate/comparison views with no sensible
             // per-executive projection, so they're deliberately withheld.
             PermissionName::report('attendance'),
             PermissionName::report('visits'),
-            PermissionName::report('order-performance'),
-            PermissionName::report('collections'),
+            PermissionName::report('achievement-summary'),
             PermissionName::report('target-achievement'),
             PermissionName::report('gps'),
             PermissionName::report('movement-summary'),

@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Api;
 
-use App\Models\CollectionEntry;
 use App\Models\Dealer;
-use App\Models\Order;
 use App\Models\Territory;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -109,69 +107,7 @@ class DealerTest extends TestCase
         $this->assertDatabaseHas('dealers', ['dealer_code' => 'CUST-API-TEST']);
     }
 
-    public function test_sales_executive_can_fetch_a_dealers_outstanding_balance(): void
-    {
-        $executive = User::factory()->create();
-        $executive->assignRole('Sales Executive');
-        $dealer = Dealer::factory()->create();
-        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
-        CollectionEntry::factory()->create(['dealer_id' => $dealer->id, 'amount' => 400]);
-
-        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
-            ->getJson("/api/v1/dealers/{$dealer->id}/outstanding-balance")
-            ->assertOk()
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.dealer_id', $dealer->id)
-            ->assertJsonPath('data.outstanding_balance', 600);
-    }
-
-    public function test_outstanding_balance_endpoint_requires_authentication(): void
-    {
-        $dealer = Dealer::factory()->create();
-
-        $this->getJson("/api/v1/dealers/{$dealer->id}/outstanding-balance")->assertStatus(401);
-    }
-
-    public function test_sales_executive_can_fetch_a_dealers_ledger(): void
-    {
-        $executive = User::factory()->create();
-        $executive->assignRole('Sales Executive');
-        $dealer = Dealer::factory()->create();
-
-        Order::factory()->create(['dealer_id' => $dealer->id, 'order_date' => now()->subDays(5)->toDateString(), 'total_amount' => 1000]);
-        CollectionEntry::factory()->create(['dealer_id' => $dealer->id, 'collection_date' => now()->subDays(2)->toDateString(), 'amount' => 400]);
-
-        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
-            ->getJson("/api/v1/dealers/{$dealer->id}/ledger");
-
-        $response->assertOk()
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.dealer_id', $dealer->id)
-            ->assertJsonPath('data.balance', 600)
-            ->assertJsonCount(2, 'data.transactions')
-            ->assertJsonPath('data.transactions.0.debit', 1000)
-            ->assertJsonPath('data.transactions.0.balance', 1000)
-            ->assertJsonPath('data.transactions.1.credit', 400)
-            ->assertJsonPath('data.transactions.1.balance', 600);
-    }
-
-    public function test_ledger_endpoint_requires_authentication(): void
-    {
-        $dealer = Dealer::factory()->create();
-
-        $this->getJson("/api/v1/dealers/{$dealer->id}/ledger")->assertStatus(401);
-    }
-
-    public function test_a_territory_scoped_viewer_cannot_fetch_a_dealers_ledger_outside_their_territory(): void
-    {
-        $territoryA = Territory::factory()->create();
-        $territoryB = Territory::factory()->create();
-        $executive = User::factory()->inTerritory($territoryA)->create();
-        $executive->assignRole('Sales Executive');
-        $dealer = Dealer::factory()->create(['territory_id' => $territoryB->id]);
-
-        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
-            ->getJson("/api/v1/dealers/{$dealer->id}/ledger")
-            ->assertForbidden();
-    }
+    // Dealer outstanding-balance/ledger endpoints were retired along with
+    // Order/Collection Entry (see the "version 1" Achievement pivot) — the
+    // routes are removed from routes/api/v1.php, so their tests go with them.
 }

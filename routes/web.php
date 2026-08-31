@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Web\Admin\AchievementEntryController;
 use App\Http\Controllers\Web\Admin\ActivityLogController;
 use App\Http\Controllers\Web\Admin\AnnouncementController;
 use App\Http\Controllers\Web\Admin\AttendanceController;
@@ -348,6 +349,32 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
     });
 
     /**
+     * Achievement: a Sales Executive's daily self-reported figure (single
+     * overall, or product-wise), reviewed by a manager — mirrors Target's
+     * shape (single/product-wise mode, no boolean status to toggle) plus
+     * Order's approve/reject actions, so it gets its own route block
+     * instead of $registerManagementRoutes.
+     */
+    Route::prefix('achievements')->name('achievements.')->group(function (): void {
+        Route::get('/', [AchievementEntryController::class, 'index'])->name('index');
+        Route::get('/create', [AchievementEntryController::class, 'create'])->name('create');
+        Route::post('/', [AchievementEntryController::class, 'store'])->name('store');
+        Route::get('/export', [AchievementEntryController::class, 'export'])->name('export');
+        Route::post('/import', [AchievementEntryController::class, 'import'])->name('import');
+        Route::get('/print', [AchievementEntryController::class, 'print'])->name('print');
+        Route::post('/bulk-destroy', [AchievementEntryController::class, 'bulkDestroy'])->name('bulk-destroy');
+        Route::post('/bulk-restore', [AchievementEntryController::class, 'bulkRestore'])->name('bulk-restore');
+        Route::post('/{id}/restore', [AchievementEntryController::class, 'restore'])->whereNumber('id')->name('restore');
+        Route::delete('/{id}/force', [AchievementEntryController::class, 'forceDestroy'])->whereNumber('id')->name('force-destroy');
+        Route::get('/{achievement_entry}', [AchievementEntryController::class, 'show'])->name('show');
+        Route::get('/{achievement_entry}/edit', [AchievementEntryController::class, 'edit'])->name('edit');
+        Route::put('/{achievement_entry}', [AchievementEntryController::class, 'update'])->name('update');
+        Route::patch('/{achievement_entry}/approve', [AchievementEntryController::class, 'approve'])->name('approve');
+        Route::patch('/{achievement_entry}/reject', [AchievementEntryController::class, 'reject'])->name('reject');
+        Route::delete('/{achievement_entry}', [AchievementEntryController::class, 'destroy'])->name('destroy');
+    });
+
+    /**
      * Reports are read-only aggregations with no backing Eloquent entity —
      * no create/edit/delete, just a view + Excel export + PDF print per
      * report type, each gated by its own `report.{key}` permission.
@@ -370,6 +397,10 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
         Route::get('/collection-summary', [ReportController::class, 'collectionSummary'])->name('collection-summary');
         Route::get('/collection-summary/export', [ReportController::class, 'collectionSummaryExport'])->name('collection-summary.export');
         Route::get('/collection-summary/print', [ReportController::class, 'collectionSummaryPrint'])->name('collection-summary.print');
+
+        Route::get('/achievement-summary', [ReportController::class, 'achievementSummary'])->name('achievement-summary');
+        Route::get('/achievement-summary/export', [ReportController::class, 'achievementSummaryExport'])->name('achievement-summary.export');
+        Route::get('/achievement-summary/print', [ReportController::class, 'achievementSummaryPrint'])->name('achievement-summary.print');
 
         Route::get('/territory-performance', [ReportController::class, 'territoryPerformance'])->name('territory-performance');
         Route::get('/territory-performance/export', [ReportController::class, 'territoryPerformanceExport'])->name('territory-performance.export');

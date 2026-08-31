@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit\Actions;
 
 use App\Actions\CalculateAchievementAction;
+use App\Enums\ApprovalStatus;
 use App\Enums\PerformanceGrade;
-use App\Models\CollectionEntry;
-use App\Models\Dealer;
-use App\Models\Product;
-use App\Models\Order;
+use App\Models\AchievementEntry;
 use App\Models\Target;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,20 +23,14 @@ class CalculateAchievementActionTest extends TestCase
         return app(CalculateAchievementAction::class);
     }
 
-    private function saleOf(User $user, Carbon $date, float $total, int $quantity): void
+    private function approvedEntry(User $user, Carbon $date, float $orderAchieved, float $collectionAchieved, int $quantityAchieved): AchievementEntry
     {
-        $entry = Order::factory()->create([
+        return AchievementEntry::factory()->approved()->create([
             'user_id' => $user->id,
-            'order_date' => $date->toDateString(),
-            'total_amount' => $total,
-        ]);
-
-        $entry->items()->create([
-            'product_id' => Product::factory()->create()->id,
-            'quantity' => $quantity,
-            'unit_price' => $total / max($quantity, 1),
-            'discount_amount' => 0,
-            'total_amount' => $total,
+            'entry_date' => $date->toDateString(),
+            'order_value_achieved' => $orderAchieved,
+            'collection_achieved' => $collectionAchieved,
+            'quantity_achieved' => $quantityAchieved,
         ]);
     }
 
@@ -54,23 +46,43 @@ class CalculateAchievementActionTest extends TestCase
             'quantity_target' => 20,
         ]);
 
-        $this->saleOf($user, Carbon::create(2026, 8, 10), 600, 10);
-        $this->saleOf($user, Carbon::create(2026, 8, 15), 400, 10);
+        $this->approvedEntry($user, Carbon::create(2026, 8, 10), 600, 0, 10);
+        $this->approvedEntry($user, Carbon::create(2026, 8, 15), 400, 0, 10);
+        $this->approvedEntry($user, Carbon::create(2026, 8, 20), 0, 500, 0);
         // Outside the target's period — must not count.
-        $this->saleOf($user, Carbon::create(2026, 7, 15), 9999, 99);
-
-        CollectionEntry::factory()->create([
-            'user_id' => $user->id,
-            'dealer_id' => Dealer::factory()->create()->id,
-            'collection_date' => Carbon::create(2026, 8, 20)->toDateString(),
-            'amount' => 500,
-        ]);
+        $this->approvedEntry($user, Carbon::create(2026, 7, 15), 9999, 0, 99);
 
         $achievement = $this->action()($target);
 
         $this->assertSame('1000.00', (string) $achievement->order_achieved);
         $this->assertSame('500.00', (string) $achievement->collection_achieved);
         $this->assertSame(20, $achievement->quantity_achieved);
+    }
+
+    public function test_a_pending_or_rejected_entry_does_not_count_toward_achievement(): void
+    {
+        $user = User::factory()->create();
+        $target = Target::factory()->create([
+            'user_id' => $user->id,
+            'order_value_target' => 1000,
+        ]);
+
+        AchievementEntry::factory()->create([
+            'user_id' => $user->id,
+            'entry_date' => Carbon::create($target->year, $target->month, 5)->toDateString(),
+            'order_value_achieved' => 300,
+            'status' => ApprovalStatus::Pending->value,
+        ]);
+        AchievementEntry::factory()->create([
+            'user_id' => $user->id,
+            'entry_date' => Carbon::create($target->year, $target->month, 10)->toDateString(),
+            'order_value_achieved' => 400,
+            'status' => ApprovalStatus::Rejected->value,
+        ]);
+
+        $achievement = $this->action()($target);
+
+        $this->assertSame('0.00', (string) $achievement->order_achieved);
     }
 
     public function test_percentages_are_achieved_over_target_times_100(): void
@@ -83,7 +95,7 @@ class CalculateAchievementActionTest extends TestCase
             'quantity_target' => 100,
         ]);
 
-        $this->saleOf($user, Carbon::create($target->year, $target->month, 1), 500, 50);
+        $this->approvedEntry($user, Carbon::create($target->year, $target->month, 1), 500, 0, 50);
 
         $achievement = $this->action()($target);
 
@@ -129,13 +141,7 @@ class CalculateAchievementActionTest extends TestCase
             'quantity_target' => 100,
         ]);
 
-        $this->saleOf($user, Carbon::create($target->year, $target->month, 1), $overallPct, (int) $overallPct);
-        CollectionEntry::factory()->create([
-            'user_id' => $user->id,
-            'dealer_id' => Dealer::factory()->create()->id,
-            'collection_date' => Carbon::create($target->year, $target->month, 1)->toDateString(),
-            'amount' => $overallPct,
-        ]);
+        $this->approvedEntry($user, Carbon::create($target->year, $target->month, 1), $overallPct, $overallPct, (int) $overallPct);
 
         $achievement = $this->action()($target);
 
@@ -164,7 +170,7 @@ class CalculateAchievementActionTest extends TestCase
         $target = Target::factory()->create(['user_id' => $user->id, 'order_value_target' => 100]);
 
         $this->action()($target);
-        $this->saleOf($user, Carbon::create($target->year, $target->month, 1), 100, 5);
+        $this->approvedEntry($user, Carbon::create($target->year, $target->month, 1), 100, 0, 5);
         $this->action()($target);
 
         $this->assertDatabaseCount('achievements', 1);

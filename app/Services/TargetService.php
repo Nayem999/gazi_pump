@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\ApprovalStatus;
 use App\Jobs\RecalculateAchievementsJob;
-use App\Models\OrderItem;
+use App\Models\AchievementItem;
 use App\Models\Target;
 use App\Models\TargetItem;
 use App\Models\User;
@@ -102,12 +103,12 @@ class TargetService extends BaseCrudService
     /**
      * Live, uncached per-product breakdown of a product-wise target's order
      * value and quantity achieved so far — computed the same way
-     * CalculateAchievementAction computes the aggregate (summing OrderItem
-     * against this user/month/year), just grouped by product_id. Collection
-     * isn't tracked per product anywhere (CollectionEntry has no
-     * product_id), so only order value and quantity are derivable here;
+     * CalculateAchievementAction computes the aggregate (summing approved
+     * AchievementItem rows against this user/month/year), just grouped by
+     * product_id. Collection isn't tracked per product in the target's own
+     * breakdown display, so only order value and quantity are surfaced here;
      * there's no persisted per-product achievement table to go stale, since
-     * this recomputes from Order data on every call.
+     * this recomputes from AchievementEntry data on every call.
      *
      * @return Collection<int, object>
      */
@@ -119,13 +120,14 @@ class TargetService extends BaseCrudService
             return collect();
         }
 
-        $achievedByProduct = OrderItem::whereIn('product_id', $productIds)
-            ->whereHas('order', function ($query) use ($target) {
+        $achievedByProduct = AchievementItem::whereIn('product_id', $productIds)
+            ->whereHas('achievementEntry', function ($query) use ($target) {
                 $query->where('user_id', $target->user_id)
-                    ->whereYear('order_date', $target->year)
-                    ->whereMonth('order_date', $target->month);
+                    ->where('status', ApprovalStatus::Approved)
+                    ->whereYear('entry_date', $target->year)
+                    ->whereMonth('entry_date', $target->month);
             })
-            ->selectRaw('product_id, SUM(quantity) as quantity_achieved, SUM(total_amount) as order_achieved')
+            ->selectRaw('product_id, SUM(quantity_achieved) as quantity_achieved, SUM(order_achieved) as order_achieved')
             ->groupBy('product_id')
             ->get()
             ->keyBy('product_id');
