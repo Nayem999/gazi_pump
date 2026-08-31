@@ -31,6 +31,29 @@ class AchievementController extends Controller
         tags: ['Achievements'],
         summary: 'Record or update the caller\'s own achievement for a date',
         security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['mode'],
+                properties: [
+                    new OA\Property(property: 'entry_date', type: 'string', format: 'date', nullable: true, description: 'Defaults to today when omitted'),
+                    new OA\Property(property: 'mode', type: 'string', enum: ['single', 'product_wise'], description: 'Defaults to "product_wise" if `items` is present, otherwise "single"'),
+                    new OA\Property(property: 'order_value_achieved', type: 'number', format: 'float', nullable: true, description: 'Required when mode is "single"'),
+                    new OA\Property(property: 'collection_achieved', type: 'number', format: 'float', nullable: true, description: 'Required when mode is "single"'),
+                    new OA\Property(property: 'quantity_achieved', type: 'integer', nullable: true, description: 'Required when mode is "single"'),
+                    new OA\Property(property: 'items', type: 'array', nullable: true, description: 'Required when mode is "product_wise"', items: new OA\Items(
+                        required: ['product_id', 'order_achieved', 'collection_achieved', 'quantity_achieved'],
+                        properties: [
+                            new OA\Property(property: 'product_id', type: 'integer'),
+                            new OA\Property(property: 'order_achieved', type: 'number', format: 'float'),
+                            new OA\Property(property: 'collection_achieved', type: 'number', format: 'float'),
+                            new OA\Property(property: 'quantity_achieved', type: 'integer'),
+                        ],
+                    )),
+                    new OA\Property(property: 'notes', type: 'string', nullable: true),
+                ],
+            ),
+        ),
         responses: [
             new OA\Response(response: 201, description: 'Achievement recorded or updated'),
             new OA\Response(response: 422, description: 'Validation error, or the entry for that date is already reviewed'),

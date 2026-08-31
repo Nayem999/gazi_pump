@@ -151,6 +151,22 @@ class AchievementTest extends TestCase
             ->assertJsonCount(1, 'data');
     }
 
+    public function test_index_can_be_filtered_by_a_date_range(): void
+    {
+        $executive = $this->executive();
+
+        AchievementEntry::factory()->create(['user_id' => $executive->id, 'entry_date' => '2026-08-10', 'order_value_achieved' => 111]);
+        AchievementEntry::factory()->create(['user_id' => $executive->id, 'entry_date' => '2026-08-20', 'order_value_achieved' => 222]);
+        AchievementEntry::factory()->create(['user_id' => $executive->id, 'entry_date' => '2026-09-05', 'order_value_achieved' => 333]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->getJson('/api/v1/achievements?date_from=2026-08-15&date_to=2026-08-31');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.order_value_achieved', 222);
+    }
+
     public function test_a_product_outside_the_executives_sales_team_is_rejected(): void
     {
         $teamA = SalesTeam::factory()->create();
