@@ -15,9 +15,9 @@
 <body>
     <h2>{{ config('app.name') }} &mdash; GPS Tracking Report</h2>
     <div class="meta">
-        {{ $user?->name }} ({{ $user?->employee_id }}) &mdash; {{ \Illuminate\Support\Carbon::parse($date)->format('M d, Y') }}
+        {{ $user?->name }} ({{ $user?->employee_id }}) &mdash; {{ \Illuminate\Support\Carbon::parse($date)->format('d M Y') }}
         &mdash; {{ $logs->count() }} ping(s) &mdash; {{ $distanceKm }} km traveled
-        &mdash; Generated {{ now()->format('M d, Y H:i') }}
+        &mdash; Generated {{ now()->format('d M Y, h:i A') }}
     </div>
 
     <table>
@@ -34,7 +34,7 @@
         <tbody>
             @foreach ($logs as $log)
                 <tr>
-                    <td>{{ $log->recorded_at->format('H:i:s') }}</td>
+                    <td>{{ $log->recorded_at->format('h:i A') }}</td>
                     <td>{{ $log->lat }}</td>
                     <td>{{ $log->lng }}</td>
                     <td>{{ $log->accuracy !== null ? $log->accuracy.' m' : '—' }}</td>

@@ -39,7 +39,7 @@
         @forelse ($visitRequests as $visitRequest)
             <tr>
                 <td>{{ $visitRequest->customerAccount?->name ?? '—' }}</td>
-                <td>{{ $visitRequest->preferred_date->format('M d, Y') }}</td>
+                <td>{{ $visitRequest->preferred_date->format('d M Y') }}</td>
                 <td>{{ \Illuminate\Support\Str::limit($visitRequest->address, 50) }}</td>
                 <td>
                     @if ($visitRequest->trashed())
@@ -48,7 +48,7 @@
                         <span class="badge text-bg-{{ $visitRequest->status->badgeColor() }}">{{ $visitRequest->status->label() }}</span>
                     @endif
                 </td>
-                <td>{{ $visitRequest->created_at->format('M d, Y H:i') }}</td>
+                <td>{{ $visitRequest->created_at->format('d M Y, h:i A') }}</td>
                 <td class="text-end">
                     @if (! $visitRequest->trashed())
                         @can('view', $visitRequest)

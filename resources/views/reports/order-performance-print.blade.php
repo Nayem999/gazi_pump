@@ -15,7 +15,7 @@
 </head>
 <body>
     <h2>{{ config('app.name') }} &mdash; Order Performance Report</h2>
-    <div class="meta">Generated {{ now()->format('M d, Y H:i') }} &mdash; {{ $rows->count() }} executive(s)</div>
+    <div class="meta">Generated {{ now()->format('d M Y, h:i A') }} &mdash; {{ $rows->count() }} executive(s)</div>
 
     <table>
         <thead>

@@ -4,7 +4,7 @@
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('visits.index') }}">Dealer Visits</a></li>
-    <li class="breadcrumb-item active">{{ $visit->dealer->name }} &mdash; {{ $visit->check_in_at->format('M d, Y') }}</li>
+    <li class="breadcrumb-item active">{{ $visit->dealer->name }} &mdash; {{ $visit->check_in_at->format('d M Y') }}</li>
 @endsection
 
 @php
@@ -58,17 +58,17 @@
                         <dt class="col-sm-4">Visit Plan</dt>
                         <dd class="col-sm-8">
                             @if ($visit->visitPlan)
-                                <a href="{{ route('visit-plans.edit', $visit->visitPlan) }}">{{ $visit->visitPlan->planned_date->format('M d, Y') }}</a>
+                                <a href="{{ route('visit-plans.edit', $visit->visitPlan) }}">{{ $visit->visitPlan->planned_date->format('d M Y') }}</a>
                             @else
                                 — (unplanned visit)
                             @endif
                         </dd>
 
                         <dt class="col-sm-4">Check In</dt>
-                        <dd class="col-sm-8">{{ $visit->check_in_at->format('M d, Y H:i') }}</dd>
+                        <dd class="col-sm-8">{{ $visit->check_in_at->format('d M Y, h:i A') }}</dd>
 
                         <dt class="col-sm-4">Check Out</dt>
-                        <dd class="col-sm-8">{{ $visit->check_out_at?->format('M d, Y H:i') ?? '—' }}</dd>
+                        <dd class="col-sm-8">{{ $visit->check_out_at?->format('d M Y, h:i A') ?? '—' }}</dd>
 
                         <dt class="col-sm-4">Distance from Dealer</dt>
                         <dd class="col-sm-8">{{ $visit->distance_from_dealer_meters !== null ? number_format((float) $visit->distance_from_dealer_meters, 1).' m' : '—' }}</dd>

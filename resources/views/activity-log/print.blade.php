@@ -15,7 +15,7 @@
 <body>
     <h2>{{ config('app.name') }} &mdash; Activity Log</h2>
     <div class="meta">
-        Generated {{ now()->format('M d, Y H:i') }} &mdash; {{ $activities->count() }} entries
+        Generated {{ now()->format('d M Y, h:i A') }} &mdash; {{ $activities->count() }} entries
         @if (isset($totalMatching) && $totalMatching > $activities->count())
             (showing the {{ $activities->count() }} most recent of {{ $totalMatching }} matching &mdash; narrow the date range to see more)
         @endif
@@ -34,7 +34,7 @@
         <tbody>
             @foreach ($activities as $activity)
                 <tr>
-                    <td>{{ $activity->created_at?->format('M d, Y H:i') }}</td>
+                    <td>{{ $activity->created_at?->format('d M Y, h:i A') }}</td>
                     <td>{{ $activity->causer?->name ?? 'System' }}</td>
                     <td>{{ ucfirst($activity->event ?? 'n/a') }}</td>
                     <td>{{ \Illuminate\Support\Str::headline(\Illuminate\Support\Str::singular($activity->log_name ?? '')) }} #{{ $activity->subject_id }}</td>

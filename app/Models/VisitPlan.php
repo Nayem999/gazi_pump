@@ -56,9 +56,14 @@ class VisitPlan extends BaseModel
      * A plan whose date has passed without ever being fulfilled or
      * cancelled. Computed rather than stored so no scheduled job is needed
      * to keep it accurate.
+     *
+     * planned_date is a date-only value (midnight), so isPast() would flag
+     * today's own plans as missed the moment the clock ticks past 00:00 —
+     * compare against the start of today instead, so a plan only counts as
+     * missed once its date is strictly behind today's.
      */
     public function isMissed(): bool
     {
-        return $this->status === VisitPlanStatus::Planned && $this->planned_date->isPast();
+        return $this->status === VisitPlanStatus::Planned && $this->planned_date->lt(now()->startOfDay());
     }
 }

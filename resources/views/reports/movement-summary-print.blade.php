@@ -15,8 +15,8 @@
 <body>
     <h2>{{ config('app.name') }} &mdash; Daily Activity Report</h2>
     <div class="meta">
-        {{ $summary->user->name }} ({{ $summary->user->employee_id }}) &mdash; {{ $summary->date->format('M d, Y') }}
-        &mdash; Generated {{ now()->format('M d, Y H:i') }}
+        {{ $summary->user->name }} ({{ $summary->user->employee_id }}) &mdash; {{ $summary->date->format('d M Y') }}
+        &mdash; Generated {{ now()->format('d M Y, h:i A') }}
     </div>
 
     @php

@@ -68,7 +68,7 @@
                         <dd class="col-sm-8">{{ $dealer->territory?->name ?? '—' }}</dd>
 
                         <dt class="col-sm-4">Created</dt>
-                        <dd class="col-sm-8">{{ $dealer->created_at?->format('M d, Y H:i') }}</dd>
+                        <dd class="col-sm-8">{{ $dealer->created_at?->format('d M Y, h:i A') }}</dd>
                     </dl>
                 </div>
             </div>

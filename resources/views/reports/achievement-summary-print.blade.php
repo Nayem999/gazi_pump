@@ -15,7 +15,7 @@
 </head>
 <body>
     <h2>{{ config('app.name') }} &mdash; Achievement Summary Report</h2>
-    <div class="meta">Generated {{ now()->format('M d, Y H:i') }} &mdash; {{ $rows->count() }} executive(s), approved entries only</div>
+    <div class="meta">Generated {{ now()->format('d M Y, h:i A') }} &mdash; {{ $rows->count() }} executive(s), approved entries only</div>
 
     <table>
         <thead>

@@ -83,10 +83,10 @@
                         <dd class="col-sm-8">{{ $user->subordinates->count() }}</dd>
 
                         <dt class="col-sm-4">Created</dt>
-                        <dd class="col-sm-8">{{ $user->created_at?->format('M d, Y H:i') }}</dd>
+                        <dd class="col-sm-8">{{ $user->created_at?->format('d M Y, h:i A') }}</dd>
 
                         <dt class="col-sm-4">Last Updated</dt>
-                        <dd class="col-sm-8">{{ $user->updated_at?->format('M d, Y H:i') }}</dd>
+                        <dd class="col-sm-8">{{ $user->updated_at?->format('d M Y, h:i A') }}</dd>
                     </dl>
                 </div>
             </div>

@@ -14,7 +14,7 @@
 </head>
 <body>
     <h2>{{ config('app.name') }} &mdash; GPS Report</h2>
-    <div class="meta">Generated {{ now()->format('M d, Y H:i') }} &mdash; {{ $rows->count() }} executive(s)</div>
+    <div class="meta">Generated {{ now()->format('d M Y, h:i A') }} &mdash; {{ $rows->count() }} executive(s)</div>
 
     <table>
         <thead>
@@ -35,7 +35,7 @@
                     <td>{{ $row->ping_count }}</td>
                     <td>{{ $row->avg_accuracy !== null ? $row->avg_accuracy.' m' : '—' }}</td>
                     <td>{{ $row->avg_battery_level !== null ? $row->avg_battery_level.'%' : '—' }}</td>
-                    <td>{{ $row->last_seen_at?->format('M d, Y H:i') }}</td>
+                    <td>{{ $row->last_seen_at?->format('d M Y, h:i A') }}</td>
                 </tr>
             @endforeach
         </tbody>

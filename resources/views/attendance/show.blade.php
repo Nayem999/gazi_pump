@@ -4,7 +4,7 @@
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('attendance.index') }}">Attendance</a></li>
-    <li class="breadcrumb-item active">{{ $attendance->user->name }} &mdash; {{ $attendance->date->format('M d, Y') }}</li>
+    <li class="breadcrumb-item active">{{ $attendance->user->name }} &mdash; {{ $attendance->date->format('d M Y') }}</li>
 @endsection
 
 @php
@@ -41,13 +41,13 @@
                         <dd class="col-sm-8"><x-phone-actions :phone="$attendance->user->phone" /></dd>
 
                         <dt class="col-sm-4">Date</dt>
-                        <dd class="col-sm-8">{{ $attendance->date->format('M d, Y') }}</dd>
+                        <dd class="col-sm-8">{{ $attendance->date->format('d M Y') }}</dd>
 
                         <dt class="col-sm-4">Check In</dt>
-                        <dd class="col-sm-8">{{ $attendance->check_in_at?->format('M d, Y H:i') ?? '—' }}</dd>
+                        <dd class="col-sm-8">{{ $attendance->check_in_at?->format('d M Y, h:i A') ?? '—' }}</dd>
 
                         <dt class="col-sm-4">Check Out</dt>
-                        <dd class="col-sm-8">{{ $attendance->check_out_at?->format('M d, Y H:i') ?? '—' }}</dd>
+                        <dd class="col-sm-8">{{ $attendance->check_out_at?->format('d M Y, h:i A') ?? '—' }}</dd>
 
                         <dt class="col-sm-4">Late By</dt>
                         <dd class="col-sm-8">{{ $attendance->late_minutes ? "{$attendance->late_minutes} minute(s)" : '—' }}</dd>

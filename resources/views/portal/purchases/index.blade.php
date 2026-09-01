@@ -18,7 +18,7 @@
                 <tbody>
                     @forelse ($purchases as $purchase)
                         <tr>
-                            <td>{{ $purchase->order_date->format('M d, Y') }}</td>
+                            <td>{{ $purchase->order_date->format('d M Y') }}</td>
                             <td>{{ $purchase->items_count }}</td>
                             <td>{{ number_format((float) $purchase->total_amount, 2) }}</td>
                             <td class="text-end">

@@ -19,7 +19,7 @@
                 <tbody>
                     @forelse ($payments as $payment)
                         <tr>
-                            <td>{{ $payment->collection_date->format('M d, Y') }}</td>
+                            <td>{{ $payment->collection_date->format('d M Y') }}</td>
                             <td>{{ number_format((float) $payment->amount, 2) }}</td>
                             <td>{{ $payment->payment_method->label() }}</td>
                             <td>{{ $payment->reference_no ?? '—' }}</td>

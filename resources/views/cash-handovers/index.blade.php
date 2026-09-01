@@ -73,7 +73,7 @@
                     <div class="text-muted small">{{ $cashHandover->user?->employee_id }}</div>
                 </td>
                 <td>৳ {{ number_format((float) $cashHandover->amount, 2) }}</td>
-                <td>{{ $cashHandover->handover_date->format('M d, Y') }}</td>
+                <td>{{ $cashHandover->handover_date->format('d M Y') }}</td>
                 <td><span class="badge text-bg-{{ $cashHandover->status->badgeColor() }}">{{ $cashHandover->status->label() }}</span></td>
                 <td>{{ $cashHandover->confirmedBy?->name ?? '—' }}</td>
                 <td class="text-end">

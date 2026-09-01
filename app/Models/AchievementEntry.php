@@ -68,7 +68,7 @@ class AchievementEntry extends BaseModel
 
     public function entryDateLabel(): string
     {
-        return $this->entry_date->format('M d, Y');
+        return $this->entry_date->format('d M Y');
     }
 
     /**

@@ -59,7 +59,7 @@
                         {{ $article->title }}
                         <div class="text-muted small">{{ \Illuminate\Support\Str::limit($article->excerpt, 60) }}</div>
                     </td>
-                    <td>{{ $article->published_at?->format('M d, Y') }}</td>
+                    <td>{{ $article->published_at?->format('d M Y') }}</td>
                     <td>
                         @if ($article->trashed())
                             <span class="badge text-bg-danger">Trashed</span>

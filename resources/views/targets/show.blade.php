@@ -88,7 +88,7 @@
                             </div>
                         </div>
 
-                        <div class="text-muted small mt-3">Last calculated {{ $achievement->calculated_at->format('M d, Y H:i') }}</div>
+                        <div class="text-muted small mt-3">Last calculated {{ $achievement->calculated_at->format('d M Y, h:i A') }}</div>
                     @else
                         <p class="text-muted mb-0">No achievement calculated yet.</p>
                     @endif

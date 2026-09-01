@@ -91,6 +91,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             event.preventDefault();
+            // Row-level action forms (edit/delete/restore) render nested
+            // inside the list page's bulk-action form. The submit event
+            // bubbles, so without this an ancestor form's own data-confirm
+            // handler also fires for the same click, replaces the just-shown
+            // dialog with its own, and ends up submitting the WRONG form
+            // (the outer bulk form instead of the row's own) once confirmed.
+            event.stopPropagation();
 
             window.Swal.fire({
                 title: form.dataset.confirmTitle || 'Are you sure?',

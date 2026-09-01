@@ -114,7 +114,7 @@
                         <div class="small"><x-phone-actions :phone="$collectionEntry->dealer?->phone" /></div>
                     </td>
                     <td>{{ $collectionEntry->dealer?->territory?->name ?? '—' }}</td>
-                    <td>{{ $collectionEntry->collection_date->format('M d, Y') }}</td>
+                    <td>{{ $collectionEntry->collection_date->format('d M Y') }}</td>
                     <td>{{ number_format((float) $collectionEntry->amount, 2) }}</td>
                     <td>
                         <span class="badge text-bg-secondary">{{ $collectionEntry->payment_method->label() }}</span>
@@ -215,7 +215,7 @@
                                 <div>Executive: {{ $collectionEntry->user?->name }} &middot; <x-phone-actions :phone="$collectionEntry->user?->phone" /></div>
                                 <div>Dealer Phone: <x-phone-actions :phone="$collectionEntry->dealer?->phone" /></div>
                                 <div>Territory: {{ $collectionEntry->dealer?->territory?->name ?? '—' }}</div>
-                                <div>Date: {{ $collectionEntry->collection_date->format('M d, Y') }}</div>
+                                <div>Date: {{ $collectionEntry->collection_date->format('d M Y') }}</div>
                                 <div>Amount: {{ number_format((float) $collectionEntry->amount, 2) }}</div>
                                 @if ($collectionEntry->cheque_status)
                                     <div>Cheque Status: <span class="badge text-bg-{{ $collectionEntry->cheque_status->badgeColor() }}">{{ $collectionEntry->cheque_status->label() }}</span></div>

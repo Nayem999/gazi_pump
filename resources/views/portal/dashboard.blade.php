@@ -81,7 +81,7 @@
                 <ul class="list-group list-group-flush">
                     @forelse ($recentVisitRequests as $visitRequest)
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span>{{ $visitRequest->preferred_date->format('M d, Y') }}</span>
+                            <span>{{ $visitRequest->preferred_date->format('d M Y') }}</span>
                             <span class="badge text-bg-{{ $visitRequest->status->badgeColor() }}">{{ $visitRequest->status->label() }}</span>
                         </li>
                     @empty

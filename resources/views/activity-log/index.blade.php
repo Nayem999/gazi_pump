@@ -68,7 +68,7 @@
 
         @forelse ($activities as $activity)
             <tr>
-                <td>{{ $activity->created_at->format('M d, Y H:i') }}</td>
+                <td>{{ $activity->created_at->format('d M Y, h:i A') }}</td>
                 <td>{{ $activity->causer?->name ?? 'System' }}</td>
                 <td>
                     <span class="badge text-bg-{{ match ($activity->event) {

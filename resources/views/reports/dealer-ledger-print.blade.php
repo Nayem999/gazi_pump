@@ -18,7 +18,7 @@
     <div class="meta">
         {{ $dealer->name }} ({{ $dealer->dealer_code }})
         @if ($dealer->territory) &mdash; {{ $dealer->territory->name }} @endif
-        &mdash; Generated {{ now()->format('M d, Y H:i') }}
+        &mdash; Generated {{ now()->format('d M Y, h:i A') }}
     </div>
 
     <table>
@@ -34,7 +34,7 @@
         <tbody>
             @foreach ($rows as $row)
                 <tr>
-                    <td>{{ $row->date->format('M d, Y') }}</td>
+                    <td>{{ $row->date->format('d M Y') }}</td>
                     <td>{{ $row->description }}</td>
                     <td>{{ $row->debit > 0 ? number_format($row->debit, 2) : '' }}</td>
                     <td>{{ $row->credit > 0 ? number_format($row->credit, 2) : '' }}</td>

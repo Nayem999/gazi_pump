@@ -27,7 +27,7 @@
                         <dt class="col-sm-3">Customer Account</dt>
                         <dd class="col-sm-9">{{ $inquiry->customerAccount?->name ?? 'Guest (not logged in)' }}</dd>
                         <dt class="col-sm-3">Received</dt>
-                        <dd class="col-sm-9">{{ $inquiry->created_at->format('M d, Y H:i') }}</dd>
+                        <dd class="col-sm-9">{{ $inquiry->created_at->format('d M Y, h:i A') }}</dd>
                         <dt class="col-sm-3">Message</dt>
                         <dd class="col-sm-9">{{ $inquiry->message }}</dd>
                     </dl>

@@ -12,7 +12,7 @@
      "version 1" Achievement pivot) — no role holds their menu permission
      any more except Super Admin (via Permission::all()), so these links
      naturally disappear for everyone else without deleting them here. --}}
-@canany(['menu.orders', 'menu.collection-entries', 'menu.cash-handovers'])
+{{-- @canany(['menu.orders', 'menu.collection-entries', 'menu.cash-handovers'])
     <div class="nav-section-title">Order Operations</div>
 @endcanany
 
@@ -33,7 +33,7 @@
         <i class="ti ti-hand-move icon-amber"></i> Cash Handover
     </a>
 @endcan
-
+ --}}
 @canany(['menu.targets', 'menu.achievements'])
     <div class="nav-section-title">Performance</div>
 @endcanany
@@ -150,11 +150,11 @@
     </a>
 @endcan
 
-@can('menu.retailers')
+{{-- @can('menu.retailers')
     <a href="{{ route('retailers.index') }}" class="nav-link {{ request()->routeIs('retailers.*') ? 'active' : '' }}">
         <i class="ti ti-building-cottage icon-pink"></i> Retailers
     </a>
-@endcan
+@endcan --}}
 
 @canany(['product-categories.view', 'products.view'])
     <div class="nav-section-title">Product Management</div>

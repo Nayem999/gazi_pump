@@ -28,7 +28,7 @@ class LateAttendanceNotification extends Notification
         return [
             'type' => NotificationType::LateAttendance->value,
             'title' => 'Late Attendance',
-            'message' => "{$this->attendance->user->name} was marked late by {$this->attendance->late_minutes} minute(s) on {$this->attendance->date->format('M d, Y')}.",
+            'message' => "{$this->attendance->user->name} was marked late by {$this->attendance->late_minutes} minute(s) on {$this->attendance->date->format('d M Y')}.",
             'attendance_id' => $this->attendance->id,
         ];
     }

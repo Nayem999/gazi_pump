@@ -4,7 +4,7 @@
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('cash-handovers.index') }}">Cash Handover</a></li>
-    <li class="breadcrumb-item active">{{ $cashHandover->user?->name }} &mdash; {{ $cashHandover->handover_date->format('M d, Y') }}</li>
+    <li class="breadcrumb-item active">{{ $cashHandover->user?->name }} &mdash; {{ $cashHandover->handover_date->format('d M Y') }}</li>
 @endsection
 
 @section('content')
@@ -47,13 +47,13 @@
                         <dd class="col-sm-8">৳ {{ number_format((float) $cashHandover->amount, 2) }}</dd>
 
                         <dt class="col-sm-4">Handover Date</dt>
-                        <dd class="col-sm-8">{{ $cashHandover->handover_date->format('M d, Y') }}</dd>
+                        <dd class="col-sm-8">{{ $cashHandover->handover_date->format('d M Y') }}</dd>
 
                         <dt class="col-sm-4">Confirmed / Rejected By</dt>
                         <dd class="col-sm-8">{{ $cashHandover->confirmedBy?->name ?? '—' }}</dd>
 
                         <dt class="col-sm-4">Confirmed / Rejected At</dt>
-                        <dd class="col-sm-8">{{ $cashHandover->confirmed_at?->format('M d, Y H:i') ?? '—' }}</dd>
+                        <dd class="col-sm-8">{{ $cashHandover->confirmed_at?->format('d M Y, h:i A') ?? '—' }}</dd>
 
                         <dt class="col-sm-4">Remarks</dt>
                         <dd class="col-sm-8">{{ $cashHandover->remarks ?? '—' }}</dd>

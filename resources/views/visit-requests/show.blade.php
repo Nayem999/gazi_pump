@@ -21,11 +21,11 @@
                         <dt class="col-sm-3">Email</dt>
                         <dd class="col-sm-9">{{ $visitRequest->customerAccount?->email ?? '—' }}</dd>
                         <dt class="col-sm-3">Preferred Date</dt>
-                        <dd class="col-sm-9">{{ $visitRequest->preferred_date->format('M d, Y') }}</dd>
+                        <dd class="col-sm-9">{{ $visitRequest->preferred_date->format('d M Y') }}</dd>
                         <dt class="col-sm-3">Address</dt>
                         <dd class="col-sm-9">{{ $visitRequest->address }}</dd>
                         <dt class="col-sm-3">Submitted</dt>
-                        <dd class="col-sm-9">{{ $visitRequest->created_at->format('M d, Y H:i') }}</dd>
+                        <dd class="col-sm-9">{{ $visitRequest->created_at->format('d M Y, h:i A') }}</dd>
                         <dt class="col-sm-3">Message</dt>
                         <dd class="col-sm-9">{{ $visitRequest->message ?? '—' }}</dd>
                     </dl>
