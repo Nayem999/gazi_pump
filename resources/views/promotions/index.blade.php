@@ -60,8 +60,8 @@
                         {{ $promotion->title }}
                         <div class="text-muted small">{{ \Illuminate\Support\Str::limit($promotion->description, 60) }}</div>
                     </td>
-                    <td>{{ $promotion->starts_at?->format('M d, Y') }}</td>
-                    <td>{{ $promotion->ends_at?->format('M d, Y') }}</td>
+                    <td>{{ $promotion->starts_at?->format('d M Y') }}</td>
+                    <td>{{ $promotion->ends_at?->format('d M Y') }}</td>
                     <td>
                         @if ($promotion->trashed())
                             <span class="badge text-bg-danger">Trashed</span>

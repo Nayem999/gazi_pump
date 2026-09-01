@@ -35,10 +35,10 @@
             <x-stat-card icon="ti-route" label="Distance Traveled" value="{{ $distanceKm }} km" color="success" />
         </div>
         <div class="col-6 col-lg-3">
-            <x-stat-card icon="ti-player-play" label="First Ping" value="{{ $logs->first()?->recorded_at?->format('H:i') ?? '—' }}" color="info" />
+            <x-stat-card icon="ti-player-play" label="First Ping" value="{{ $logs->first()?->recorded_at?->format('h:i A') ?? '—' }}" color="info" />
         </div>
         <div class="col-6 col-lg-3">
-            <x-stat-card icon="ti-player-stop" label="Last Ping" value="{{ $logs->last()?->recorded_at?->format('H:i') ?? '—' }}" color="warning" />
+            <x-stat-card icon="ti-player-stop" label="Last Ping" value="{{ $logs->last()?->recorded_at?->format('h:i A') ?? '—' }}" color="warning" />
         </div>
     </div>
 
@@ -46,7 +46,7 @@
         <div class="card-header">
             Travel Route
             @if ($selectedUser)
-                &mdash; {{ $selectedUser->name }} on {{ \Illuminate\Support\Carbon::parse($selectedDate)->format('M d, Y') }}
+                &mdash; {{ $selectedUser->name }} on {{ \Illuminate\Support\Carbon::parse($selectedDate)->format('d M Y') }}
             @endif
         </div>
         <div class="card-body">
@@ -85,7 +85,7 @@
                             <input type="checkbox" name="ids[]" value="{{ $log->id }}" class="form-check-input row-checkbox">
                         @endif
                     </td>
-                    <td>{{ $log->recorded_at->format('H:i:s') }}</td>
+                    <td>{{ $log->recorded_at->format('h:i A') }}</td>
                     <td>{{ $log->lat }}</td>
                     <td>{{ $log->lng }}</td>
                     <td>{{ $log->accuracy !== null ? $log->accuracy.' m' : '—' }}</td>
@@ -96,7 +96,7 @@
                             <button type="button" class="btn btn-outline-secondary" title="View Location"
                                     data-bs-toggle="modal" data-bs-target="#gpsLocationModal"
                                     data-lat="{{ $log->lat }}" data-lng="{{ $log->lng }}"
-                                    data-time="{{ $log->recorded_at->format('M d, Y H:i:s') }}">
+                                    data-time="{{ $log->recorded_at->format('d M Y, h:i A') }}">
                                 <i class="ti ti-map-pin"></i>
                             </button>
                             @if ($log->trashed())
@@ -137,7 +137,7 @@
                         <x-item-card
                             icon="ti-map-pin"
                             icon-color="primary"
-                            :title="$log->recorded_at->format('H:i:s')"
+                            :title="$log->recorded_at->format('h:i A')"
                             :subtitle="$log->lat.', '.$log->lng"
                             :status-label="$log->trashed() ? 'Trashed' : null"
                             status-color="danger"
@@ -156,7 +156,7 @@
                                 <button type="button" class="btn btn-outline-secondary" title="View Location"
                                         data-bs-toggle="modal" data-bs-target="#gpsLocationModal"
                                         data-lat="{{ $log->lat }}" data-lng="{{ $log->lng }}"
-                                        data-time="{{ $log->recorded_at->format('M d, Y H:i:s') }}">
+                                        data-time="{{ $log->recorded_at->format('d M Y, h:i A') }}">
                                     <i class="ti ti-map-pin"></i>
                                 </button>
                                 @if ($log->trashed())

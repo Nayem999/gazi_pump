@@ -45,7 +45,7 @@
             <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div>
                     <h6 class="mb-0">Daily Activity Report</h6>
-                    <div class="text-muted small">{{ $summary->user->name }} ({{ $summary->user->employee_id }}) &mdash; {{ $summary->date->format('M d, Y') }}</div>
+                    <div class="text-muted small">{{ $summary->user->name }} ({{ $summary->user->employee_id }}) &mdash; {{ $summary->date->format('d M Y') }}</div>
                 </div>
                 <a href="{{ route('reports.movement-summary.print', request()->query()) }}" class="btn btn-outline-secondary btn-sm" target="_blank">
                     <i class="ti ti-printer me-1"></i>Print

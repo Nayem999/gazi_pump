@@ -4,7 +4,7 @@
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('orders.index') }}">Orders</a></li>
-    <li class="breadcrumb-item active">{{ $order->dealer->name }} &mdash; {{ $order->order_date->format('M d, Y') }}</li>
+    <li class="breadcrumb-item active">{{ $order->dealer->name }} &mdash; {{ $order->order_date->format('d M Y') }}</li>
 @endsection
 
 @section('content')
@@ -76,7 +76,7 @@
                         <dd class="col-sm-8">{{ $order->retailer?->name ?? '—' }}</dd>
 
                         <dt class="col-sm-4">Order Date</dt>
-                        <dd class="col-sm-8">{{ $order->order_date->format('M d, Y') }}</dd>
+                        <dd class="col-sm-8">{{ $order->order_date->format('d M Y') }}</dd>
 
                         <dt class="col-sm-4">Total Amount</dt>
                         <dd class="col-sm-8">{{ number_format((float) $order->total_amount, 2) }}</dd>
@@ -88,7 +88,7 @@
                         <dd class="col-sm-8">
                             <span class="badge text-bg-{{ $order->status->badgeColor() }}">{{ $order->status->label() }}</span>
                             @if ($order->approvedBy)
-                                <span class="text-muted small">by {{ $order->approvedBy->name }} on {{ $order->approved_at?->format('M d, Y H:i') }}</span>
+                                <span class="text-muted small">by {{ $order->approvedBy->name }} on {{ $order->approved_at?->format('d M Y, h:i A') }}</span>
                             @endif
                         </dd>
                     </dl>

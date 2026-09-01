@@ -18,7 +18,7 @@
                 <tbody>
                     @forelse ($inquiries as $inquiry)
                         <tr>
-                            <td>{{ $inquiry->created_at->format('M d, Y') }}</td>
+                            <td>{{ $inquiry->created_at->format('d M Y') }}</td>
                             <td>{{ $inquiry->subject }}</td>
                             <td>{{ \Illuminate\Support\Str::limit($inquiry->message, 60) }}</td>
                             <td><span class="badge text-bg-{{ $inquiry->status->badgeColor() }}">{{ $inquiry->status->label() }}</span></td>

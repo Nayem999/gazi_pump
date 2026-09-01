@@ -14,7 +14,7 @@
 </head>
 <body>
     <h2>{{ config('app.name') }} &mdash; Dealer Visits Report</h2>
-    <div class="meta">Generated {{ now()->format('M d, Y H:i') }} &mdash; {{ $visits->count() }} record(s)</div>
+    <div class="meta">Generated {{ now()->format('d M Y, h:i A') }} &mdash; {{ $visits->count() }} record(s)</div>
 
     <table>
         <thead>
@@ -33,8 +33,8 @@
                 <tr>
                     <td>{{ $visit->user?->name }}</td>
                     <td>{{ $visit->dealer?->name }}</td>
-                    <td>{{ $visit->check_in_at?->format('M d, Y H:i') }}</td>
-                    <td>{{ $visit->check_out_at?->format('M d, Y H:i') }}</td>
+                    <td>{{ $visit->check_in_at?->format('d M Y, h:i A') }}</td>
+                    <td>{{ $visit->check_out_at?->format('d M Y, h:i A') }}</td>
                     <td>{{ match ($visit->is_gps_verified) { true => 'Yes', false => 'No', default => 'Unknown' } }}</td>
                     <td>{{ $visit->distance_from_dealer_meters }}</td>
                     <td>{{ $visit->feedback }}</td>

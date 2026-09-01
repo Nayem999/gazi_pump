@@ -23,7 +23,7 @@
                 <tbody>
                     @forelse ($visitRequests as $visitRequest)
                         <tr>
-                            <td>{{ $visitRequest->preferred_date->format('M d, Y') }}</td>
+                            <td>{{ $visitRequest->preferred_date->format('d M Y') }}</td>
                             <td>{{ \Illuminate\Support\Str::limit($visitRequest->address, 40) }}</td>
                             <td>{{ \Illuminate\Support\Str::limit($visitRequest->message, 40) }}</td>
                             <td><span class="badge text-bg-{{ $visitRequest->status->badgeColor() }}">{{ $visitRequest->status->label() }}</span></td>

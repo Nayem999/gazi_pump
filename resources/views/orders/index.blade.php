@@ -102,7 +102,7 @@
                         <span class="badge text-bg-secondary">{{ $order->items->count() }} item(s)</span>
                         <div class="text-muted small">{{ \Illuminate\Support\Str::limit($order->items->pluck('product.name')->filter()->implode(', '), 50) }}</div>
                     </td>
-                    <td>{{ $order->order_date->format('M d, Y') }}</td>
+                    <td>{{ $order->order_date->format('d M Y') }}</td>
                     <td>{{ number_format((float) $order->total_amount, 2) }}</td>
                     <td><span class="badge text-bg-{{ $order->status->badgeColor() }}">{{ $order->status->label() }}</span></td>
                     <td class="text-end">
@@ -175,7 +175,7 @@
                                 <div>Executive: {{ $order->user?->name }} &middot; <x-phone-actions :phone="$order->user?->phone" /></div>
                                 <div>Dealer Phone: <x-phone-actions :phone="$order->dealer?->phone" /></div>
                                 <div>Territory: {{ $order->dealer?->territory?->name ?? '—' }}</div>
-                                <div>Date: {{ $order->order_date->format('M d, Y') }}</div>
+                                <div>Date: {{ $order->order_date->format('d M Y') }}</div>
                                 <div>{{ \Illuminate\Support\Str::limit($order->items->pluck('product.name')->filter()->implode(', '), 60) }}</div>
                                 <div>Total: {{ number_format((float) $order->total_amount, 2) }}</div>
                             </x-slot:meta>

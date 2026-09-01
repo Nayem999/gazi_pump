@@ -41,8 +41,23 @@
         @include('partials.trashed-filter', ['filters' => $filters])
     </x-filter-bar>
 
+    {{--
+        bulkForm deliberately does NOT wrap the table below. Each row's own
+        delete/restore form is rendered inside the table, and nesting a form
+        inside another form is invalid HTML — browsers create it anyway, but
+        the "submit" event then bubbles from a row's form into this one, so
+        this form's own data-confirm handler fires right after the row's and
+        clobbers its dialog, then submits THIS form (with no ids selected)
+        instead of the row's. The bulk checkboxes and "Delete Selected"
+        button below use the form="bulkForm" attribute to stay associated
+        with this form without being its DOM descendants (same technique
+        already used for the Import modal's form below).
+    --}}
     <form id="bulkForm" method="POST" action="{{ route('visit-plans.bulk-destroy') }}" data-confirm data-confirm-title="Delete selected visit plans?">
         @csrf
+    </form>
+
+    <div>
         <x-data-table
             title="Visit Plans"
             :create-url="auth()->user()->can('create', \App\Models\VisitPlan::class) ? route('visit-plans.create') : null"
@@ -69,7 +84,7 @@
                 <tr>
                     <td>
                         @if (! $visitPlan->trashed())
-                            <input type="checkbox" name="ids[]" value="{{ $visitPlan->id }}" class="form-check-input row-checkbox">
+                            <input type="checkbox" name="ids[]" value="{{ $visitPlan->id }}" class="form-check-input row-checkbox" form="bulkForm">
                         @endif
                     </td>
                     <td>
@@ -87,11 +102,11 @@
                         <div class="small"><x-phone-actions :phone="$visitPlan->dealer?->phone" /></div>
                     </td>
                     <td>{{ $visitPlan->territory?->name ?? '—' }}</td>
-                    <td>{{ $visitPlan->planned_date->format('M d, Y') }}</td>
+                    <td>{{ $visitPlan->planned_date->format('d M Y') }}</td>
                     <td>
                         <span class="badge text-bg-{{ $visitPlan->status->badgeColor() }}">{{ $visitPlan->status->label() }}</span>
                         @if ($visitPlan->isMissed())
-                            <span class="badge text-bg-danger">Missed</span>
+                            <div class="badge small text-white text-bg-danger mt-1">Missed</div>
                         @endif
                     </td>
                     <td>{{ \Illuminate\Support\Str::limit($visitPlan->notes, 40) ?: '—' }}</td>
@@ -141,21 +156,24 @@
                             :title="$visitPlan->dealer?->name"
                             :title-url="$visitPlan->dealer && ! $visitPlan->dealer->trashed() ? route('dealers.show', $visitPlan->dealer) : null"
                             :subtitle="$visitPlan->dealer?->dealer_code"
-                            :status-label="$visitPlan->trashed() ? 'Trashed' : ($visitPlan->isMissed() ? 'Missed' : $visitPlan->status->label())"
-                            :status-color="$visitPlan->trashed() ? 'danger' : ($visitPlan->isMissed() ? 'danger' : $visitPlan->status->badgeColor())"
+                            :status-label="$visitPlan->trashed() ? 'Trashed' : $visitPlan->status->label()"
+                            :status-color="$visitPlan->trashed() ? 'danger' : $visitPlan->status->badgeColor()"
                         >
                             <x-slot:meta>
                                 <div>Executive: {{ $visitPlan->user?->name }} &middot; <x-phone-actions :phone="$visitPlan->user?->phone" /></div>
                                 <div>Dealer Phone: <x-phone-actions :phone="$visitPlan->dealer?->phone" /></div>
                                 <div>Territory: {{ $visitPlan->territory?->name ?? '—' }}</div>
-                                <div>Date: {{ $visitPlan->planned_date->format('M d, Y') }}</div>
+                                <div>Date: {{ $visitPlan->planned_date->format('d M Y') }}</div>
+                                @if ($visitPlan->isMissed())
+                                    <div class="text-danger">Missed</div>
+                                @endif
                                 @if ($visitPlan->notes)
                                     <div>{{ \Illuminate\Support\Str::limit($visitPlan->notes, 60) }}</div>
                                 @endif
                             </x-slot:meta>
                             <x-slot:checkbox>
                                 @if (! $visitPlan->trashed())
-                                    <input type="checkbox" name="ids[]" value="{{ $visitPlan->id }}" class="form-check-input row-checkbox">
+                                    <input type="checkbox" name="ids[]" value="{{ $visitPlan->id }}" class="form-check-input row-checkbox" form="bulkForm">
                                 @endif
                             </x-slot:checkbox>
                             <x-slot:actions>
@@ -196,10 +214,10 @@
 
         @can('visit-plans.delete')
             <div class="mt-2">
-                <button type="submit" class="btn btn-outline-danger btn-sm"><i class="ti ti-trash me-1"></i>Delete Selected</button>
+                <button type="submit" form="bulkForm" class="btn btn-outline-danger btn-sm"><i class="ti ti-trash me-1"></i>Delete Selected</button>
             </div>
         @endcan
-    </form>
+    </div>
 
     @can('import', \App\Models\VisitPlan::class)
         <x-modal id="importModal" title="Import Visit Plans">

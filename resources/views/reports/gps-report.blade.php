@@ -86,7 +86,7 @@
                             <td>{{ $row->ping_count }}</td>
                             <td>{{ $row->avg_accuracy !== null ? $row->avg_accuracy.' m' : '—' }}</td>
                             <td>{{ $row->avg_battery_level !== null ? $row->avg_battery_level.'%' : '—' }}</td>
-                            <td>{{ $row->last_seen_at?->format('M d, Y H:i') ?? '—' }}</td>
+                            <td>{{ $row->last_seen_at?->format('d M Y, h:i A') ?? '—' }}</td>
                         </tr>
                     @empty
                         <tr>

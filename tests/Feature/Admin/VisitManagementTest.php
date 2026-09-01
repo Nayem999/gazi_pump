@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\VisitPlanStatus;
 use App\Models\Dealer;
 use App\Models\User;
 use App\Models\Visit;
+use App\Models\VisitPlan;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -75,6 +77,29 @@ class VisitManagementTest extends TestCase
 
         $response->assertRedirect(route('visits.index'));
         $this->assertDatabaseHas('visits', ['user_id' => $executive->id, 'dealer_id' => $dealer->id]);
+    }
+
+    public function test_backfilling_a_visit_completes_the_matching_visit_plan_for_that_date(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        $plan = VisitPlan::factory()->create([
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'planned_date' => Carbon::yesterday()->toDateString(),
+            'status' => VisitPlanStatus::Planned,
+        ]);
+
+        $this->actingAs($manager)->post(route('visits.store'), [
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'check_in_at' => Carbon::yesterday()->setTime(10, 0)->format('Y-m-d H:i:s'),
+            'check_out_at' => Carbon::yesterday()->setTime(10, 30)->format('Y-m-d H:i:s'),
+            'feedback' => 'Backfilled from paper log.',
+        ])->assertRedirect(route('visits.index'));
+
+        $this->assertSame(VisitPlanStatus::Completed, $plan->fresh()->status);
     }
 
     public function test_general_manager_can_view_a_visit_detail_page(): void

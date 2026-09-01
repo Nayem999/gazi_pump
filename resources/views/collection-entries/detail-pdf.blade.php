@@ -34,13 +34,13 @@
     </table>
 
     <h2>Collection Detail &mdash; #{{ $collectionEntry->id }}</h2>
-    <div class="meta">Generated {{ now()->format('M d, Y H:i') }}</div>
+    <div class="meta">Generated {{ now()->format('d M Y, h:i A') }}</div>
 
     <table class="data">
         <tr><th>Dealer</th><td>{{ $collectionEntry->dealer?->name }} ({{ $collectionEntry->dealer?->dealer_code }})</td></tr>
         <tr><th>Dealer Phone</th><td>{{ $collectionEntry->dealer?->phone ?? '—' }}</td></tr>
         <tr><th>Sales Executive</th><td>{{ $collectionEntry->user?->name }} ({{ $collectionEntry->user?->employee_id }})</td></tr>
-        <tr><th>Collection Date</th><td>{{ $collectionEntry->collection_date->format('M d, Y') }}</td></tr>
+        <tr><th>Collection Date</th><td>{{ $collectionEntry->collection_date->format('d M Y') }}</td></tr>
         <tr><th>Amount</th><td>{{ number_format((float) $collectionEntry->amount, 2) }}</td></tr>
         <tr><th>Payment Method</th><td>{{ $collectionEntry->payment_method->label() }}</td></tr>
         <tr><th>Reference No.</th><td>{{ $collectionEntry->reference_no ?? '—' }}</td></tr>

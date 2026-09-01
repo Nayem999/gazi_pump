@@ -68,9 +68,9 @@
                         <div class="text-muted small">{{ $attendance->user?->employee_id }}</div>
                         <div class="small"><x-phone-actions :phone="$attendance->user?->phone" /></div>
                     </td>
-                    <td>{{ $attendance->date->format('M d, Y') }}</td>
-                    <td>{{ $attendance->check_in_at?->format('H:i') ?? '—' }}</td>
-                    <td>{{ $attendance->check_out_at?->format('H:i') ?? '—' }}</td>
+                    <td>{{ $attendance->date->format('d M Y') }}</td>
+                    <td>{{ $attendance->check_in_at?->format('h:i A') ?? '—' }}</td>
+                    <td>{{ $attendance->check_out_at?->format('h:i A') ?? '—' }}</td>
                     <td><span class="badge text-bg-{{ $attendance->status->badgeColor() }}">{{ $attendance->status->label() }}</span></td>
                     <td>{{ $attendance->late_minutes ?: '—' }}</td>
                     <td class="text-end">
@@ -127,8 +127,8 @@
                         >
                             <x-slot:meta>
                                 <div>Phone: <x-phone-actions :phone="$attendance->user?->phone" /></div>
-                                <div>Date: {{ $attendance->date->format('M d, Y') }}</div>
-                                <div>In: {{ $attendance->check_in_at?->format('H:i') ?? '—' }} &middot; Out: {{ $attendance->check_out_at?->format('H:i') ?? '—' }}</div>
+                                <div>Date: {{ $attendance->date->format('d M Y') }}</div>
+                                <div>In: {{ $attendance->check_in_at?->format('h:i A') ?? '—' }} &middot; Out: {{ $attendance->check_out_at?->format('h:i A') ?? '—' }}</div>
                                 @if ($attendance->late_minutes)
                                     <div>Late: {{ $attendance->late_minutes }} min</div>
                                 @endif

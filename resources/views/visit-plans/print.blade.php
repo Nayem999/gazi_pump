@@ -10,11 +10,12 @@
         table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
         th { background: #f1f5f9; }
+        .missed { color: #b91c1c; font-size: 10px; }
     </style>
 </head>
 <body>
     <h2>{{ config('app.name') }} &mdash; Visit Plans Report</h2>
-    <div class="meta">Generated {{ now()->format('M d, Y H:i') }} &mdash; {{ $visitPlans->count() }} record(s)</div>
+    <div class="meta">Generated {{ now()->format('d M Y, h:i A') }} &mdash; {{ $visitPlans->count() }} record(s)</div>
 
     <table>
         <thead>
@@ -31,8 +32,13 @@
                 <tr>
                     <td>{{ $visitPlan->user?->name }}</td>
                     <td>{{ $visitPlan->dealer?->name }}</td>
-                    <td>{{ $visitPlan->planned_date->format('M d, Y') }}</td>
-                    <td>{{ $visitPlan->status->label() }}</td>
+                    <td>{{ $visitPlan->planned_date->format('d M Y') }}</td>
+                    <td>
+                        {{ $visitPlan->status->label() }}
+                        @if ($visitPlan->isMissed())
+                            <div class="missed">Missed</div>
+                        @endif
+                    </td>
                     <td>{{ $visitPlan->notes }}</td>
                 </tr>
             @endforeach

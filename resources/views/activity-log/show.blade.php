@@ -18,7 +18,7 @@
             <div class="row g-3">
                 <div class="col-md-3">
                     <div class="text-muted small">Date</div>
-                    <div class="fw-semibold">{{ $activity->created_at->format('M d, Y H:i:s') }}</div>
+                    <div class="fw-semibold">{{ $activity->created_at->format('d M Y, h:i A') }}</div>
                 </div>
                 <div class="col-md-3">
                     <div class="text-muted small">Causer</div>

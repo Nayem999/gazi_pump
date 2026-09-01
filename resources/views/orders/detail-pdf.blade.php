@@ -38,14 +38,14 @@
     </table>
 
     <h2>Order Detail &mdash; #{{ $order->id }}</h2>
-    <div class="meta">Generated {{ now()->format('M d, Y H:i') }}</div>
+    <div class="meta">Generated {{ now()->format('d M Y, h:i A') }}</div>
 
     <table class="data">
         <tr><th>Dealer</th><td>{{ $order->dealer?->name }} ({{ $order->dealer?->dealer_code }})</td></tr>
         <tr><th>Dealer Phone</th><td>{{ $order->dealer?->phone ?? '—' }}</td></tr>
         <tr><th>Retailer</th><td>{{ $order->retailer?->name ?? '—' }}</td></tr>
         <tr><th>Sales Executive</th><td>{{ $order->user?->name }} ({{ $order->user?->employee_id }})</td></tr>
-        <tr><th>Order Date</th><td>{{ $order->order_date->format('M d, Y') }}</td></tr>
+        <tr><th>Order Date</th><td>{{ $order->order_date->format('d M Y') }}</td></tr>
         <tr><th>Total Amount</th><td>{{ number_format((float) $order->total_amount, 2) }}</td></tr>
         <tr><th>Remarks</th><td>{{ $order->remarks ?? '—' }}</td></tr>
     </table>

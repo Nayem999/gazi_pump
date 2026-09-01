@@ -37,7 +37,7 @@
     </table>
 
     <h2>User Detail</h2>
-    <div class="meta">Generated {{ now()->format('M d, Y H:i') }}</div>
+    <div class="meta">Generated {{ now()->format('d M Y, h:i A') }}</div>
 
     <table class="data">
         <tr><th>Employee ID</th><td>{{ $user->employee_id ?? '—' }}</td></tr>
@@ -53,7 +53,7 @@
             <th>Status</th>
             <td><span class="badge {{ $user->status ? 'badge-success' : 'badge-secondary' }}">{{ $user->status ? 'Active' : 'Inactive' }}</span></td>
         </tr>
-        <tr><th>Created</th><td>{{ $user->created_at?->format('M d, Y H:i') }}</td></tr>
+        <tr><th>Created</th><td>{{ $user->created_at?->format('d M Y, h:i A') }}</td></tr>
     </table>
 </body>
 </html>

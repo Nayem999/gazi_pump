@@ -58,7 +58,7 @@
                     <td><span class="badge text-bg-info">{{ $announcement->audienceLabel() }}</span></td>
                     <td>{{ $announcement->sender?->name }}</td>
                     <td>{{ $announcement->recipient_count }}</td>
-                    <td>{{ $announcement->created_at->format('M d, Y H:i') }}</td>
+                    <td>{{ $announcement->created_at->format('d M Y, h:i A') }}</td>
                     <td class="text-end">
                         <div class="btn-group btn-group-sm">
                             @if ($announcement->trashed())

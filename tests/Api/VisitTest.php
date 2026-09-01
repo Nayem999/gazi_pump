@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Api;
 
+use App\Enums\VisitPlanStatus;
 use App\Models\Dealer;
 use App\Models\User;
 use App\Models\Visit;
+use App\Models\VisitPlan;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -171,6 +173,75 @@ class VisitTest extends TestCase
             ->getJson('/api/v1/visits/current')
             ->assertOk()
             ->assertJsonPath('data', null);
+    }
+
+    public function test_checking_in_with_an_explicit_plan_marks_it_completed(): void
+    {
+        Storage::fake('public');
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        $plan = VisitPlan::factory()->create([
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'status' => VisitPlanStatus::Planned,
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/visits/check-in', [
+                'dealer_id' => $dealer->id,
+                'visit_plan_id' => $plan->id,
+                'lat' => 23.8103,
+                'lng' => 90.4125,
+                'photo' => UploadedFile::fake()->image('storefront.jpg'),
+            ])->assertStatus(201);
+
+        $this->assertSame(VisitPlanStatus::Completed, $plan->fresh()->status);
+    }
+
+    public function test_checking_in_without_a_plan_completes_a_matching_planned_visit_for_that_date(): void
+    {
+        Storage::fake('public');
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        $plan = VisitPlan::factory()->create([
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'planned_date' => Carbon::today()->toDateString(),
+            'status' => VisitPlanStatus::Planned,
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/visits/check-in', [
+                'dealer_id' => $dealer->id,
+                'lat' => 23.8103,
+                'lng' => 90.4125,
+                'photo' => UploadedFile::fake()->image('storefront.jpg'),
+            ])->assertStatus(201);
+
+        $this->assertSame(VisitPlanStatus::Completed, $plan->fresh()->status);
+    }
+
+    public function test_checking_in_does_not_resurrect_a_cancelled_plan_for_the_same_date(): void
+    {
+        Storage::fake('public');
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        $plan = VisitPlan::factory()->create([
+            'user_id' => $executive->id,
+            'dealer_id' => $dealer->id,
+            'planned_date' => Carbon::today()->toDateString(),
+            'status' => VisitPlanStatus::Cancelled,
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/visits/check-in', [
+                'dealer_id' => $dealer->id,
+                'lat' => 23.8103,
+                'lng' => 90.4125,
+                'photo' => UploadedFile::fake()->image('storefront.jpg'),
+            ])->assertStatus(201);
+
+        $this->assertSame(VisitPlanStatus::Cancelled, $plan->fresh()->status);
     }
 
     public function test_history_only_returns_the_authenticated_users_own_visits(): void

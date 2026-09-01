@@ -14,7 +14,7 @@
         <div class="row justify-content-center">
             <div class="col-lg-8">
                 <h1>{{ $article->title }}</h1>
-                <p class="text-muted">{{ $article->published_at?->format('F d, Y') }}</p>
+                <p class="text-muted">{{ $article->published_at?->format('d F Y') }}</p>
                 @if ($article->coverImageUrl())
                     <img src="{{ $article->coverImageUrl() }}" class="img-fluid rounded mb-4" alt="{{ $article->title }}">
                 @endif

@@ -14,7 +14,7 @@
 </head>
 <body>
     <h2>{{ config('app.name') }} &mdash; Attendance Report</h2>
-    <div class="meta">Generated {{ now()->format('M d, Y H:i') }} &mdash; {{ $attendances->count() }} record(s)</div>
+    <div class="meta">Generated {{ now()->format('d M Y, h:i A') }} &mdash; {{ $attendances->count() }} record(s)</div>
 
     <table>
         <thead>
@@ -33,9 +33,9 @@
                 <tr>
                     <td>{{ $attendance->user?->employee_id }}</td>
                     <td>{{ $attendance->user?->name }}</td>
-                    <td>{{ $attendance->date->format('M d, Y') }}</td>
-                    <td>{{ $attendance->check_in_at?->format('H:i') }}</td>
-                    <td>{{ $attendance->check_out_at?->format('H:i') }}</td>
+                    <td>{{ $attendance->date->format('d M Y') }}</td>
+                    <td>{{ $attendance->check_in_at?->format('h:i A') }}</td>
+                    <td>{{ $attendance->check_out_at?->format('h:i A') }}</td>
                     <td>{{ $attendance->status->label() }}</td>
                     <td>{{ $attendance->late_minutes }}</td>
                 </tr>

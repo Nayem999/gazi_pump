@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0">Purchase &mdash; {{ $order->order_date->format('M d, Y') }}</h1>
+        <h1 class="mb-0">Purchase &mdash; {{ $order->order_date->format('d M Y') }}</h1>
         <a href="{{ route('portal.purchases.index') }}" class="btn btn-outline-secondary btn-sm">
             <i class="ti ti-arrow-left me-1"></i>Back to Purchases
         </a>
@@ -14,7 +14,7 @@
         <div class="card-body">
             <dl class="row mb-0">
                 <dt class="col-sm-3">Date</dt>
-                <dd class="col-sm-9">{{ $order->order_date->format('M d, Y') }}</dd>
+                <dd class="col-sm-9">{{ $order->order_date->format('d M Y') }}</dd>
 
                 <dt class="col-sm-3">Items</dt>
                 <dd class="col-sm-9">{{ $order->items->count() }}</dd>

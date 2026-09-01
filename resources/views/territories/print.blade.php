@@ -14,7 +14,7 @@
 </head>
 <body>
     <h2>{{ config('app.name') }} &mdash; Territories Report</h2>
-    <div class="meta">Generated {{ now()->format('M d, Y H:i') }} &mdash; {{ $territories->count() }} record(s)</div>
+    <div class="meta">Generated {{ now()->format('d M Y, h:i A') }} &mdash; {{ $territories->count() }} record(s)</div>
 
     <table>
         <thead>

@@ -41,7 +41,7 @@
                         @endif
                     </div>
                     @if ($entry->approvedBy)
-                        <div class="text-muted small mt-3">{{ $entry->status->label() }} by {{ $entry->approvedBy->name }} &middot; {{ $entry->approved_at?->format('M d, Y H:i') }}</div>
+                        <div class="text-muted small mt-3">{{ $entry->status->label() }} by {{ $entry->approvedBy->name }} &middot; {{ $entry->approved_at?->format('d M Y, h:i A') }}</div>
                     @endif
                 </div>
             </div>

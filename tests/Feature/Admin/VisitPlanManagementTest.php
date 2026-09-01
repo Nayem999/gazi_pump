@@ -269,4 +269,33 @@ class VisitPlanManagementTest extends TestCase
         $this->assertTrue($missed->isMissed());
         $this->assertFalse($fulfilled->isMissed());
     }
+
+    public function test_a_plan_still_planned_for_today_is_not_yet_missed(): void
+    {
+        $today = VisitPlan::factory()->create(['planned_date' => Carbon::today()->toDateString(), 'status' => VisitPlanStatus::Planned]);
+
+        $this->assertFalse($today->isMissed());
+    }
+
+    public function test_the_index_page_shows_missed_for_a_plan_past_its_date_and_still_planned(): void
+    {
+        $manager = $this->generalManager();
+        VisitPlan::factory()->create(['planned_date' => Carbon::yesterday()->toDateString(), 'status' => VisitPlanStatus::Planned]);
+
+        $this->actingAs($manager)->get(route('visit-plans.index'))
+            ->assertOk()
+            ->assertSee('Missed');
+    }
+
+    public function test_the_index_page_does_not_show_missed_when_no_plan_is_overdue(): void
+    {
+        $manager = $this->generalManager();
+        VisitPlan::factory()->completed()->create(['planned_date' => Carbon::yesterday()->toDateString()]);
+        VisitPlan::factory()->create(['planned_date' => Carbon::tomorrow()->toDateString(), 'status' => VisitPlanStatus::Planned]);
+        VisitPlan::factory()->create(['planned_date' => Carbon::today()->toDateString(), 'status' => VisitPlanStatus::Planned]);
+
+        $this->actingAs($manager)->get(route('visit-plans.index'))
+            ->assertOk()
+            ->assertDontSee('Missed');
+    }
 }

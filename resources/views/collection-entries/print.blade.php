@@ -15,7 +15,7 @@
 </head>
 <body>
     <h2>{{ config('app.name') }} &mdash; Collection Entries Report</h2>
-    <div class="meta">Generated {{ now()->format('M d, Y H:i') }} &mdash; {{ $collectionEntries->count() }} record(s)</div>
+    <div class="meta">Generated {{ now()->format('d M Y, h:i A') }} &mdash; {{ $collectionEntries->count() }} record(s)</div>
 
     <table>
         <thead>
@@ -35,7 +35,7 @@
                 <tr>
                     <td>{{ $collectionEntry->user?->name }}</td>
                     <td>{{ $collectionEntry->dealer?->name }}</td>
-                    <td>{{ $collectionEntry->collection_date->format('M d, Y') }}</td>
+                    <td>{{ $collectionEntry->collection_date->format('d M Y') }}</td>
                     <td>{{ number_format((float) $collectionEntry->amount, 2) }}</td>
                     <td>{{ $collectionEntry->payment_method->label() }}</td>
                     <td>{{ $collectionEntry->reference_no }}</td>

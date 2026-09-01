@@ -55,7 +55,7 @@
                             <input type="checkbox" name="ids[]" value="{{ $holiday->id }}" class="form-check-input row-checkbox">
                         @endif
                     </td>
-                    <td>{{ $holiday->date->format('M d, Y') }}</td>
+                    <td>{{ $holiday->date->format('d M Y') }}</td>
                     <td>{{ $holiday->name }}</td>
                     <td>{{ $holiday->description }}</td>
                     <td>
@@ -111,7 +111,7 @@
                             icon="ti-calendar-event"
                             icon-color="danger"
                             :title="$holiday->name"
-                            :subtitle="$holiday->date->format('M d, Y')"
+                            :subtitle="$holiday->date->format('d M Y')"
                             :status-label="$holiday->trashed() ? 'Trashed' : ($holiday->status ? 'Active' : 'Inactive')"
                             :status-color="$holiday->trashed() ? 'danger' : ($holiday->status ? 'success' : 'secondary')"
                         >

@@ -4,7 +4,7 @@
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('collection-entries.index') }}">Collection Entries</a></li>
-    <li class="breadcrumb-item active">{{ $collectionEntry->dealer?->name }} &mdash; {{ $collectionEntry->collection_date->format('M d, Y') }}</li>
+    <li class="breadcrumb-item active">{{ $collectionEntry->dealer?->name }} &mdash; {{ $collectionEntry->collection_date->format('d M Y') }}</li>
 @endsection
 
 @section('content')
@@ -73,7 +73,7 @@
                         <dd class="col-sm-8"><x-phone-actions :phone="$collectionEntry->dealer?->phone" /></dd>
 
                         <dt class="col-sm-4">Collection Date</dt>
-                        <dd class="col-sm-8">{{ $collectionEntry->collection_date->format('M d, Y') }}</dd>
+                        <dd class="col-sm-8">{{ $collectionEntry->collection_date->format('d M Y') }}</dd>
 
                         <dt class="col-sm-4">Amount</dt>
                         <dd class="col-sm-8 fw-semibold">{{ number_format((float) $collectionEntry->amount, 2) }}</dd>
@@ -114,13 +114,13 @@
                         <dd class="col-sm-8">{{ $collectionEntry->remarks ?? '—' }}</dd>
 
                         <dt class="col-sm-4">Recorded</dt>
-                        <dd class="col-sm-8">{{ $collectionEntry->created_at?->format('M d, Y H:i') }}</dd>
+                        <dd class="col-sm-8">{{ $collectionEntry->created_at?->format('d M Y, h:i A') }}</dd>
 
                         <dt class="col-sm-4">Approval Status</dt>
                         <dd class="col-sm-8">
                             <span class="badge text-bg-{{ $collectionEntry->status->badgeColor() }}">{{ $collectionEntry->status->label() }}</span>
                             @if ($collectionEntry->approvedBy)
-                                <span class="text-muted small">by {{ $collectionEntry->approvedBy->name }} on {{ $collectionEntry->approved_at?->format('M d, Y H:i') }}</span>
+                                <span class="text-muted small">by {{ $collectionEntry->approvedBy->name }} on {{ $collectionEntry->approved_at?->format('d M Y, h:i A') }}</span>
                             @endif
                         </dd>
                     </dl>

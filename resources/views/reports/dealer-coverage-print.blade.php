@@ -14,7 +14,7 @@
 </head>
 <body>
     <h2>{{ config('app.name') }} &mdash; Dealer Coverage Report</h2>
-    <div class="meta">Generated {{ now()->format('M d, Y H:i') }} &mdash; {{ $rows->count() }} territory(ies)</div>
+    <div class="meta">Generated {{ now()->format('d M Y, h:i A') }} &mdash; {{ $rows->count() }} territory(ies)</div>
 
     <table>
         <thead>

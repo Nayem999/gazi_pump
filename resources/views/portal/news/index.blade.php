@@ -14,7 +14,7 @@
                         @endif
                         <div class="card-body">
                             <h6 class="card-title">{{ $article->title }}</h6>
-                            <p class="text-muted small">{{ $article->published_at?->format('M d, Y') }}</p>
+                            <p class="text-muted small">{{ $article->published_at?->format('d M Y') }}</p>
                             <p class="card-text small">{{ \Illuminate\Support\Str::limit($article->excerpt, 100) }}</p>
                             <a href="{{ route('portal.news.show', $article) }}" class="small">Read More &rarr;</a>
                         </div>

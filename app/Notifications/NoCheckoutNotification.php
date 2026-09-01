@@ -28,7 +28,7 @@ class NoCheckoutNotification extends Notification
         return [
             'type' => NotificationType::NoCheckout->value,
             'title' => 'Missed Checkout',
-            'message' => "{$this->attendance->user->name} checked in on {$this->attendance->date->format('M d, Y')} but never checked out.",
+            'message' => "{$this->attendance->user->name} checked in on {$this->attendance->date->format('d M Y')} but never checked out.",
             'attendance_id' => $this->attendance->id,
         ];
     }

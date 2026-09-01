@@ -47,7 +47,7 @@
                 <tbody>
                     @forelse ($rows as $row)
                         <tr>
-                            <td>{{ $row->date->format('M d, Y') }}</td>
+                            <td>{{ $row->date->format('d M Y') }}</td>
                             <td>{{ $row->description }}</td>
                             <td>{{ $row->debit > 0 ? number_format($row->debit, 2) : '—' }}</td>
                             <td>{{ $row->credit > 0 ? number_format($row->credit, 2) : '—' }}</td>

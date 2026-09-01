@@ -16,8 +16,8 @@
                             <h6 class="card-title">{{ $promotion->title }}</h6>
                             @if ($promotion->starts_at || $promotion->ends_at)
                                 <p class="text-muted small">
-                                    {{ $promotion->starts_at?->format('M d, Y') }}
-                                    @if ($promotion->ends_at) &ndash; {{ $promotion->ends_at->format('M d, Y') }} @endif
+                                    {{ $promotion->starts_at?->format('d M Y') }}
+                                    @if ($promotion->ends_at) &ndash; {{ $promotion->ends_at->format('d M Y') }} @endif
                                 </p>
                             @endif
                             <p class="card-text small">{{ $promotion->description }}</p>

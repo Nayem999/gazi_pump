@@ -53,7 +53,7 @@
                         <span class="badge text-bg-{{ $inquiry->status->badgeColor() }}">{{ $inquiry->status->label() }}</span>
                     @endif
                 </td>
-                <td>{{ $inquiry->created_at->format('M d, Y H:i') }}</td>
+                <td>{{ $inquiry->created_at->format('d M Y, h:i A') }}</td>
                 <td class="text-end">
                     @if (! $inquiry->trashed())
                         @can('view', $inquiry)
