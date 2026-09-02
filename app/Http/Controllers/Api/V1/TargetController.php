@@ -35,7 +35,7 @@ class TargetController extends Controller
         $target = Target::where('user_id', $request->user()->id)
             ->where('month', $today->month)
             ->where('year', $today->year)
-            ->with('achievement')
+            ->with(['achievement', 'items.product'])
             ->first();
 
         return ApiResponse::success($target ? new TargetResource($target) : null);
@@ -54,7 +54,7 @@ class TargetController extends Controller
     )]
     public function index(Request $request): JsonResponse
     {
-        $query = Target::where('user_id', $request->user()->id)->with('achievement');
+        $query = Target::where('user_id', $request->user()->id)->with(['achievement', 'items.product']);
 
         if ($request->filled('year')) {
             $query->where('year', $request->integer('year'));
