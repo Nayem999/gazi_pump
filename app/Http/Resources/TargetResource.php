@@ -26,6 +26,18 @@ class TargetResource extends JsonResource
             'order_value_target' => (float) $this->order_value_target,
             'collection_target' => (float) $this->collection_target,
             'quantity_target' => $this->quantity_target,
+            'is_product_wise' => $this->isProductWise(),
+            'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($item) => [
+                'id' => $item->id,
+                'product' => $item->relationLoaded('product') && $item->product ? [
+                    'id' => $item->product->id,
+                    'name' => $item->product->name,
+                    'sku' => $item->product->sku,
+                ] : null,
+                'order_target' => (float) $item->order_target,
+                'collection_target' => (float) $item->collection_target,
+                'quantity_target' => $item->quantity_target,
+            ])),
             'notes' => $this->notes,
             'achievement' => $this->whenLoaded('achievement', fn () => $this->achievement ? [
                 'order_achieved' => (float) $this->achievement->order_achieved,
