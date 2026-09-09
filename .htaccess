@@ -1,6 +1,22 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    # Hand the Authorization header through to PHP.
+    #
+    # public/.htaccess carries the same two rules, but application routes
+    # never reach it: they are rewritten to index.php in THIS directory
+    # (see the front-controller note below), so only this file's rules
+    # apply to them. Without this, Apache/CGI drops the header entirely and
+    # every bearer-token request 401s — the whole mobile API and the Tally
+    # Sync Agent — while the same token works fine under `artisan serve`,
+    # which is what made it look like a credential problem rather than a
+    # web-server one.
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
     # Block direct access to everything except the public/ folder and this
     # front-controller shim — .env, composer.json, vendor/, app/, storage/,
     # etc. all live here and must never be served as raw files or listings.

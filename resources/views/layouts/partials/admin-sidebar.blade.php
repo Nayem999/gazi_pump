@@ -8,11 +8,13 @@
     <i class="ti ti-gauge icon-blue"></i> Dashboard
 </a>
 
-{{-- Orders, Collection Entry, and Cash Handover are retired (see the
-     "version 1" Achievement pivot) — no role holds their menu permission
-     any more except Super Admin (via Permission::all()), so these links
-     naturally disappear for everyone else without deleting them here. --}}
-{{-- @canany(['menu.orders', 'menu.collection-entries', 'menu.cash-handovers'])
+{{-- Orders and Collection Entry were revived as the live transactional
+     backbone for Tally sync (see docs/tally-sfa-integration.md, Phase 2).
+     Cash Handover stays retired (a separate, permanent decision) — no role
+     holds its menu permission any more except Super Admin (via
+     Permission::all()), so that one link naturally disappears for everyone
+     else without deleting it here. --}}
+@canany(['menu.orders', 'menu.collection-entries', 'menu.cash-handovers'])
     <div class="nav-section-title">Order Operations</div>
 @endcanany
 
@@ -28,12 +30,24 @@
     </a>
 @endcan
 
+@can('menu.deliveries')
+    <a href="{{ route('deliveries.index') }}" class="nav-link {{ request()->routeIs('deliveries.*') ? 'active' : '' }}">
+        <i class="ti ti-truck-delivery icon-indigo"></i> Deliveries
+    </a>
+@endcan
+
+@can('menu.sales-returns')
+    <a href="{{ route('sales-returns.index') }}" class="nav-link {{ request()->routeIs('sales-returns.*') ? 'active' : '' }}">
+        <i class="ti ti-rotate-2 icon-red"></i> Sales Returns
+    </a>
+@endcan
+
 @can('menu.cash-handovers')
     <a href="{{ route('cash-handovers.index') }}" class="nav-link {{ request()->routeIs('cash-handovers.*') ? 'active' : '' }}">
         <i class="ti ti-hand-move icon-amber"></i> Cash Handover
     </a>
 @endcan
- --}}
+
 @canany(['menu.targets', 'menu.achievements'])
     <div class="nav-section-title">Performance</div>
 @endcanany
@@ -50,13 +64,19 @@
     </a>
 @endcan
 
-@canany(['menu.attendance', 'menu.gps-logs', 'menu.live-gps', 'menu.visit-plans', 'menu.visits'])
+@canany(['menu.attendance', 'menu.gps-logs', 'menu.live-gps', 'menu.visit-plans', 'menu.visits', 'menu.leave-requests'])
     <div class="nav-section-title">Field Operations</div>
 @endcanany
 
 @can('menu.attendance')
     <a href="{{ route('attendance.index') }}" class="nav-link {{ request()->routeIs('attendance.*') ? 'active' : '' }}">
         <i class="ti ti-calendar-check icon-green"></i> Attendance
+    </a>
+@endcan
+
+@can('menu.leave-requests')
+    <a href="{{ route('leave-requests.index') }}" class="nav-link {{ request()->routeIs('leave-requests.*') ? 'active' : '' }}">
+        <i class="ti ti-calendar-off icon-blue"></i> Leave Requests
     </a>
 @endcan
 
@@ -140,6 +160,24 @@
     </a>
 @endcan
 
+@can('menu.depots')
+    <a href="{{ route('depots.index') }}" class="nav-link {{ request()->routeIs('depots.*') ? 'active' : '' }}">
+        <i class="ti ti-building-warehouse icon-cyan"></i> Depots
+    </a>
+@endcan
+
+@can('menu.vehicles')
+    <a href="{{ route('vehicles.index') }}" class="nav-link {{ request()->routeIs('vehicles.*') ? 'active' : '' }}">
+        <i class="ti ti-truck icon-green"></i> Vehicles
+    </a>
+@endcan
+
+@can('menu.drivers')
+    <a href="{{ route('drivers.index') }}" class="nav-link {{ request()->routeIs('drivers.*') ? 'active' : '' }}">
+        <i class="ti ti-id-badge-2 icon-amber"></i> Drivers
+    </a>
+@endcan
+
 @canany(['dealers.view', 'retailers.view'])
     <div class="nav-section-title">Dealer Management</div>
 @endcanany
@@ -150,11 +188,11 @@
     </a>
 @endcan
 
-{{-- @can('menu.retailers')
+@can('menu.retailers')
     <a href="{{ route('retailers.index') }}" class="nav-link {{ request()->routeIs('retailers.*') ? 'active' : '' }}">
         <i class="ti ti-building-cottage icon-pink"></i> Retailers
     </a>
-@endcan --}}
+@endcan
 
 @canany(['product-categories.view', 'products.view'])
     <div class="nav-section-title">Product Management</div>
@@ -234,7 +272,7 @@
     </a>
 @endcan
 
-@canany(['menu.activity-log', 'menu.holidays', 'menu.settings'])
+@canany(['menu.activity-log', 'menu.tally-integration', 'menu.holidays', 'menu.leave-types', 'menu.leave-balances', 'menu.settings'])
     <div class="nav-section-title">System</div>
 @endcanany
 
@@ -244,9 +282,27 @@
     </a>
 @endcan
 
+@can('menu.tally-integration')
+    <a href="{{ route('tally-integration.dashboard') }}" class="nav-link {{ request()->routeIs('tally-integration.*') || request()->routeIs('tally-connections.*') ? 'active' : '' }}">
+        <i class="ti ti-refresh icon-green"></i> Tally Integration
+    </a>
+@endcan
+
 @can('menu.holidays')
     <a href="{{ route('holidays.index') }}" class="nav-link {{ request()->routeIs('holidays.*') ? 'active' : '' }}">
         <i class="ti ti-calendar-event icon-red"></i> Holidays
+    </a>
+@endcan
+
+@can('menu.leave-types')
+    <a href="{{ route('leave-types.index') }}" class="nav-link {{ request()->routeIs('leave-types.*') ? 'active' : '' }}">
+        <i class="ti ti-beach icon-blue"></i> Leave Types
+    </a>
+@endcan
+
+@can('menu.leave-balances')
+    <a href="{{ route('leave-balances.index') }}" class="nav-link {{ request()->routeIs('leave-balances.*') ? 'active' : '' }}">
+        <i class="ti ti-scale icon-blue"></i> Leave Entitlements
     </a>
 @endcan
 

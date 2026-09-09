@@ -107,7 +107,71 @@ class DealerTest extends TestCase
         $this->assertDatabaseHas('dealers', ['dealer_code' => 'CUST-API-TEST']);
     }
 
-    // Dealer outstanding-balance/ledger endpoints were retired along with
-    // Order/Collection Entry (see the "version 1" Achievement pivot) — the
-    // routes are removed from routes/api/v1.php, so their tests go with them.
+    /**
+     * Phase 7: revived alongside the DealerController methods that already
+     * existed (Order/Collection Entry's own revival in Phase 2 restored
+     * these two controller actions but their routes were never re-added to
+     * routes/api/v1.php — now fixed) — and improved to prefer the real
+     * Tally-synced balance (Phase 5) over the SFA-only estimate.
+     */
+    public function test_outstanding_balance_falls_back_to_the_sfa_estimate_when_never_synced(): void
+    {
+        $executive = User::factory()->create();
+        $executive->assignRole('Sales Executive');
+        $dealer = Dealer::factory()->create();
+        \App\Models\Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+        \App\Models\CollectionEntry::factory()->create(['dealer_id' => $dealer->id, 'amount' => 300]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->getJson("/api/v1/dealers/{$dealer->id}/outstanding-balance");
+
+        $response->assertOk()
+            ->assertJsonPath('data.outstanding_balance', 700)
+            ->assertJsonPath('data.source', 'estimate');
+    }
+
+    public function test_outstanding_balance_prefers_the_real_tally_ledger_once_synced(): void
+    {
+        $executive = User::factory()->create();
+        $executive->assignRole('Sales Executive');
+        $dealer = Dealer::factory()->create();
+        \App\Models\Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+        \App\Models\LedgerEntry::factory()->create(['dealer_id' => $dealer->id, 'debit_amount' => 500, 'credit_amount' => 0]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->getJson("/api/v1/dealers/{$dealer->id}/outstanding-balance");
+
+        $response->assertOk()
+            ->assertJsonPath('data.outstanding_balance', 500)
+            ->assertJsonPath('data.source', 'tally');
+    }
+
+    public function test_ledger_falls_back_to_the_order_collection_estimate_when_never_synced(): void
+    {
+        $executive = User::factory()->create();
+        $executive->assignRole('Sales Executive');
+        $dealer = Dealer::factory()->create();
+        \App\Models\Order::factory()->create(['dealer_id' => $dealer->id, 'order_date' => '2026-08-01', 'total_amount' => 1000]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->getJson("/api/v1/dealers/{$dealer->id}/ledger");
+
+        $response->assertOk()->assertJsonCount(1, 'data.transactions');
+    }
+
+    public function test_ledger_prefers_real_tally_ledger_entries_once_any_exist(): void
+    {
+        $executive = User::factory()->create();
+        $executive->assignRole('Sales Executive');
+        $dealer = Dealer::factory()->create();
+        \App\Models\Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+        \App\Models\LedgerEntry::factory()->create(['dealer_id' => $dealer->id, 'voucher_type' => 'Sales', 'debit_amount' => 750, 'credit_amount' => 0]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->getJson("/api/v1/dealers/{$dealer->id}/ledger");
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data.transactions')
+            ->assertJsonPath('data.balance', 750);
+    }
 }

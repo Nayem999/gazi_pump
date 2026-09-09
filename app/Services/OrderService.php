@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\ApprovalStatus;
+use App\Enums\SyncDirection;
+use App\Enums\TallyEntityType;
+use App\Enums\TallyRecordSyncStatus;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -17,8 +20,10 @@ use Illuminate\Validation\ValidationException;
 
 class OrderService extends BaseCrudService
 {
-    public function __construct(private readonly OrderRepositoryInterface $orders)
-    {
+    public function __construct(
+        private readonly OrderRepositoryInterface $orders,
+        private readonly TallySyncQueueService $syncQueue,
+    ) {
         parent::__construct($orders);
     }
 
@@ -55,7 +60,12 @@ class OrderService extends BaseCrudService
             $order = parent::create($data);
             $order->items()->createMany($lines);
 
-            return $order->load('items.product');
+            // The idempotency key every retry of this exact order must share
+            // (spec §30) — generated once the row has a real id, since the
+            // format embeds it.
+            $order->update(['external_reference' => $this->generateExternalReference($order->id)]);
+
+            return $order->fresh()->load('items.product');
         });
     }
 
@@ -63,12 +73,17 @@ class OrderService extends BaseCrudService
      * Forward-only, mirroring CashHandoverService::confirm()/reject(): only
      * a Pending order can be approved or rejected, and both are terminal —
      * a rejected order is corrected and resubmitted, not reopened here.
+     * Only an Approved order is ever pushed toward Tally — its own
+     * sync_status is a separate dimension from this business status (spec
+     * §46), tracked independently from here on.
      */
     public function approve(Order $order, int $approverId): Order
     {
         $this->assertPending($order);
 
         $order->update(['status' => ApprovalStatus::Approved->value, 'approved_by' => $approverId, 'approved_at' => now()]);
+
+        $this->enqueueTallySync($order->fresh(['dealer', 'retailer', 'items.product']));
 
         return $order->fresh();
     }
@@ -89,6 +104,67 @@ class OrderService extends BaseCrudService
                 'status' => 'This order has already been '.$order->status->label().' and cannot be changed.',
             ]);
         }
+    }
+
+    private function generateExternalReference(int $orderId): string
+    {
+        return sprintf('SFA-SO-%s-%06d', now()->format('Ymd'), $orderId);
+    }
+
+    /**
+     * Pushes an approved order toward Tally as a Sales Voucher — but only
+     * once every product/dealer it references actually has a Tally mapping
+     * (spec §32: CUSTOMER_MAPPING_MISSING / PRODUCT_MAPPING_MISSING). A
+     * missing mapping fails the order's sync_status immediately with a
+     * clear reason rather than silently enqueueing something the Sync Agent
+     * could never complete; an admin fixes the mapping (Tally Integration →
+     * Mapping) and retries from the Order's own action, which re-runs this
+     * same check.
+     */
+    private function enqueueTallySync(Order $order): void
+    {
+        if (! $order->dealer?->tally_guid) {
+            $order->update(['sync_status' => TallyRecordSyncStatus::Failed, 'sync_error' => "Dealer \"{$order->dealer?->name}\" has no Tally mapping yet."]);
+
+            return;
+        }
+
+        $itemPayload = [];
+
+        foreach ($order->items as $item) {
+            if (! $item->product?->tally_guid) {
+                $order->update(['sync_status' => TallyRecordSyncStatus::Failed, 'sync_error' => "Product \"{$item->product?->name}\" has no Tally mapping yet."]);
+
+                return;
+            }
+
+            $itemPayload[] = [
+                'product_tally_guid' => $item->product->tally_guid,
+                'product_name' => $item->product->name,
+                'quantity' => $item->quantity,
+                'unit_price' => (float) $item->unit_price,
+                'discount_amount' => (float) $item->discount_amount,
+                'total_amount' => (float) $item->total_amount,
+            ];
+        }
+
+        $this->syncQueue->enqueue(
+            TallyEntityType::SalesOrder,
+            $order->id,
+            SyncDirection::PushToTally,
+            $order->external_reference,
+            [
+                'order_date' => $order->order_date->toDateString(),
+                'dealer_tally_guid' => $order->dealer->tally_guid,
+                'dealer_tally_name' => $order->dealer->tally_ledger_name ?: $order->dealer->name,
+                'retailer_tally_guid' => $order->retailer?->tally_guid,
+                'total_amount' => (float) $order->total_amount,
+                'remarks' => $order->remarks,
+                'items' => $itemPayload,
+            ],
+        );
+
+        $order->update(['sync_status' => TallyRecordSyncStatus::Pending]);
     }
 
     /**
@@ -143,6 +219,45 @@ class OrderService extends BaseCrudService
         ]);
 
         return $entry;
+    }
+
+    /**
+     * The mandatory Preview step (spec §11): computes exactly what
+     * store()/recordOrder() would persist — same per-line validation
+     * (discount cap), same server-authoritative pricing — without writing
+     * anything, so the caller can render a confirm-before-submit screen
+     * from real numbers rather than duplicating this math client-side.
+     *
+     * @param  array<int, array{product_id: int, quantity: int, discount_amount?: float}>  $items
+     * @return array{items: array<int, array<string, mixed>>, subtotal: float, grand_total: float}
+     */
+    public function previewOrder(array $items): array
+    {
+        $itemsWithPrice = array_map(function (array $item) {
+            $product = Product::findOrFail($item['product_id']);
+
+            return [
+                'product_id' => $item['product_id'],
+                'product_name' => $product->name,
+                'quantity' => $item['quantity'],
+                'unit_price' => (float) $product->price,
+                'discount_amount' => $item['discount_amount'] ?? 0,
+            ];
+        }, $items);
+
+        $lines = $this->buildLines($itemsWithPrice);
+        $grandTotal = array_sum(array_column($lines, 'total_amount'));
+
+        foreach ($lines as $index => $line) {
+            $lines[$index]['product_name'] = $itemsWithPrice[$index]['product_name'];
+        }
+
+        // No tax/discount-beyond-line concept exists yet (Phase 4 adds
+        // tax), so subtotal and grand_total are the same figure for now —
+        // both are still returned so the mobile Preview screen's layout
+        // (spec §11: Subtotal, Grand Total as separate rows) doesn't need
+        // to change shape once Phase 4 adds a real tax line.
+        return ['items' => $lines, 'subtotal' => $grandTotal, 'grand_total' => $grandTotal];
     }
 
     /**

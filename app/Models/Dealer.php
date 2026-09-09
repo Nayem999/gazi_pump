@@ -29,6 +29,8 @@ class Dealer extends BaseModel
         'thana_id',
         'territory_id',
         'status',
+        'tally_guid',
+        'tally_ledger_name',
     ];
 
     protected function casts(): array
@@ -68,6 +70,11 @@ class Dealer extends BaseModel
     public function collectionEntries(): HasMany
     {
         return $this->hasMany(CollectionEntry::class);
+    }
+
+    public function ledgerEntries(): HasMany
+    {
+        return $this->hasMany(LedgerEntry::class);
     }
 
     public function retailers(): HasMany

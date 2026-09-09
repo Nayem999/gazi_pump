@@ -54,6 +54,50 @@ class OrderController extends Controller
             new OA\Response(response: 422, description: 'Validation error, or a line\'s discount exceeds the configured maximum'),
         ],
     )]
+    #[OA\Post(
+        path: '/orders/preview',
+        tags: ['Orders'],
+        summary: 'Compute totals for a would-be order without saving it',
+        description: 'The mandatory confirm-before-submit step (spec: Sales Order Preview) — same validation and server-authoritative pricing as POST /orders, but nothing is written. Call this first, show the returned totals for the Sales Executive to confirm, then call POST /orders with the same body to actually record it.',
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['dealer_id', 'items'],
+                properties: [
+                    new OA\Property(property: 'dealer_id', type: 'integer'),
+                    new OA\Property(property: 'retailer_id', type: 'integer', nullable: true),
+                    new OA\Property(property: 'order_date', type: 'string', format: 'date', nullable: true),
+                    new OA\Property(property: 'remarks', type: 'string', nullable: true),
+                    new OA\Property(property: 'items', type: 'array', items: new OA\Items(
+                        required: ['product_id', 'quantity'],
+                        properties: [
+                            new OA\Property(property: 'product_id', type: 'integer'),
+                            new OA\Property(property: 'quantity', type: 'integer'),
+                            new OA\Property(property: 'discount_amount', type: 'number', format: 'float', nullable: true),
+                        ],
+                    )),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Computed preview: items with server-priced totals, subtotal, grand_total'),
+            new OA\Response(response: 422, description: 'Validation error, or a line\'s discount exceeds the configured maximum'),
+        ],
+    )]
+    public function preview(StoreOrderRequest $request): JsonResponse
+    {
+        $preview = $this->orders->previewOrder($request->input('items'));
+
+        return ApiResponse::success([
+            'dealer_id' => (int) $request->input('dealer_id'),
+            'retailer_id' => $request->integer('retailer_id') ?: null,
+            'order_date' => $request->input('order_date'),
+            'remarks' => $request->input('remarks'),
+            ...$preview,
+        ], 'Preview computed.');
+    }
+
     public function store(StoreOrderRequest $request): JsonResponse
     {
         $entry = $this->orders->recordOrder(

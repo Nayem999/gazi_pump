@@ -6,8 +6,10 @@ namespace Tests\Feature\Admin;
 
 use App\Models\AchievementEntry;
 use App\Models\Attendance;
+use App\Models\CollectionEntry;
 use App\Models\Dealer;
 use App\Models\GpsLog;
+use App\Models\Order;
 use App\Models\Target;
 use App\Models\Territory;
 use App\Models\User;
@@ -72,6 +74,9 @@ class ReportManagementTest extends TestCase
         $this->actingAs($executive)->get(route('reports.attendance-summary'))->assertOk();
         $this->actingAs($executive)->get(route('reports.visit-compliance'))->assertOk();
         $this->actingAs($executive)->get(route('reports.achievement-summary'))->assertOk();
+        $this->actingAs($executive)->get(route('reports.order-performance'))->assertOk();
+        $this->actingAs($executive)->get(route('reports.collection-summary'))->assertOk();
+        $this->actingAs($executive)->get(route('reports.sales-return-summary'))->assertOk();
         $this->actingAs($executive)->get(route('reports.target-achievement'))->assertOk();
         $this->actingAs($executive)->get(route('reports.gps-report'))->assertOk();
         $this->actingAs($executive)->get(route('reports.movement-summary'))->assertOk();
@@ -217,6 +222,8 @@ class ReportManagementTest extends TestCase
         $this->actingAs($manager)->get(route('reports.attendance-summary'))->assertOk();
         $this->actingAs($manager)->get(route('reports.visit-compliance'))->assertOk();
         $this->actingAs($manager)->get(route('reports.achievement-summary'))->assertOk();
+        $this->actingAs($manager)->get(route('reports.order-performance'))->assertOk();
+        $this->actingAs($manager)->get(route('reports.collection-summary'))->assertOk();
         $this->actingAs($manager)->get(route('reports.territory-performance'))->assertOk();
     }
 
@@ -225,6 +232,56 @@ class ReportManagementTest extends TestCase
         $manager = $this->territoryManager();
 
         $this->actingAs($manager)->get(route('reports.achievement-summary'))->assertOk();
+        $this->actingAs($manager)->get(route('reports.order-performance'))->assertOk();
+    }
+
+    public function test_order_performance_report_reflects_real_data(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        Order::factory()->create(['user_id' => $executive->id, 'order_date' => now()->toDateString(), 'total_amount' => 5000]);
+
+        $response = $this->actingAs($manager)->get(route('reports.order-performance'));
+
+        $response->assertOk()->assertSee($executive->name)->assertSee('5,000.00');
+    }
+
+    public function test_order_performance_report_can_be_filtered_by_approval_status(): void
+    {
+        $manager = $this->generalManager();
+        $approvedExecutive = $this->executive();
+        $pendingExecutive = $this->executive();
+        Order::factory()->create(['user_id' => $approvedExecutive->id, 'order_date' => now()->toDateString(), 'total_amount' => 55555, 'status' => 'approved']);
+        Order::factory()->create(['user_id' => $pendingExecutive->id, 'order_date' => now()->toDateString(), 'total_amount' => 33333, 'status' => 'pending']);
+
+        $response = $this->actingAs($manager)->get(route('reports.order-performance', ['status' => 'approved']));
+
+        $response->assertOk()->assertSee('55,555.00')->assertDontSee('33,333.00');
+    }
+
+    public function test_sales_return_summary_report_reflects_real_data(): void
+    {
+        $manager = $this->generalManager();
+        $executive = $this->executive();
+        $return = \App\Models\SalesReturn::factory()->create(['user_id' => $executive->id, 'status' => 'received']);
+        \App\Models\SalesReturnItem::factory()->create(['sales_return_id' => $return->id, 'requested_qty' => 2, 'received_qty' => 2, 'unit_price' => 250]);
+
+        $response = $this->actingAs($manager)->get(route('reports.sales-return-summary'));
+
+        $response->assertOk()->assertSee($executive->name)->assertSee('500.00');
+    }
+
+    public function test_collection_summary_report_can_be_filtered_by_approval_status(): void
+    {
+        $manager = $this->generalManager();
+        $approvedExecutive = $this->executive();
+        $pendingExecutive = $this->executive();
+        CollectionEntry::factory()->create(['user_id' => $approvedExecutive->id, 'collection_date' => now()->toDateString(), 'amount' => 11111, 'status' => 'approved']);
+        CollectionEntry::factory()->create(['user_id' => $pendingExecutive->id, 'collection_date' => now()->toDateString(), 'amount' => 77777, 'status' => 'pending']);
+
+        $response = $this->actingAs($manager)->get(route('reports.collection-summary', ['status' => 'approved']));
+
+        $response->assertOk()->assertSee('11,111.00')->assertDontSee('77,777.00');
     }
 
     public function test_achievement_summary_report_reflects_real_data(): void
@@ -281,26 +338,22 @@ class ReportManagementTest extends TestCase
     }
 
     /**
-     * Order Performance, Collection Summary, and Dealer Ledger are retired
-     * (see the "version 1" Achievement pivot) — their `report.*` permission
-     * is no longer assigned to any role but Super Admin, so every one of
-     * these routes now 403s for everyone else, regardless of the role that
-     * used to have full access.
+     * Dealer Ledger was retired when Order/Collection Entry were, and
+     * revived again in Phase 5 alongside them — but now backed by the real
+     * Tally-synced ledger when one exists (see docs/tally-sfa-integration.md),
+     * so General Manager/Manager tier get it back; a plain Sales Executive
+     * still never did (withheld pre-retirement too — it's a cross-dealer
+     * aggregate view with no sensible per-executive projection).
      */
-    public function test_retired_reports_403_for_every_role_except_super_admin(): void
+    public function test_dealer_ledger_report_is_available_to_managers_but_not_a_sales_executive(): void
     {
         $dealer = Dealer::factory()->create();
 
-        foreach ([$this->generalManager(), $this->territoryManager(), $this->executive()] as $viewer) {
-            $this->actingAs($viewer)->get(route('reports.order-performance'))->assertForbidden();
-            $this->actingAs($viewer)->get(route('reports.collection-summary'))->assertForbidden();
-            $this->actingAs($viewer)->get(route('reports.dealer-ledger'))->assertForbidden();
-            $this->actingAs($viewer)->get(route('reports.dealer-ledger.show', $dealer))->assertForbidden();
+        foreach ([$this->generalManager(), $this->territoryManager()] as $viewer) {
+            $this->actingAs($viewer)->get(route('reports.dealer-ledger'))->assertOk();
+            $this->actingAs($viewer)->get(route('reports.dealer-ledger.show', $dealer))->assertOk();
         }
 
-        $admin = $this->superAdmin();
-        $this->actingAs($admin)->get(route('reports.order-performance'))->assertOk();
-        $this->actingAs($admin)->get(route('reports.collection-summary'))->assertOk();
-        $this->actingAs($admin)->get(route('reports.dealer-ledger'))->assertOk();
+        $this->actingAs($this->executive())->get(route('reports.dealer-ledger'))->assertForbidden();
     }
 }

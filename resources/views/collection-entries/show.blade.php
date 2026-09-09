@@ -123,6 +123,16 @@
                                 <span class="text-muted small">by {{ $collectionEntry->approvedBy->name }} on {{ $collectionEntry->approved_at?->format('d M Y, h:i A') }}</span>
                             @endif
                         </dd>
+
+                        <dt class="col-sm-4">Tally Sync</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge text-bg-{{ $collectionEntry->sync_status->badgeColor() }}">{{ $collectionEntry->sync_status->label() }}</span>
+                            @if ($collectionEntry->tally_voucher_number)
+                                <span class="text-muted small">Voucher {{ $collectionEntry->tally_voucher_number }}</span>
+                            @elseif ($collectionEntry->sync_error)
+                                <span class="text-danger small d-block">{{ $collectionEntry->sync_error }}</span>
+                            @endif
+                        </dd>
                     </dl>
                 </div>
             </div>

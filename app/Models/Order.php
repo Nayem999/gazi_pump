@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\ApprovalStatus;
+use App\Enums\TallyRecordSyncStatus;
 use Database\Factories\OrderFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Order extends BaseModel
 {
@@ -26,6 +28,12 @@ class Order extends BaseModel
         'status',
         'approved_by',
         'approved_at',
+        'external_reference',
+        'tally_guid',
+        'tally_order_number',
+        'sync_status',
+        'sync_error',
+        'synced_at',
     ];
 
     protected function casts(): array
@@ -35,6 +43,8 @@ class Order extends BaseModel
             'total_amount' => 'decimal:2',
             'status' => ApprovalStatus::class,
             'approved_at' => 'datetime',
+            'sync_status' => TallyRecordSyncStatus::class,
+            'synced_at' => 'datetime',
         ];
     }
 
@@ -61,6 +71,16 @@ class Order extends BaseModel
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function delivery(): HasOne
+    {
+        return $this->hasOne(Delivery::class);
+    }
+
+    public function salesReturns(): HasMany
+    {
+        return $this->hasMany(SalesReturn::class);
     }
 
     /**

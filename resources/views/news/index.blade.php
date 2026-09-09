@@ -23,8 +23,16 @@
         @include('partials.trashed-filter', ['filters' => $filters, 'colClass' => 'col-md-3'])
     </x-filter-bar>
 
+    {{-- Deliberately empty and self-closed, NOT wrapping the table. HTML
+         forbids nested forms: while this form wrapped the rows, the parser
+         discarded each row's own <form> start tag and then let the FIRST
+         row's </form> close this one - so row 1's delete button submitted
+         the bulk-destroy form (404) while every later row worked. The
+         checkboxes and the button below join it by id via the HTML5 form
+         attribute, which needs no nesting. --}}
     <form id="bulkForm" method="POST" action="{{ route('news.bulk-destroy') }}" data-confirm data-confirm-title="Delete selected articles?">
         @csrf
+    </form>
         <x-data-table
             title="News"
             :create-url="auth()->user()->can('create', \App\Models\News::class) ? route('news.create') : null"
@@ -45,7 +53,7 @@
                 <tr>
                     <td>
                         @if (! $article->trashed())
-                            <input type="checkbox" name="ids[]" value="{{ $article->id }}" class="form-check-input row-checkbox">
+                            <input type="checkbox" name="ids[]" form="bulkForm" value="{{ $article->id }}" class="form-check-input row-checkbox">
                         @endif
                     </td>
                     <td>
@@ -109,10 +117,9 @@
 
         @can('news.delete')
             <div class="mt-2">
-                <button type="submit" class="btn btn-outline-danger btn-sm"><i class="ti ti-trash me-1"></i>Delete Selected</button>
+                <button type="submit" form="bulkForm" class="btn btn-outline-danger btn-sm"><i class="ti ti-trash me-1"></i>Delete Selected</button>
             </div>
         @endcan
-    </form>
 @endsection
 
 @push('scripts')

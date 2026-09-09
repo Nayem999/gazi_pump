@@ -44,19 +44,26 @@ class RolePermissionSeeder extends Seeder
         'dealer-coverage',
         'gps',
         'movement-summary',
+        // Order/Collection Entry were retired then revived (see Order Performance /
+        // Collections' own history below) — the reports came back with them.
+        'order-performance',
+        'collections',
+        // Retired when Order/Collection Entry were (its debit/credit rows
+        // came from them), revived again in Phase 5: ReportService::dealerLedger()
+        // now shows a dealer's real Tally-synced ledger once one exists,
+        // falling back to the same SFA-computed estimate as before for a
+        // dealer not yet synced — never an empty/broken report either way.
+        'dealer-ledger',
+        // Phase 6/7: per-executive Sales Return activity.
+        'sales-return-summary',
     ];
 
     /**
-     * Retired reports (Order/Collection Entry/Dealer Ledger — see the
-     * "version 1" Achievement pivot): the `report.{key}` permission still
-     * exists so Super Admin keeps historical access via Permission::all(),
-     * but it's no longer assigned to any other role below.
+     * No reports currently retired. Kept as an empty array (rather than
+     * removed) so a future retirement has an obvious place to go, and
+     * `self::REPORTS, ...self::RETIRED_REPORTS` below doesn't need editing.
      */
-    private const RETIRED_REPORTS = [
-        'order-performance',
-        'collections',
-        'dealer-ledger',
-    ];
+    private const RETIRED_REPORTS = [];
 
     public function run(): void
     {
@@ -76,9 +83,20 @@ class RolePermissionSeeder extends Seeder
         $this->createModulePermissions('divisions');
         $this->createModulePermissions('districts');
         $this->createModulePermissions('thanas');
+        $this->createModulePermissions('depots');
+        // Master data, admin-only: the mobile app reads leave types
+        // through the leave endpoints, not a leave-types API of its own.
+        $this->createModulePermissions('leave-types', withApi: false);
+        $this->createModulePermissions('leave-requests');
+        // Entitlements are HR policy and admin-only - the mobile app reads
+        // a balance through /leave/balance, never this module.
+        $this->createModulePermissions('leave-balances', withApi: false);
+        $this->createModulePermissions('vehicles');
+        $this->createModulePermissions('drivers');
         $this->createModulePermissions('dealers');
         Permission::firstOrCreate(['name' => PermissionName::api('dealers', ButtonAction::Add), 'guard_name' => 'web']);
         $this->createModulePermissions('retailers');
+        Permission::firstOrCreate(['name' => PermissionName::api('retailers', ButtonAction::Add), 'guard_name' => 'web']);
         $this->createModulePermissions('product-categories');
         $this->createModulePermissions('products');
         $this->createModulePermissions('attendance');
@@ -93,10 +111,17 @@ class RolePermissionSeeder extends Seeder
         Permission::firstOrCreate(['name' => PermissionName::api('orders', ButtonAction::Add), 'guard_name' => 'web']);
         $this->createModulePermissions('collection-entries');
         Permission::firstOrCreate(['name' => PermissionName::api('collection-entries', ButtonAction::Add), 'guard_name' => 'web']);
+        $this->createModulePermissions('deliveries', withApi: false);
+        $this->createModulePermissions('sales-returns');
+        Permission::firstOrCreate(['name' => PermissionName::api('sales-returns', ButtonAction::Add), 'guard_name' => 'web']);
         $this->createModulePermissions('cash-handovers', withApi: false);
         $this->createModulePermissions('targets');
         $this->createModulePermissions('achievements');
         Permission::firstOrCreate(['name' => PermissionName::api('achievements', ButtonAction::Add), 'guard_name' => 'web']);
+        // Submitting leave from the phone. createModulePermissions() only
+        // makes the api.*.view half, so the add half is declared here like
+        // every other self-service mobile action above.
+        Permission::firstOrCreate(['name' => PermissionName::api('leave-requests', ButtonAction::Add), 'guard_name' => 'web']);
 
         foreach ([...self::REPORTS, ...self::RETIRED_REPORTS] as $reportKey) {
             Permission::firstOrCreate(['name' => PermissionName::report($reportKey), 'guard_name' => 'web']);
@@ -115,6 +140,7 @@ class RolePermissionSeeder extends Seeder
         $this->createModulePermissions('faqs', withApi: false);
         $this->createModulePermissions('service-centers', withApi: false);
         $this->createModulePermissions('brochures', withApi: false);
+        $this->createTallyIntegrationPermissions();
 
         $this->assignPermissions();
     }
@@ -137,11 +163,28 @@ class RolePermissionSeeder extends Seeder
         }
     }
 
+    /**
+     * One flat permission set covers the whole Tally Integration section
+     * (Dashboard, Connections, Sync Queue, Sync Logs, Mapping,
+     * Reconciliation) — there's no per-screen CRUD shape here worth
+     * splitting into separate menu/button permissions per sub-page, same
+     * reasoning as Reports' single report.{key} permission per page. Not
+     * exposed to the mobile API at all (no api.tally-integration.*).
+     */
+    private function createTallyIntegrationPermissions(): void
+    {
+        Permission::firstOrCreate(['name' => PermissionName::menu('tally-integration'), 'guard_name' => 'web']);
+
+        foreach (['view', 'configure', 'sync', 'retry', 'reconcile'] as $action) {
+            Permission::firstOrCreate(['name' => "tally-integration.{$action}", 'guard_name' => 'web']);
+        }
+    }
+
     private function assignPermissions(): void
     {
         Role::findByName('Super Admin', 'web')->syncPermissions(Permission::all());
 
-        $orgModules = ['sales-teams', 'holidays', 'territories', 'divisions', 'districts', 'thanas'];
+        $orgModules = ['sales-teams', 'holidays', 'territories', 'divisions', 'districts', 'thanas', 'depots', 'vehicles', 'drivers', 'leave-types'];
 
         $generalManagerPermissions = [
             PermissionName::menu('dashboard'),
@@ -167,6 +210,26 @@ class RolePermissionSeeder extends Seeder
             $generalManagerPermissions[] = PermissionName::button($module, ButtonAction::Export);
             $generalManagerPermissions[] = PermissionName::button($module, ButtonAction::Print);
         }
+
+        // Leave: a General Manager both files and decides it. Approve is
+        // the permission that separates deciding someone's leave from
+        // merely requesting your own, and it is never granted to Sales
+        // Executive below.
+        // Granting days is HR work, so this sits with the General Manager
+        // and Super Admin only. It is deliberately kept out of
+        // $orgModules: that list hands view rights to every line manager,
+        // and one manager browsing the whole company's entitlements is not
+        // the same as them approving their own team's leave.
+        $generalManagerPermissions[] = PermissionName::menu('leave-balances');
+        foreach ([ButtonAction::View, ButtonAction::Add, ButtonAction::Edit, ButtonAction::Delete, ButtonAction::Export, ButtonAction::Print] as $action) {
+            $generalManagerPermissions[] = PermissionName::button('leave-balances', $action);
+        }
+
+        $generalManagerPermissions[] = PermissionName::menu('leave-requests');
+        foreach ([ButtonAction::View, ButtonAction::Add, ButtonAction::Edit, ButtonAction::Approve, ButtonAction::Export, ButtonAction::Print] as $action) {
+            $generalManagerPermissions[] = PermissionName::button('leave-requests', $action);
+        }
+        $generalManagerPermissions[] = PermissionName::api('leave-requests', ButtonAction::View);
 
         $generalManagerPermissions[] = PermissionName::menu('attendance');
         $generalManagerPermissions[] = PermissionName::button('attendance', ButtonAction::View);
@@ -195,10 +258,47 @@ class RolePermissionSeeder extends Seeder
             $generalManagerPermissions[] = PermissionName::button($module, ButtonAction::Print);
         }
 
-        // Orders, Collection Entries, and Cash Handovers are retired
-        // (version 1 pivot to daily Achievement reporting) — no longer
-        // assigned here. Their permissions still exist (created in run())
-        // so Super Admin keeps historical access via Permission::all().
+        // Orders and Collection Entries were revived as the live
+        // transactional backbone for Tally sync (see docs/tally-sfa-integration.md,
+        // Phase 2) — Achievement stays for daily target-tracking, but real
+        // transactions go through these again. Cash Handover stays retired
+        // (a separate, permanent decision, unrelated to the Tally work).
+        $generalManagerPermissions[] = PermissionName::menu('orders');
+        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::View);
+        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Add);
+        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Edit);
+        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Export);
+        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Print);
+        // Approve/reject sits with General Manager and Super Admin only —
+        // same separation-of-accountability rule as achievements below.
+        $generalManagerPermissions[] = PermissionName::button('orders', ButtonAction::Approve);
+
+        $generalManagerPermissions[] = PermissionName::menu('collection-entries');
+        $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::View);
+        $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::Add);
+        $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::Edit);
+        $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::Export);
+        $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::Print);
+        $generalManagerPermissions[] = PermissionName::button('collection-entries', ButtonAction::Approve);
+
+        // Delivery/Challan (Phase 4): dispatching a fully-allocated order and
+        // marking it delivered are both gated by deliveries.add — there's no
+        // separate edit/delete UI for an append-only dispatch record (see
+        // App\Models\Delivery's own doc comment).
+        $generalManagerPermissions[] = PermissionName::menu('deliveries');
+        $generalManagerPermissions[] = PermissionName::button('deliveries', ButtonAction::View);
+        $generalManagerPermissions[] = PermissionName::button('deliveries', ButtonAction::Add);
+
+        // Full Sales Return workflow (Phase 6): view/approve the request,
+        // edit covers the dispatch/receive status transitions (see
+        // SalesReturnPolicy::update()'s own doc comment).
+        $generalManagerPermissions[] = PermissionName::menu('sales-returns');
+        $generalManagerPermissions[] = PermissionName::button('sales-returns', ButtonAction::View);
+        $generalManagerPermissions[] = PermissionName::button('sales-returns', ButtonAction::Add);
+        $generalManagerPermissions[] = PermissionName::button('sales-returns', ButtonAction::Edit);
+        $generalManagerPermissions[] = PermissionName::button('sales-returns', ButtonAction::Approve);
+        $generalManagerPermissions[] = PermissionName::button('sales-returns', ButtonAction::Export);
+        $generalManagerPermissions[] = PermissionName::button('sales-returns', ButtonAction::Print);
 
         $generalManagerPermissions[] = PermissionName::menu('targets');
         $generalManagerPermissions[] = PermissionName::button('targets', ButtonAction::View);
@@ -259,6 +359,14 @@ class RolePermissionSeeder extends Seeder
             $generalManagerPermissions[] = PermissionName::button($module, ButtonAction::Restore);
         }
 
+        // Tally Integration — back-office financial-integration concern,
+        // same audience as Settings: Super Admin and General Manager only.
+        // Sales Officers get no Tally administrative access (spec §40).
+        $generalManagerPermissions[] = PermissionName::menu('tally-integration');
+        foreach (['view', 'configure', 'sync', 'retry', 'reconcile'] as $action) {
+            $generalManagerPermissions[] = "tally-integration.{$action}";
+        }
+
         Role::findByName('General Manager', 'web')->syncPermissions($generalManagerPermissions);
 
         foreach (['Sales Manager', 'Area Manager', 'Territory Manager'] as $managerRole) {
@@ -294,8 +402,29 @@ class RolePermissionSeeder extends Seeder
                 PermissionName::button('visits', ButtonAction::View),
                 PermissionName::button('visits', ButtonAction::Export),
                 PermissionName::button('visits', ButtonAction::Print),
-                // Orders, Collection Entries, and Cash Handovers are retired
-                // (version 1 pivot to daily Achievement reporting).
+                // Orders and Collection Entries were revived (see the
+                // General Manager block above) — Cash Handover stays retired.
+                PermissionName::menu('orders'),
+                PermissionName::button('orders', ButtonAction::View),
+                PermissionName::button('orders', ButtonAction::Export),
+                PermissionName::button('orders', ButtonAction::Print),
+                PermissionName::menu('collection-entries'),
+                PermissionName::button('collection-entries', ButtonAction::View),
+                PermissionName::button('collection-entries', ButtonAction::Export),
+                PermissionName::button('collection-entries', ButtonAction::Print),
+                // Same dispatch/deliver ability as General Manager — this
+                // tier runs day-to-day logistics.
+                PermissionName::menu('deliveries'),
+                PermissionName::button('deliveries', ButtonAction::View),
+                PermissionName::button('deliveries', ButtonAction::Add),
+                // Same full workflow ability as General Manager — this
+                // tier approves/dispatches/receives returns day-to-day.
+                PermissionName::menu('sales-returns'),
+                PermissionName::button('sales-returns', ButtonAction::View),
+                PermissionName::button('sales-returns', ButtonAction::Edit),
+                PermissionName::button('sales-returns', ButtonAction::Approve),
+                PermissionName::button('sales-returns', ButtonAction::Export),
+                PermissionName::button('sales-returns', ButtonAction::Print),
                 PermissionName::menu('targets'),
                 PermissionName::button('targets', ButtonAction::View),
                 PermissionName::button('targets', ButtonAction::Add),
@@ -317,6 +446,18 @@ class RolePermissionSeeder extends Seeder
                 PermissionName::button('inquiries', ButtonAction::View),
                 PermissionName::menu('visit-requests'),
                 PermissionName::button('visit-requests', ButtonAction::View),
+                // Deciding leave for their own people is the whole point
+                // of a line manager here. HasVisibilityScope limits that
+                // to executives in their territories, and the policy
+                // refuses self-approval, so Approve cannot become a way to
+                // sign off their own time off.
+                PermissionName::menu('leave-requests'),
+                PermissionName::button('leave-requests', ButtonAction::View),
+                PermissionName::button('leave-requests', ButtonAction::Add),
+                PermissionName::button('leave-requests', ButtonAction::Approve),
+                PermissionName::button('leave-requests', ButtonAction::Export),
+                PermissionName::button('leave-requests', ButtonAction::Print),
+                PermissionName::api('leave-requests', ButtonAction::View),
             ];
 
             foreach (self::REPORTS as $reportKey) {
@@ -342,6 +483,7 @@ class RolePermissionSeeder extends Seeder
             PermissionName::button('retailers', ButtonAction::View),
             PermissionName::button('retailers', ButtonAction::Add),
             PermissionName::api('retailers', ButtonAction::View),
+            PermissionName::api('retailers', ButtonAction::Add),
             PermissionName::api('attendance', ButtonAction::View),
             PermissionName::api('attendance', ButtonAction::Add),
             PermissionName::api('gps-logs', ButtonAction::View),
@@ -350,20 +492,53 @@ class RolePermissionSeeder extends Seeder
             PermissionName::api('visit-plans', ButtonAction::Add),
             PermissionName::api('visits', ButtonAction::View),
             PermissionName::api('visits', ButtonAction::Add),
+            PermissionName::api('orders', ButtonAction::View),
+            PermissionName::api('orders', ButtonAction::Add),
+            PermissionName::api('collection-entries', ButtonAction::View),
+            PermissionName::api('collection-entries', ButtonAction::Add),
+            PermissionName::api('sales-returns', ButtonAction::View),
+            PermissionName::api('sales-returns', ButtonAction::Add),
             PermissionName::api('targets', ButtonAction::View),
             PermissionName::api('achievements', ButtonAction::View),
             PermissionName::api('achievements', ButtonAction::Add),
             PermissionName::menu('notifications'),
             PermissionName::button('notifications', ButtonAction::View),
             PermissionName::api('notifications', ButtonAction::View),
-            // Admin-panel access to their own historical records. Order/
-            // Collection Entry are retired (version 1 pivot to daily
-            // Achievement reporting) — Achievement takes their place:
-            // add only (editing an already-reviewed entry still stays a
-            // manager action once approved/rejected). Target/
-            // AchievementEntry::scopeVisibleTo() and the matching Policy
+            // Admin-panel access to their own historical records, plus
+            // recording their own new ones the same as the mobile app
+            // allows (add only — editing an already-recorded order/
+            // collection still stays a manager action). Order/
+            // CollectionEntry::scopeVisibleTo() and the matching Policy
             // checks enforce that a plain Sales Executive only ever sees or
             // acts on their own rows here, never another executive's.
+            PermissionName::menu('orders'),
+            PermissionName::button('orders', ButtonAction::View),
+            PermissionName::button('orders', ButtonAction::Add),
+            PermissionName::button('orders', ButtonAction::Export),
+            PermissionName::button('orders', ButtonAction::Print),
+            PermissionName::menu('collection-entries'),
+            PermissionName::button('collection-entries', ButtonAction::View),
+            PermissionName::button('collection-entries', ButtonAction::Add),
+            PermissionName::button('collection-entries', ButtonAction::Export),
+            PermissionName::button('collection-entries', ButtonAction::Print),
+            // View only — dispatching stays a manager/logistics action.
+            PermissionName::menu('deliveries'),
+            PermissionName::button('deliveries', ButtonAction::View),
+            // Request their own returns (mirrors Order/Collection Entry's
+            // add-only shape); approving/dispatching/receiving stays a
+            // manager action.
+            PermissionName::menu('sales-returns'),
+            PermissionName::button('sales-returns', ButtonAction::View),
+            PermissionName::button('sales-returns', ButtonAction::Add),
+            // Their own leave: submit and track it, on the phone and in
+            // the admin panel. Deliberately no Approve - LeaveRequest::
+            // scopeVisibleTo() plus LeaveRequestPolicy keep an executive
+            // to their own requests, and nobody decides their own leave.
+            PermissionName::menu('leave-requests'),
+            PermissionName::button('leave-requests', ButtonAction::View),
+            PermissionName::button('leave-requests', ButtonAction::Add),
+            PermissionName::api('leave-requests', ButtonAction::View),
+            PermissionName::api('leave-requests', ButtonAction::Add),
             PermissionName::menu('targets'),
             PermissionName::button('targets', ButtonAction::View),
             PermissionName::button('targets', ButtonAction::Export),
@@ -379,6 +554,9 @@ class RolePermissionSeeder extends Seeder
             // per-executive projection, so they're deliberately withheld.
             PermissionName::report('attendance'),
             PermissionName::report('visits'),
+            PermissionName::report('order-performance'),
+            PermissionName::report('collections'),
+            PermissionName::report('sales-return-summary'),
             PermissionName::report('achievement-summary'),
             PermissionName::report('target-achievement'),
             PermissionName::report('gps'),

@@ -36,6 +36,19 @@
                         <a href="{{ route('dealers.download-pdf', $dealer) }}" target="_blank" class="btn btn-outline-secondary btn-sm">
                             <i class="ti ti-file-download me-1"></i>Download PDF
                         </a>
+                        @can('report.dealer-ledger')
+                            <a href="{{ route('reports.dealer-ledger.show', $dealer) }}" class="btn btn-outline-secondary btn-sm">
+                                <i class="ti ti-report-money me-1"></i>Ledger
+                            </a>
+                        @endcan
+                        @can('tally-integration.sync')
+                            <form method="POST" action="{{ route('tally-integration.sync-ledger', $dealer) }}">
+                                @csrf
+                                <button type="submit" class="btn btn-outline-secondary btn-sm" {{ $dealer->tally_guid ? '' : 'disabled title="No Tally mapping yet"' }}>
+                                    <i class="ti ti-refresh me-1"></i>Sync Ledger
+                                </button>
+                            </form>
+                        @endcan
                     </div>
                 </div>
             </div>

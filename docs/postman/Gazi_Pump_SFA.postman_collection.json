@@ -1,1467 +1,2042 @@
 {
-	"info": {
-		"name": "Gazi Pump SFA API",
-		"description": "Mobile REST API for the Gazi Pump Sales Force Automation system. Import this collection together with the companion environment file.",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"auth": {
-		"type": "bearer",
-		"bearer": [
-			{
-				"key": "token",
-				"value": "{{token}}",
-				"type": "string"
-			}
-		]
-	},
-	"variable": [
-		{
-			"key": "base_url",
-			"value": "http://localhost:8000/api/v1",
-			"type": "string"
-		},
-		{
-			"key": "token",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "notification_id",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "otp_id",
-			"value": "",
-			"type": "string"
-		}
-	],
-	"item": [
-		{
-			"name": "Authentication",
-			"item": [
-				{
-					"name": "Login",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"const body = pm.response.json();",
-									"if (body.success && body.data && body.data.token) {",
-									"    pm.collectionVariables.set(\"token\", body.data.token);",
-									"    pm.environment.set(\"token\", body.data.token);",
-									"}",
-									"pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
-									"pm.test(\"response has token\", () => pm.expect(body.data.token).to.be.a(\"string\"));"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"admin@gazipump.com\",\n  \"password\": \"password\",\n  \"device_name\": \"Postman\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/auth/login",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"auth",
-								"login"
-							]
-						},
-						"description": "Authenticate and receive a Sanctum API token. Rate-limited to 6 attempts/minute."
-					}
-				},
-				{
-					"name": "Me",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/auth/me",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"auth",
-								"me"
-							]
-						},
-						"description": "Get the authenticated user's profile."
-					}
-				}
-			]
-		},
-		{
-			"name": "Health",
-			"item": [
-				{
-					"name": "Ping",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/ping",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"ping"
-							]
-						},
-						"description": "Unauthenticated health check — confirms the API is reachable."
-					}
-				}
-			]
-		},
-		{
-			"name": "Org Structure",
-			"item": [
-				{
-					"name": "Sales Teams",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/sales-teams",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"sales-teams"
-							]
-						},
-						"description": "List active sales teams."
-					}
-				},
-				{
-					"name": "Divisions",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/divisions",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"divisions"
-							]
-						},
-						"description": "List active divisions."
-					}
-				},
-				{
-					"name": "Districts",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/districts?division_id=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"districts"
-							],
-							"query": [
-								{
-									"key": "division_id",
-									"value": "",
-									"description": "Optional: filter by division_id"
-								}
-							]
-						},
-						"description": "List active districts."
-					}
-				},
-				{
-					"name": "Thanas",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/thanas?district_id=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"thanas"
-							],
-							"query": [
-								{
-									"key": "district_id",
-									"value": "",
-									"description": "Optional: filter by district_id"
-								}
-							]
-						},
-						"description": "List active thanas."
-					}
-				},
-				{
-					"name": "Territories",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/territories?thana_id=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"territories"
-							],
-							"query": [
-								{
-									"key": "thana_id",
-									"value": "",
-									"description": "Optional: filter territories by thana/upazila"
-								}
-							]
-						},
-						"description": "List active territories."
-					}
-				}
-			]
-		},
-		{
-			"name": "Dealers",
-			"item": [
-				{
-					"name": "List Dealers",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/dealers?search=&territory_id=&per_page=20",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"dealers"
-							],
-							"query": [
-								{
-									"key": "search",
-									"value": "",
-									"description": "Optional: name/code/phone"
-								},
-								{
-									"key": "territory_id",
-									"value": "",
-									"description": "Optional: defaults to the logged-in user's own territories"
-								},
-								{
-									"key": "per_page",
-									"value": "20"
-								}
-							]
-						},
-						"description": "List active dealers (defaults to the authenticated user's own territory)."
-					}
-				},
-				{
-					"name": "Get Dealer",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/dealers/1",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"dealers",
-								"1"
-							]
-						},
-						"description": "Get a single dealer."
-					}
-				},
-				{
-					"name": "Register Dealer",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"dealer_code\": \"DLR-{{$timestamp}}\",\n    \"name\": \"Karim Traders\",\n    \"phone\": \"01712345678\",\n    \"email\": null,\n    \"address\": null,\n    \"gps_lat\": 23.8103,\n    \"gps_lng\": 90.4125,\n    \"territory_id\": null\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/dealers",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"dealers"
-							]
-						},
-						"description": "Register a new dealer from the field. `territory_id` defaults to the authenticated user's own territory when omitted."
-					}
-				},
-				{
-					"name": "Dealer Outstanding Balance",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/dealers/1/outstanding-balance",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"dealers",
-								"1",
-								"outstanding-balance"
-							]
-						},
-						"description": "Get a dealer's outstanding balance (total ordered minus total collected)."
-					}
-				}
-			]
-		},
-		{
-			"name": "Retailers",
-			"item": [
-				{
-					"name": "List Retailers",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/retailers?dealer_id=&search=&per_page=20",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"retailers"
-							],
-							"query": [
-								{
-									"key": "dealer_id",
-									"value": "",
-									"description": "Optional: filter to a single dealer's retailers"
-								},
-								{
-									"key": "search",
-									"value": "",
-									"description": "Optional: name/phone"
-								},
-								{
-									"key": "per_page",
-									"value": "20"
-								}
-							]
-						},
-						"description": "List active retailers, optionally filtered to a single dealer — use this to populate the retailer picker when placing an order."
-					}
-				},
-				{
-					"name": "Get Retailer",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/retailers/1",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"retailers",
-								"1"
-							]
-						},
-						"description": "Get a single retailer."
-					}
-				}
-			]
-		},
-		{
-			"name": "Products",
-			"item": [
-				{
-					"name": "List Products",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/products?search=&category_id=&per_page=20",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"products"
-							],
-							"query": [
-								{
-									"key": "search",
-									"value": "",
-									"description": "Optional: name/SKU"
-								},
-								{
-									"key": "category_id",
-									"value": "",
-									"description": "Optional: filter by category"
-								},
-								{
-									"key": "per_page",
-									"value": "20"
-								}
-							]
-						},
-						"description": "List active products."
-					}
-				},
-				{
-					"name": "Get Product",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/products/1",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"products",
-								"1"
-							]
-						},
-						"description": "Get a single product."
-					}
-				}
-			]
-		},
-		{
-			"name": "Attendance",
-			"item": [
-				{
-					"name": "Check In",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "lat",
-									"value": "23.8103",
-									"type": "text"
-								},
-								{
-									"key": "lng",
-									"value": "90.4125",
-									"type": "text"
-								},
-								{
-									"key": "photo",
-									"type": "file",
-									"src": "fixtures/sample-photo.jpg"
-								}
-							]
-						},
-						"url": {
-							"raw": "{{base_url}}/attendance/check-in",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"attendance",
-								"check-in"
-							]
-						},
-						"description": "Check in for today with GPS + photo."
-					}
-				},
-				{
-					"name": "Check Out",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "lat",
-									"value": "23.8110",
-									"type": "text"
-								},
-								{
-									"key": "lng",
-									"value": "90.4130",
-									"type": "text"
-								},
-								{
-									"key": "photo",
-									"type": "file",
-									"src": "fixtures/sample-photo.jpg"
-								}
-							]
-						},
-						"url": {
-							"raw": "{{base_url}}/attendance/check-out",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"attendance",
-								"check-out"
-							]
-						},
-						"description": "Check out for today with GPS + photo."
-					}
-				},
-				{
-					"name": "Today's Attendance",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/attendance/today",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"attendance",
-								"today"
-							]
-						},
-						"description": "Get the authenticated user's attendance status for today."
-					}
-				},
-				{
-					"name": "My Attendance History",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/attendance/history?date_from=&date_to=&per_page=20",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"attendance",
-								"history"
-							],
-							"query": [
-								{
-									"key": "date_from",
-									"value": "",
-									"description": "Optional: YYYY-MM-DD"
-								},
-								{
-									"key": "date_to",
-									"value": "",
-									"description": "Optional: YYYY-MM-DD"
-								},
-								{
-									"key": "per_page",
-									"value": "20"
-								}
-							]
-						},
-						"description": "List the authenticated user's own attendance history."
-					}
-				}
-			]
-		},
-		{
-			"name": "GPS Tracking",
-			"item": [
-				{
-					"name": "Ingest GPS Pings",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"logs\": [\n    { \"lat\": 23.8103, \"lng\": 90.4125, \"recorded_at\": \"2026-08-27T09:20:00+06:00\", \"accuracy\": 12.5, \"speed\": 8.2, \"battery_level\": 87 },\n    { \"lat\": 23.8110, \"lng\": 90.4130, \"recorded_at\": \"2026-08-27T09:40:00+06:00\", \"accuracy\": 10.0, \"speed\": 5.0, \"battery_level\": 85 }\n  ]\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/gps-logs",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"gps-logs"
-							]
-						},
-						"description": "Ingest a batch of 1–200 GPS pings for the authenticated user."
-					}
-				},
-				{
-					"name": "My Location History",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/gps-logs/history?date=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"gps-logs",
-								"history"
-							],
-							"query": [
-								{
-									"key": "date",
-									"value": "",
-									"description": "Optional: YYYY-MM-DD, defaults to today"
-								}
-							]
-						},
-						"description": "Get the authenticated user's own GPS trail for a date, plus a computed distance_km."
-					}
-				}
-			]
-		},
-		{
-			"name": "Visit Plans",
-			"item": [
-				{
-					"name": "Plan Visit",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"dealer_id\": 1,\n  \"planned_date\": \"2026-08-28\",\n  \"notes\": \"Follow up on last order.\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/visit-plans",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"visit-plans"
-							]
-						},
-						"description": "Plan a visit to a dealer for a given date. Always created with status \"planned\"."
-					}
-				},
-				{
-					"name": "My Visit Plans",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/visit-plans?date_from=&date_to=&per_page=20",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"visit-plans"
-							],
-							"query": [
-								{
-									"key": "date_from",
-									"value": "",
-									"description": "Optional: YYYY-MM-DD"
-								},
-								{
-									"key": "date_to",
-									"value": "",
-									"description": "Optional: YYYY-MM-DD"
-								},
-								{
-									"key": "per_page",
-									"value": "20"
-								}
-							]
-						},
-						"description": "List the authenticated user's own visit plans."
-					}
-				}
-			]
-		},
-		{
-			"name": "Visits",
-			"item": [
-				{
-					"name": "Check In Visit",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "dealer_id",
-									"value": "1",
-									"type": "text"
-								},
-								{
-									"key": "visit_plan_id",
-									"value": "",
-									"type": "text",
-									"description": "Optional: link to a planned visit"
-								},
-								{
-									"key": "lat",
-									"value": "23.8103",
-									"type": "text"
-								},
-								{
-									"key": "lng",
-									"value": "90.4125",
-									"type": "text"
-								},
-								{
-									"key": "photo",
-									"type": "file",
-									"src": "fixtures/sample-photo.jpg"
-								}
-							]
-						},
-						"url": {
-							"raw": "{{base_url}}/visits/check-in",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"visits",
-								"check-in"
-							]
-						},
-						"description": "Check in to a dealer visit with GPS + photo. Response includes is_gps_verified against the dealer's registered location."
-					}
-				},
-				{
-					"name": "Check Out Visit",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "lat",
-									"value": "23.8110",
-									"type": "text"
-								},
-								{
-									"key": "lng",
-									"value": "90.4130",
-									"type": "text"
-								},
-								{
-									"key": "feedback",
-									"value": "Placed a repeat order.",
-									"type": "text"
-								},
-								{
-									"key": "photo",
-									"type": "file",
-									"src": "fixtures/sample-photo.jpg",
-									"description": "Optional on check-out"
-								}
-							]
-						},
-						"url": {
-							"raw": "{{base_url}}/visits/check-out",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"visits",
-								"check-out"
-							]
-						},
-						"description": "Check out of the current open visit with feedback."
-					}
-				},
-				{
-					"name": "Current Visit",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/visits/current",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"visits",
-								"current"
-							]
-						},
-						"description": "Get the authenticated user's currently open visit, if any."
-					}
-				},
-				{
-					"name": "My Visit History",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/visits/history?date_from=&date_to=&per_page=20",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"visits",
-								"history"
-							],
-							"query": [
-								{
-									"key": "date_from",
-									"value": "",
-									"description": "Optional: YYYY-MM-DD"
-								},
-								{
-									"key": "date_to",
-									"value": "",
-									"description": "Optional: YYYY-MM-DD"
-								},
-								{
-									"key": "per_page",
-									"value": "20"
-								}
-							]
-						},
-						"description": "List the authenticated user's own visit history."
-					}
-				}
-			]
-		},
-		{
-			"name": "Orders",
-			"item": [
-				{
-					"name": "Record Order",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"dealer_id\": 1,\n  \"retailer_id\": null,\n  \"order_date\": \"2026-08-27\",\n  \"remarks\": \"Restocked shelf display.\",\n  \"items\": [\n    { \"product_id\": 1, \"quantity\": 4, \"discount_amount\": 0 },\n    { \"product_id\": 2, \"quantity\": 2, \"discount_amount\": 0 }\n  ]\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/orders",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"orders"
-							]
-						},
-						"description": "Record one or more products sold to a dealer. `retailer_id` is optional — one of the dealer's own retailers, from List Retailers filtered by dealer_id. Each line's unit price is snapshotted server-side from the product's current price — never trust a client-supplied price. New orders always start with approval status \"pending\"."
-					}
-				},
-				{
-					"name": "My Order History",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/orders?date_from=&date_to=&status=&per_page=20",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"orders"
-							],
-							"query": [
-								{
-									"key": "date_from",
-									"value": "",
-									"description": "Optional: YYYY-MM-DD"
-								},
-								{
-									"key": "date_to",
-									"value": "",
-									"description": "Optional: YYYY-MM-DD"
-								},
-								{
-									"key": "status",
-									"value": "",
-									"description": "Optional: pending | approved | rejected"
-								},
-								{
-									"key": "per_page",
-									"value": "20"
-								}
-							]
-						},
-						"description": "List the authenticated user's own order history."
-					}
-				}
-			]
-		},
-		{
-			"name": "Collection Entries",
-			"item": [
-				{
-					"name": "Send Collection OTP",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"const body = pm.response.json();",
-									"if (body.success && body.data && body.data.otp_id) {",
-									"    pm.collectionVariables.set(\"otp_id\", body.data.otp_id);",
-									"    pm.environment.set(\"otp_id\", body.data.otp_id);",
-									"}"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"dealer_id\": 1,\n  \"amount\": 600,\n  \"payment_method\": \"cash\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/collection-entries/send-otp",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"collection-entries",
-								"send-otp"
-							]
-						},
-						"description": "Send (or, in demo mode when no SMS gateway is configured, generate and return as demo_code — always the fixed code 123456 in demo mode) an OTP to confirm a collection with the dealer. Required before Record Collection — a collection cannot be recorded without a verified OTP."
-					}
-				},
-				{
-					"name": "Record Collection",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "dealer_id",
-									"value": "1",
-									"type": "text"
-								},
-								{
-									"key": "collection_date",
-									"value": "2026-08-27",
-									"type": "text"
-								},
-								{
-									"key": "amount",
-									"value": "600",
-									"type": "text"
-								},
-								{
-									"key": "payment_method",
-									"value": "cash",
-									"type": "text",
-									"description": "cash | cheque | bank_transfer | mobile_banking"
-								},
-								{
-									"key": "reference_no",
-									"value": "",
-									"type": "text",
-									"description": "Required when payment_method is bank_transfer or mobile_banking; must be unique among those two methods"
-								},
-								{
-									"key": "cheque_image",
-									"type": "file",
-									"src": "fixtures/sample-photo.jpg",
-									"description": "Required when payment_method is cheque"
-								},
-								{
-									"key": "otp_id",
-									"value": "{{otp_id}}",
-									"type": "text",
-									"description": "Required: from Send Collection OTP — a collection cannot be recorded without a verified OTP"
-								},
-								{
-									"key": "otp_code",
-									"value": "123456",
-									"type": "text",
-									"description": "Required: the 6-digit code the dealer read back to the executive (demo mode always issues 123456)"
-								},
-								{
-									"key": "remarks",
-									"value": "Collected during routine visit.",
-									"type": "text"
-								}
-							]
-						},
-						"url": {
-							"raw": "{{base_url}}/collection-entries",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"collection-entries"
-							]
-						},
-						"description": "Record a payment collected from a dealer. Requires a verified OTP (run Send Collection OTP first) — a collection cannot be recorded without one. New collections always start with approval status \"pending\"."
-					}
-				},
-				{
-					"name": "My Collection History",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/collection-entries?date_from=&date_to=&status=&per_page=20",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"collection-entries"
-							],
-							"query": [
-								{
-									"key": "date_from",
-									"value": "",
-									"description": "Optional: YYYY-MM-DD"
-								},
-								{
-									"key": "date_to",
-									"value": "",
-									"description": "Optional: YYYY-MM-DD"
-								},
-								{
-									"key": "status",
-									"value": "",
-									"description": "Optional: pending | approved | rejected"
-								},
-								{
-									"key": "per_page",
-									"value": "20"
-								}
-							]
-						},
-						"description": "List the authenticated user's own collection history."
-					}
-				}
-			]
-		},
-		{
-			"name": "Targets",
-			"item": [
-				{
-					"name": "My Current Target",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/targets/current",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"targets",
-								"current"
-							]
-						},
-						"description": "Get the authenticated user's target and achievement for the current month."
-					}
-				},
-				{
-					"name": "My Targets History",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/targets?year=&per_page=20",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"targets"
-							],
-							"query": [
-								{
-									"key": "year",
-									"value": "",
-									"description": "Optional: e.g. 2026"
-								},
-								{
-									"key": "per_page",
-									"value": "20"
-								}
-							]
-						},
-						"description": "List the authenticated user's own targets and achievements."
-					}
-				}
-			]
-		},
-		{
-			"name": "Notifications",
-			"item": [
-				{
-					"name": "List My Notifications",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/notifications?status=&per_page=20",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"notifications"
-							],
-							"query": [
-								{
-									"key": "status",
-									"value": "",
-									"description": "Optional: read | unread"
-								},
-								{
-									"key": "per_page",
-									"value": "20"
-								}
-							]
-						},
-						"description": "List the authenticated user's own notifications."
-					},
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"const body = pm.response.json();",
-									"if (body.success && Array.isArray(body.data) && body.data.length) {",
-									"    pm.collectionVariables.set(\"notification_id\", body.data[0].id);",
-									"    pm.environment.set(\"notification_id\", body.data[0].id);",
-									"}"
-								]
-							}
-						}
-					]
-				},
-				{
-					"name": "Unread Count",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/notifications/unread-count",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"notifications",
-								"unread-count"
-							]
-						},
-						"description": "Get the unread notification count for the bell badge."
-					}
-				},
-				{
-					"name": "Mark Notification as Read",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/notifications/:id/read",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"notifications",
-								":id",
-								"read"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "{{notification_id}}"
-								}
-							]
-						},
-						"description": "Mark a single notification as read."
-					}
-				},
-				{
-					"name": "Mark All as Read",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/notifications/read-all",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"notifications",
-								"read-all"
-							]
-						},
-						"description": "Mark all of the authenticated user's notifications as read."
-					}
-				}
-			]
-		},
-		{
-			"name": "Logout",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Accept",
-						"value": "application/json"
-					}
-				],
-				"url": {
-					"raw": "{{base_url}}/auth/logout",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"auth",
-						"logout"
-					]
-				},
-				"description": "Revoke the current API token."
-			}
-		}
-	]
+ "info": {
+  "name": "Gazi Pump SFA API",
+  "description": "Mobile REST API for the Gazi Pump Sales Force Automation system. Import this collection together with the companion environment file.",
+  "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+ },
+ "auth": {
+  "type": "bearer",
+  "bearer": [
+   {
+    "key": "token",
+    "value": "{{token}}",
+    "type": "string"
+   }
+  ]
+ },
+ "variable": [
+  {
+   "key": "base_url",
+   "value": "http://localhost:8000/api/v1",
+   "type": "string"
+  },
+  {
+   "key": "token",
+   "value": "",
+   "type": "string"
+  },
+  {
+   "key": "notification_id",
+   "value": "",
+   "type": "string"
+  },
+  {
+   "key": "otp_id",
+   "value": "",
+   "type": "string"
+  },
+  {
+   "key": "tally_agent_token",
+   "value": "",
+   "type": "string"
+  },
+  {
+   "key": "sync_queue_id",
+   "value": "",
+   "type": "string"
+  }
+ ],
+ "item": [
+  {
+   "name": "Authentication",
+   "item": [
+    {
+     "name": "Login",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "exec": [
+         "const body = pm.response.json();",
+         "if (body.success && body.data && body.data.token) {",
+         "    pm.collectionVariables.set(\"token\", body.data.token);",
+         "    pm.environment.set(\"token\", body.data.token);",
+         "}",
+         "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+         "pm.test(\"response has token\", () => pm.expect(body.data.token).to.be.a(\"string\"));"
+        ],
+        "type": "text/javascript"
+       }
+      }
+     ],
+     "request": {
+      "auth": {
+       "type": "noauth"
+      },
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"email\": \"admin@gazipump.com\",\n  \"password\": \"password\",\n  \"device_name\": \"Postman\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "url": {
+       "raw": "{{base_url}}/auth/login",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "auth",
+        "login"
+       ]
+      },
+      "description": "Authenticate and receive a Sanctum API token. Rate-limited to 6 attempts/minute."
+     }
+    },
+    {
+     "name": "Me",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/auth/me",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "auth",
+        "me"
+       ]
+      },
+      "description": "Get the authenticated user's profile."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Health",
+   "item": [
+    {
+     "name": "Ping",
+     "request": {
+      "auth": {
+       "type": "noauth"
+      },
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/ping",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "ping"
+       ]
+      },
+      "description": "Unauthenticated health check — confirms the API is reachable."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Org Structure",
+   "item": [
+    {
+     "name": "Sales Teams",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/sales-teams",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "sales-teams"
+       ]
+      },
+      "description": "List active sales teams."
+     }
+    },
+    {
+     "name": "Divisions",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/divisions",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "divisions"
+       ]
+      },
+      "description": "List active divisions."
+     }
+    },
+    {
+     "name": "Districts",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/districts?division_id=",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "districts"
+       ],
+       "query": [
+        {
+         "key": "division_id",
+         "value": "",
+         "description": "Optional: filter by division_id"
+        }
+       ]
+      },
+      "description": "List active districts."
+     }
+    },
+    {
+     "name": "Thanas",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/thanas?district_id=",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "thanas"
+       ],
+       "query": [
+        {
+         "key": "district_id",
+         "value": "",
+         "description": "Optional: filter by district_id"
+        }
+       ]
+      },
+      "description": "List active thanas."
+     }
+    },
+    {
+     "name": "Territories",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/territories?thana_id=",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "territories"
+       ],
+       "query": [
+        {
+         "key": "thana_id",
+         "value": "",
+         "description": "Optional: filter territories by thana/upazila"
+        }
+       ]
+      },
+      "description": "List active territories."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Dealers",
+   "item": [
+    {
+     "name": "List Dealers",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/dealers?search=&territory_id=&per_page=20",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "dealers"
+       ],
+       "query": [
+        {
+         "key": "search",
+         "value": "",
+         "description": "Optional: name/code/phone"
+        },
+        {
+         "key": "territory_id",
+         "value": "",
+         "description": "Optional: defaults to the logged-in user's own territories"
+        },
+        {
+         "key": "per_page",
+         "value": "20"
+        }
+       ]
+      },
+      "description": "List active dealers (defaults to the authenticated user's own territory)."
+     }
+    },
+    {
+     "name": "Get Dealer",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/dealers/1",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "dealers",
+        "1"
+       ]
+      },
+      "description": "Get a single dealer."
+     }
+    },
+    {
+     "name": "Register Dealer",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n    \"dealer_code\": \"DLR-{{$timestamp}}\",\n    \"name\": \"Karim Traders\",\n    \"phone\": \"01712345678\",\n    \"email\": null,\n    \"address\": null,\n    \"gps_lat\": 23.8103,\n    \"gps_lng\": 90.4125,\n    \"territory_id\": null\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "url": {
+       "raw": "{{base_url}}/dealers",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "dealers"
+       ]
+      },
+      "description": "Register a new dealer from the field. `territory_id` defaults to the authenticated user's own territory when omitted."
+     }
+    },
+    {
+     "name": "Dealer Outstanding Balance",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/dealers/1/outstanding-balance",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "dealers",
+        "1",
+        "outstanding-balance"
+       ]
+      },
+      "description": "Get a dealer's outstanding balance. Returns the real Tally-synced balance once this dealer's ledger has been pulled (Phase 5); otherwise the SFA-computed estimate (total ordered minus total collected) - source in the response says which one."
+     }
+    },
+    {
+     "name": "Dealer Ledger",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/dealers/1/ledger",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "dealers",
+        "1",
+        "ledger"
+       ]
+      },
+      "description": "Get a dealer's full due history - every order (debit) and collection (credit), chronologically, with a running balance. Uses the real Tally-synced ledger once this dealer's has been pulled (Phase 5); otherwise the same SFA-computed estimate as Dealer Outstanding Balance."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Retailers",
+   "item": [
+    {
+     "name": "Register Retailer",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"dealer_id\": 1,\n  \"name\": \"Corner Shop\",\n  \"phone\": \"01700000000\",\n  \"email\": null,\n  \"shipping_address\": null\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "url": {
+       "raw": "{{base_url}}/retailers",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "retailers"
+       ]
+      },
+      "description": "Register a new retailer under one of the authenticated user's own dealers (Phase 7). dealer_id must be visible to the executive's own assigned territories."
+     }
+    },
+    {
+     "name": "List Retailers",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/retailers?dealer_id=&search=&per_page=20",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "retailers"
+       ],
+       "query": [
+        {
+         "key": "dealer_id",
+         "value": "",
+         "description": "Optional: filter to a single dealer's retailers"
+        },
+        {
+         "key": "search",
+         "value": "",
+         "description": "Optional: name/phone"
+        },
+        {
+         "key": "per_page",
+         "value": "20"
+        }
+       ]
+      },
+      "description": "List active retailers, optionally filtered to a single dealer — use this to populate the retailer picker when placing an order."
+     }
+    },
+    {
+     "name": "Get Retailer",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/retailers/1",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "retailers",
+        "1"
+       ]
+      },
+      "description": "Get a single retailer."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Products",
+   "item": [
+    {
+     "name": "List Products",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/products?search=&category_id=&per_page=20",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "products"
+       ],
+       "query": [
+        {
+         "key": "search",
+         "value": "",
+         "description": "Optional: name/SKU"
+        },
+        {
+         "key": "category_id",
+         "value": "",
+         "description": "Optional: filter by category"
+        },
+        {
+         "key": "per_page",
+         "value": "20"
+        }
+       ]
+      },
+      "description": "List active products."
+     }
+    },
+    {
+     "name": "Get Product",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/products/1",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "products",
+        "1"
+       ]
+      },
+      "description": "Get a single product."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Attendance",
+   "item": [
+    {
+     "name": "Check In",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "formdata",
+       "formdata": [
+        {
+         "key": "lat",
+         "value": "23.8103",
+         "type": "text"
+        },
+        {
+         "key": "lng",
+         "value": "90.4125",
+         "type": "text"
+        },
+        {
+         "key": "photo",
+         "type": "file",
+         "src": "fixtures/sample-photo.jpg"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/attendance/check-in",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "attendance",
+        "check-in"
+       ]
+      },
+      "description": "Check in for today with GPS + photo."
+     }
+    },
+    {
+     "name": "Check Out",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "formdata",
+       "formdata": [
+        {
+         "key": "lat",
+         "value": "23.8110",
+         "type": "text"
+        },
+        {
+         "key": "lng",
+         "value": "90.4130",
+         "type": "text"
+        },
+        {
+         "key": "photo",
+         "type": "file",
+         "src": "fixtures/sample-photo.jpg"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/attendance/check-out",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "attendance",
+        "check-out"
+       ]
+      },
+      "description": "Check out for today with GPS + photo."
+     }
+    },
+    {
+     "name": "Today's Attendance",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/attendance/today",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "attendance",
+        "today"
+       ]
+      },
+      "description": "Get the authenticated user's attendance status for today."
+     }
+    },
+    {
+     "name": "My Attendance History",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/attendance/history?date_from=&date_to=&per_page=20",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "attendance",
+        "history"
+       ],
+       "query": [
+        {
+         "key": "date_from",
+         "value": "",
+         "description": "Optional: YYYY-MM-DD"
+        },
+        {
+         "key": "date_to",
+         "value": "",
+         "description": "Optional: YYYY-MM-DD"
+        },
+        {
+         "key": "per_page",
+         "value": "20"
+        }
+       ]
+      },
+      "description": "List the authenticated user's own attendance history."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Leave",
+   "item": [
+    {
+     "name": "List Leave Types",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/leave/types",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "leave",
+        "types"
+       ]
+      },
+      "description": "Active leave types available to request. annual_quota is the default entitlement, not the caller's remaining balance - use Leave Balance for that."
+     }
+    },
+    {
+     "name": "Leave Balance",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/leave/balance?year=2026",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "leave",
+        "balance"
+       ],
+       "query": [
+        {
+         "key": "year",
+         "value": "2026"
+        }
+       ]
+      },
+      "description": "The caller's own balance per leave type. used_days is summed from approved requests, so it always agrees with the request list. remaining_days CAN be negative when leave was approved beyond entitlement - show it rather than clamping to zero. Omit `year` for the current one."
+     }
+    },
+    {
+     "name": "My Leave Requests",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/leave/requests?status=pending",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "leave",
+        "requests"
+       ],
+       "query": [
+        {
+         "key": "status",
+         "value": "pending"
+        }
+       ]
+      },
+      "description": "The caller's own requests only - user_id is pinned server-side and never read from the query string. Optional `status`: pending, approved, rejected, cancelled. Paginated via `per_page`."
+     }
+    },
+    {
+     "name": "Submit Leave Request",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"leave_type_id\": 1,\n  \"from_date\": \"2026-09-14\",\n  \"to_date\": \"2026-09-15\",\n  \"is_half_day\": false,\n  \"reason\": \"Family wedding.\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "url": {
+       "raw": "{{base_url}}/leave/requests",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "leave",
+        "requests"
+       ]
+      },
+      "description": "Submits a request as the authenticated user; it starts Pending and changes no attendance until a manager approves it.\n\n`days` comes back as WORKING days - weekends and recorded holidays are already excluded, so do not recompute it from the dates.\n\nSet is_half_day for a single date (from_date must equal to_date); it counts 0.5 days.\n\nReturns 422 when the range overlaps existing pending/approved leave, when it contains no working days at all, or when a half day spans two dates."
+     }
+    },
+    {
+     "name": "Get Leave Request",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/leave/requests/1",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "leave",
+        "requests",
+        "1"
+       ]
+      },
+      "description": "One of the caller's own requests. 403 for a colleague's."
+     }
+    },
+    {
+     "name": "Withdraw Leave Request",
+     "request": {
+      "method": "DELETE",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/leave/requests/1",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "leave",
+        "requests",
+        "1"
+       ]
+      },
+      "description": "Withdraws a request. Allowed while Pending, and for approved leave that has NOT started yet (its attendance rows are removed again). Approved leave already under way returns 422 - those days were genuinely taken.\n\nRead can_cancel on a request to decide whether to show the button."
+     }
+    }
+   ],
+   "description": "Self-service leave for the mobile app.\n\nThere is deliberately NO approve/reject endpoint here: deciding someone else's leave is an admin web action, and exposing it to the mobile API would put an approval button one permission mistake away from every phone in the field."
+  },
+  {
+   "name": "GPS Tracking",
+   "item": [
+    {
+     "name": "Ingest GPS Pings",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"logs\": [\n    { \"lat\": 23.8103, \"lng\": 90.4125, \"recorded_at\": \"2026-08-27T09:20:00+06:00\", \"accuracy\": 12.5, \"speed\": 8.2, \"battery_level\": 87 },\n    { \"lat\": 23.8110, \"lng\": 90.4130, \"recorded_at\": \"2026-08-27T09:40:00+06:00\", \"accuracy\": 10.0, \"speed\": 5.0, \"battery_level\": 85 }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "url": {
+       "raw": "{{base_url}}/gps-logs",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "gps-logs"
+       ]
+      },
+      "description": "Ingest a batch of 1–200 GPS pings for the authenticated user."
+     }
+    },
+    {
+     "name": "My Location History",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/gps-logs/history?date=",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "gps-logs",
+        "history"
+       ],
+       "query": [
+        {
+         "key": "date",
+         "value": "",
+         "description": "Optional: YYYY-MM-DD, defaults to today"
+        }
+       ]
+      },
+      "description": "Get the authenticated user's own GPS trail for a date, plus a computed distance_km."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Visit Plans",
+   "item": [
+    {
+     "name": "Plan Visit",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"dealer_id\": 1,\n  \"planned_date\": \"2026-08-28\",\n  \"notes\": \"Follow up on last order.\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "url": {
+       "raw": "{{base_url}}/visit-plans",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "visit-plans"
+       ]
+      },
+      "description": "Plan a visit to a dealer for a given date. Always created with status \"planned\"."
+     }
+    },
+    {
+     "name": "My Visit Plans",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/visit-plans?date_from=&date_to=&per_page=20",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "visit-plans"
+       ],
+       "query": [
+        {
+         "key": "date_from",
+         "value": "",
+         "description": "Optional: YYYY-MM-DD"
+        },
+        {
+         "key": "date_to",
+         "value": "",
+         "description": "Optional: YYYY-MM-DD"
+        },
+        {
+         "key": "per_page",
+         "value": "20"
+        }
+       ]
+      },
+      "description": "List the authenticated user's own visit plans."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Visits",
+   "item": [
+    {
+     "name": "Check In Visit",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "formdata",
+       "formdata": [
+        {
+         "key": "dealer_id",
+         "value": "1",
+         "type": "text"
+        },
+        {
+         "key": "visit_plan_id",
+         "value": "",
+         "type": "text",
+         "description": "Optional: link to a planned visit"
+        },
+        {
+         "key": "lat",
+         "value": "23.8103",
+         "type": "text"
+        },
+        {
+         "key": "lng",
+         "value": "90.4125",
+         "type": "text"
+        },
+        {
+         "key": "photo",
+         "type": "file",
+         "src": "fixtures/sample-photo.jpg"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/visits/check-in",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "visits",
+        "check-in"
+       ]
+      },
+      "description": "Check in to a dealer visit with GPS + photo. Response includes is_gps_verified against the dealer's registered location."
+     }
+    },
+    {
+     "name": "Check Out Visit",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "formdata",
+       "formdata": [
+        {
+         "key": "lat",
+         "value": "23.8110",
+         "type": "text"
+        },
+        {
+         "key": "lng",
+         "value": "90.4130",
+         "type": "text"
+        },
+        {
+         "key": "feedback",
+         "value": "Placed a repeat order.",
+         "type": "text"
+        },
+        {
+         "key": "photo",
+         "type": "file",
+         "src": "fixtures/sample-photo.jpg",
+         "description": "Optional on check-out"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/visits/check-out",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "visits",
+        "check-out"
+       ]
+      },
+      "description": "Check out of the current open visit with feedback."
+     }
+    },
+    {
+     "name": "Current Visit",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/visits/current",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "visits",
+        "current"
+       ]
+      },
+      "description": "Get the authenticated user's currently open visit, if any."
+     }
+    },
+    {
+     "name": "My Visit History",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/visits/history?date_from=&date_to=&per_page=20",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "visits",
+        "history"
+       ],
+       "query": [
+        {
+         "key": "date_from",
+         "value": "",
+         "description": "Optional: YYYY-MM-DD"
+        },
+        {
+         "key": "date_to",
+         "value": "",
+         "description": "Optional: YYYY-MM-DD"
+        },
+        {
+         "key": "per_page",
+         "value": "20"
+        }
+       ]
+      },
+      "description": "List the authenticated user's own visit history."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Orders",
+   "item": [
+    {
+     "name": "Preview Order",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"dealer_id\": 1,\n  \"retailer_id\": null,\n  \"order_date\": \"2026-08-27\",\n  \"remarks\": \"Restocked shelf display.\",\n  \"items\": [\n    { \"product_id\": 1, \"quantity\": 4, \"discount_amount\": 0 },\n    { \"product_id\": 2, \"quantity\": 2, \"discount_amount\": 0 }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "url": {
+       "raw": "{{base_url}}/orders/preview",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "orders",
+        "preview"
+       ]
+      },
+      "description": "Compute totals for a would-be order without saving it (mandatory confirm-before-submit step). Same body as Record Order; call this first, show the returned totals to the Sales Executive to confirm, then call Record Order with the same body."
+     }
+    },
+    {
+     "name": "Record Order",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"dealer_id\": 1,\n  \"retailer_id\": null,\n  \"order_date\": \"2026-08-27\",\n  \"remarks\": \"Restocked shelf display.\",\n  \"items\": [\n    { \"product_id\": 1, \"quantity\": 4, \"discount_amount\": 0 },\n    { \"product_id\": 2, \"quantity\": 2, \"discount_amount\": 0 }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "url": {
+       "raw": "{{base_url}}/orders",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "orders"
+       ]
+      },
+      "description": "Record one or more products sold to a dealer. `retailer_id` is optional — one of the dealer's own retailers, from List Retailers filtered by dealer_id. Each line's unit price is snapshotted server-side from the product's current price — never trust a client-supplied price. New orders always start with approval status \"pending\"."
+     }
+    },
+    {
+     "name": "My Order History",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/orders?date_from=&date_to=&status=&per_page=20",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "orders"
+       ],
+       "query": [
+        {
+         "key": "date_from",
+         "value": "",
+         "description": "Optional: YYYY-MM-DD"
+        },
+        {
+         "key": "date_to",
+         "value": "",
+         "description": "Optional: YYYY-MM-DD"
+        },
+        {
+         "key": "status",
+         "value": "",
+         "description": "Optional: pending | approved | rejected"
+        },
+        {
+         "key": "per_page",
+         "value": "20"
+        }
+       ]
+      },
+      "description": "List the authenticated user's own order history."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Sales Returns",
+   "item": [
+    {
+     "name": "Request Return",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"order_id\": 1,\n  \"reason\": \"Wrong item shipped\",\n  \"items\": [\n    { \"order_item_id\": 1, \"quantity\": 2 }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "url": {
+       "raw": "{{base_url}}/sales-returns",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "sales-returns"
+       ]
+      },
+      "description": "Request a return against one of the authenticated user's own orders. Approval/dispatch/depot-receiving/Tally sync all happen on the Admin Dashboard side — this only records the request."
+     }
+    },
+    {
+     "name": "My Return History",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/sales-returns?per_page=20",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "sales-returns"
+       ],
+       "query": [
+        {
+         "key": "per_page",
+         "value": "20"
+        }
+       ]
+      },
+      "description": "List the authenticated user's own return requests."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Collection Entries",
+   "item": [
+    {
+     "name": "Send Collection OTP",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "const body = pm.response.json();",
+         "if (body.success && body.data && body.data.otp_id) {",
+         "    pm.collectionVariables.set(\"otp_id\", body.data.otp_id);",
+         "    pm.environment.set(\"otp_id\", body.data.otp_id);",
+         "}"
+        ]
+       }
+      }
+     ],
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"dealer_id\": 1,\n  \"amount\": 600,\n  \"payment_method\": \"cash\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "url": {
+       "raw": "{{base_url}}/collection-entries/send-otp",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "collection-entries",
+        "send-otp"
+       ]
+      },
+      "description": "Send (or, in demo mode when no SMS gateway is configured, generate and return as demo_code — always the fixed code 123456 in demo mode) an OTP to confirm a collection with the dealer. Required before Record Collection — a collection cannot be recorded without a verified OTP."
+     }
+    },
+    {
+     "name": "Record Collection",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "formdata",
+       "formdata": [
+        {
+         "key": "dealer_id",
+         "value": "1",
+         "type": "text"
+        },
+        {
+         "key": "collection_date",
+         "value": "2026-08-27",
+         "type": "text"
+        },
+        {
+         "key": "amount",
+         "value": "600",
+         "type": "text"
+        },
+        {
+         "key": "payment_method",
+         "value": "cash",
+         "type": "text",
+         "description": "cash | cheque | bank_transfer | mobile_banking"
+        },
+        {
+         "key": "reference_no",
+         "value": "",
+         "type": "text",
+         "description": "Required when payment_method is bank_transfer or mobile_banking; must be unique among those two methods"
+        },
+        {
+         "key": "cheque_image",
+         "type": "file",
+         "src": "fixtures/sample-photo.jpg",
+         "description": "Required when payment_method is cheque"
+        },
+        {
+         "key": "otp_id",
+         "value": "{{otp_id}}",
+         "type": "text",
+         "description": "Required: from Send Collection OTP — a collection cannot be recorded without a verified OTP"
+        },
+        {
+         "key": "otp_code",
+         "value": "123456",
+         "type": "text",
+         "description": "Required: the 6-digit code the dealer read back to the executive (demo mode always issues 123456)"
+        },
+        {
+         "key": "remarks",
+         "value": "Collected during routine visit.",
+         "type": "text"
+        }
+       ]
+      },
+      "url": {
+       "raw": "{{base_url}}/collection-entries",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "collection-entries"
+       ]
+      },
+      "description": "Record a payment collected from a dealer. Requires a verified OTP (run Send Collection OTP first) — a collection cannot be recorded without one. New collections always start with approval status \"pending\"."
+     }
+    },
+    {
+     "name": "My Collection History",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/collection-entries?date_from=&date_to=&status=&per_page=20",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "collection-entries"
+       ],
+       "query": [
+        {
+         "key": "date_from",
+         "value": "",
+         "description": "Optional: YYYY-MM-DD"
+        },
+        {
+         "key": "date_to",
+         "value": "",
+         "description": "Optional: YYYY-MM-DD"
+        },
+        {
+         "key": "status",
+         "value": "",
+         "description": "Optional: pending | approved | rejected"
+        },
+        {
+         "key": "per_page",
+         "value": "20"
+        }
+       ]
+      },
+      "description": "List the authenticated user's own collection history."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Targets",
+   "item": [
+    {
+     "name": "My Current Target",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/targets/current",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "targets",
+        "current"
+       ]
+      },
+      "description": "Get the authenticated user's target and achievement for the current month."
+     }
+    },
+    {
+     "name": "My Targets History",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/targets?year=&per_page=20",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "targets"
+       ],
+       "query": [
+        {
+         "key": "year",
+         "value": "",
+         "description": "Optional: e.g. 2026"
+        },
+        {
+         "key": "per_page",
+         "value": "20"
+        }
+       ]
+      },
+      "description": "List the authenticated user's own targets and achievements."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Notifications",
+   "item": [
+    {
+     "name": "List My Notifications",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/notifications?status=&per_page=20",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "notifications"
+       ],
+       "query": [
+        {
+         "key": "status",
+         "value": "",
+         "description": "Optional: read | unread"
+        },
+        {
+         "key": "per_page",
+         "value": "20"
+        }
+       ]
+      },
+      "description": "List the authenticated user's own notifications."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "const body = pm.response.json();",
+         "if (body.success && Array.isArray(body.data) && body.data.length) {",
+         "    pm.collectionVariables.set(\"notification_id\", body.data[0].id);",
+         "    pm.environment.set(\"notification_id\", body.data[0].id);",
+         "}"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Unread Count",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/notifications/unread-count",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "notifications",
+        "unread-count"
+       ]
+      },
+      "description": "Get the unread notification count for the bell badge."
+     }
+    },
+    {
+     "name": "Mark Notification as Read",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/notifications/:id/read",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "notifications",
+        ":id",
+        "read"
+       ],
+       "variable": [
+        {
+         "key": "id",
+         "value": "{{notification_id}}"
+        }
+       ]
+      },
+      "description": "Mark a single notification as read."
+     }
+    },
+    {
+     "name": "Mark All as Read",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/notifications/read-all",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "notifications",
+        "read-all"
+       ]
+      },
+      "description": "Mark all of the authenticated user's notifications as read."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Achievements",
+   "item": [
+    {
+     "name": "Record/Update Today's Achievement (Single)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"mode\": \"single\",\n  \"order_value_achieved\": 5000,\n  \"collection_achieved\": 2000,\n  \"quantity_achieved\": 20\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "url": {
+       "raw": "{{base_url}}/achievements",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "achievements"
+       ]
+      },
+      "description": "Record or update the caller's own achievement for a date (defaults to today)."
+     }
+    },
+    {
+     "name": "My Current Achievement",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/achievements/current",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "achievements",
+        "current"
+       ]
+      },
+      "description": "Get the authenticated user's achievement entry for today."
+     }
+    },
+    {
+     "name": "My Achievement History",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/achievements?date_from=&date_to=&per_page=20",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "achievements"
+       ],
+       "query": [
+        {
+         "key": "date_from",
+         "value": "",
+         "description": "Optional: e.g. 2026-08-01"
+        },
+        {
+         "key": "date_to",
+         "value": "",
+         "description": "Optional: e.g. 2026-08-31"
+        },
+        {
+         "key": "per_page",
+         "value": "20"
+        }
+       ]
+      },
+      "description": "List the authenticated user's own achievement history."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Tally Sync Agent",
+   "description": "Machine-to-machine endpoints for the customer's Tally Sync Agent (see tally-sync-agent/) — authenticated with the connection's own agent credential, never a human user's token. Set {{tally_agent_token}} from the Tally Connections admin page.",
+   "auth": {
+    "type": "bearer",
+    "bearer": [
+     {
+      "key": "token",
+      "value": "{{tally_agent_token}}",
+      "type": "string"
+     }
+    ]
+   },
+   "item": [
+    {
+     "name": "Agent Heartbeat",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"tally_company_guid\": null\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "url": {
+       "raw": "{{base_url}}/integration/tally/agent/heartbeat",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "integration",
+        "tally",
+        "agent",
+        "heartbeat"
+       ]
+      },
+      "description": "Report the Sync Agent's liveness, and optionally the Tally company GUID it discovered."
+     }
+    },
+    {
+     "name": "Claim Pending Jobs",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/integration/tally/agent/jobs?limit=10",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "integration",
+        "tally",
+        "agent",
+        "jobs"
+       ],
+       "query": [
+        {
+         "key": "limit",
+         "value": "10"
+        }
+       ]
+      },
+      "description": "Claim the next batch of pending sync jobs."
+     }
+    },
+    {
+     "name": "Report Job Result",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"success\": true,\n  \"response\": {},\n  \"tally_guid\": \"\",\n  \"tally_voucher_number\": \"\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "url": {
+       "raw": "{{base_url}}/integration/tally/agent/jobs/{{sync_queue_id}}/result",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "integration",
+        "tally",
+        "agent",
+        "jobs",
+        "{{sync_queue_id}}",
+        "result"
+       ]
+      },
+      "description": "Report the outcome of one claimed sync job. When success is false, error_code and error_message are required."
+     }
+    },
+    {
+     "name": "Push Stock Snapshot",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"rows\": [\n    {\n      \"stock_item_name\": \"Engine Oil 1L\",\n      \"godown_name\": \"Main Godown\",\n      \"stock_item_tally_guid\": \"\",\n      \"godown_tally_guid\": \"\",\n      \"opening_qty\": 100,\n      \"in_qty\": 20,\n      \"out_qty\": 5,\n      \"closing_qty\": 115\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "url": {
+       "raw": "{{base_url}}/integration/tally/stock-sync",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "integration",
+        "tally",
+        "stock-sync"
+       ]
+      },
+      "description": "Push a full godown-wise stock snapshot. Not a queued job — a bulk overwrite of Tally-owned product_stocks columns, matched by tally_guid; rows whose depot/product GUID isn't mapped are skipped and counted."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Logout",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Accept",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/auth/logout",
+     "host": [
+      "{{base_url}}"
+     ],
+     "path": [
+      "auth",
+      "logout"
+     ]
+    },
+    "description": "Revoke the current API token."
+   }
+  }
+ ]
 }

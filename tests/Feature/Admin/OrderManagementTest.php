@@ -16,15 +16,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
-/**
- * Orders are retired for every role but Super Admin (see the "version 1"
- * Achievement pivot) — `orders.*`/`menu.orders` are no longer assigned to
- * General Manager, Sales/Area/Territory Manager, or Sales Executive. The
- * underlying OrderService/Policy business logic (territory/team scoping,
- * discount cap, approve/reject forward-only) is still real code, still
- * worth covering — those cases now run as Super Admin, the only role left
- * with access, rather than being deleted.
- */
 class OrderManagementTest extends TestCase
 {
     use RefreshDatabase;
@@ -34,6 +25,14 @@ class OrderManagementTest extends TestCase
         parent::setUp();
 
         $this->seed(RolePermissionSeeder::class);
+    }
+
+    private function generalManager(): User
+    {
+        $user = User::factory()->create();
+        $user->assignRole('General Manager');
+
+        return $user;
     }
 
     private function superAdmin(): User
@@ -71,25 +70,57 @@ class OrderManagementTest extends TestCase
         $this->get(route('orders.index'))->assertRedirect(route('login'));
     }
 
-    public function test_sales_executive_no_longer_has_any_web_access(): void
+    public function test_sales_executive_can_view_only_their_own_orders(): void
     {
         $executive = $this->executive();
-        $order = Order::factory()->create(['user_id' => $executive->id]);
+        $otherExecutive = $this->executive();
+        $ownOrder = Order::factory()->create(['user_id' => $executive->id]);
+        $otherOrder = Order::factory()->create(['user_id' => $otherExecutive->id]);
 
-        $this->actingAs($executive)->get(route('orders.index'))->assertForbidden();
-        $this->actingAs($executive)->get(route('orders.create'))->assertForbidden();
-        $this->actingAs($executive)->get(route('orders.show', $order))->assertForbidden();
+        $this->actingAs($executive)->get(route('orders.create'))->assertOk();
+
+        $response = $this->actingAs($executive)->get(route('orders.index'));
+        $response->assertOk()->assertSee($ownOrder->dealer->name)->assertDontSee($otherOrder->dealer->name);
+
+        $this->actingAs($executive)->get(route('orders.show', $otherOrder))->assertForbidden();
     }
 
-    public function test_general_manager_and_territory_manager_no_longer_have_any_web_access(): void
+    public function test_the_create_form_locks_a_plain_sales_executive_to_themself(): void
     {
-        foreach (['General Manager', 'Territory Manager', 'Sales Manager', 'Area Manager'] as $role) {
-            $manager = User::factory()->create();
-            $manager->assignRole($role);
+        $executive = $this->executive();
+        $otherExecutive = $this->executive();
 
-            $this->actingAs($manager)->get(route('orders.index'))->assertForbidden();
-            $this->actingAs($manager)->get(route('orders.create'))->assertForbidden();
-        }
+        $response = $this->actingAs($executive)->get(route('orders.create'));
+
+        $response->assertOk();
+        $html = $response->getContent();
+        $this->assertMatchesRegularExpression('/<select[^>]*name="user_id"[^>]*disabled[^>]*>/', $html);
+        $this->assertStringContainsString((string) $executive->id, $html);
+
+        // Only the executive themself is offered as an option — not every
+        // Sales Executive in the company.
+        $response->assertSee($executive->name)->assertDontSee($otherExecutive->name);
+    }
+
+    public function test_a_plain_sales_executive_cannot_record_an_order_for_someone_else_even_by_tampering_the_request(): void
+    {
+        $executive = $this->executive();
+        $otherExecutive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        $product = Product::factory()->create(['price' => 100]);
+
+        $response = $this->actingAs($executive)->post(route('orders.store'), [
+            'user_id' => $otherExecutive->id,
+            'dealer_id' => $dealer->id,
+            'order_date' => Carbon::today()->toDateString(),
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 1, 'unit_price' => 100, 'discount_amount' => 0],
+            ],
+        ]);
+
+        $response->assertRedirect(route('orders.index'));
+        $this->assertDatabaseHas('orders', ['dealer_id' => $dealer->id, 'user_id' => $executive->id]);
+        $this->assertDatabaseMissing('orders', ['dealer_id' => $dealer->id, 'user_id' => $otherExecutive->id]);
     }
 
     public function test_a_territory_scoped_viewer_can_only_pick_a_dealer_in_their_own_territory_on_the_order_form(): void
@@ -99,13 +130,13 @@ class OrderManagementTest extends TestCase
         $dealerA = Dealer::factory()->create(['territory_id' => $territoryA->id]);
         $dealerB = Dealer::factory()->create(['territory_id' => $territoryB->id]);
 
-        // orders.add is now Super Admin only — territories can still be
+        // orders.add is a General/Super Admin ability — territories can be
         // assigned to any role via the Users form, so this exercises a
-        // regionally-scoped Super Admin.
-        $admin = $this->superAdmin();
-        $admin->territories()->attach($territoryA);
+        // regionally-scoped General Manager.
+        $manager = $this->generalManager();
+        $manager->territories()->attach($territoryA);
 
-        $response = $this->actingAs($admin)->get(route('orders.create'));
+        $response = $this->actingAs($manager)->get(route('orders.create'));
 
         $response->assertOk()->assertSee($dealerA->name)->assertDontSee($dealerB->name);
     }
@@ -117,11 +148,11 @@ class OrderManagementTest extends TestCase
         $dealerB = Dealer::factory()->create(['territory_id' => $territoryB->id]);
         $product = Product::factory()->create(['price' => 100]);
 
-        $admin = $this->superAdmin();
-        $admin->territories()->attach($territoryA);
+        $manager = $this->generalManager();
+        $manager->territories()->attach($territoryA);
         $executive = $this->executive();
 
-        $response = $this->actingAs($admin)->post(route('orders.store'), [
+        $response = $this->actingAs($manager)->post(route('orders.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealerB->id,
             'order_date' => Carbon::today()->toDateString(),
@@ -134,17 +165,17 @@ class OrderManagementTest extends TestCase
         $this->assertDatabaseCount('orders', 0);
     }
 
-    public function test_super_admin_can_view_and_record_an_order_with_multiple_products(): void
+    public function test_general_manager_can_view_and_record_an_order_with_multiple_products(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         $productA = Product::factory()->create(['price' => 100]);
         $productB = Product::factory()->create(['price' => 50]);
 
-        $this->actingAs($admin)->get(route('orders.index'))->assertOk();
+        $this->actingAs($manager)->get(route('orders.index'))->assertOk();
 
-        $response = $this->actingAs($admin)->post(route('orders.store'), [
+        $response = $this->actingAs($manager)->post(route('orders.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'order_date' => Carbon::today()->toDateString(),
@@ -165,13 +196,13 @@ class OrderManagementTest extends TestCase
 
     public function test_an_order_can_optionally_be_placed_for_a_specific_retailer(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         $retailer = Retailer::factory()->create(['dealer_id' => $dealer->id]);
         $product = Product::factory()->create(['price' => 100]);
 
-        $response = $this->actingAs($admin)->post(route('orders.store'), [
+        $response = $this->actingAs($manager)->post(route('orders.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'retailer_id' => $retailer->id,
@@ -187,12 +218,12 @@ class OrderManagementTest extends TestCase
 
     public function test_an_order_can_be_placed_without_a_retailer(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         $product = Product::factory()->create(['price' => 100]);
 
-        $response = $this->actingAs($admin)->post(route('orders.store'), [
+        $response = $this->actingAs($manager)->post(route('orders.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'order_date' => Carbon::today()->toDateString(),
@@ -207,7 +238,7 @@ class OrderManagementTest extends TestCase
 
     public function test_the_territory_filter_only_returns_orders_for_dealers_in_that_territory(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $territoryA = Territory::factory()->create();
         $territoryB = Territory::factory()->create();
         $dealerA = Dealer::factory()->create(['territory_id' => $territoryA->id]);
@@ -216,7 +247,7 @@ class OrderManagementTest extends TestCase
         Order::factory()->create(['dealer_id' => $dealerA->id]);
         Order::factory()->create(['dealer_id' => $dealerB->id]);
 
-        $response = $this->actingAs($admin)->get(route('orders.index', ['territory_id' => $territoryA->id]));
+        $response = $this->actingAs($manager)->get(route('orders.index', ['territory_id' => $territoryA->id]));
 
         $response->assertOk();
         $response->assertSee($dealerA->name);
@@ -226,12 +257,12 @@ class OrderManagementTest extends TestCase
     public function test_a_discount_beyond_the_configured_cap_is_rejected(): void
     {
         config(['sfa.orders.max_discount_percent' => 20]);
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         $product = Product::factory()->create(['price' => 100]);
 
-        $response = $this->actingAs($admin)->post(route('orders.store'), [
+        $response = $this->actingAs($manager)->post(route('orders.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'order_date' => Carbon::today()->toDateString(),
@@ -246,11 +277,11 @@ class OrderManagementTest extends TestCase
 
     public function test_at_least_one_item_is_required(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
 
-        $response = $this->actingAs($admin)->post(route('orders.store'), [
+        $response = $this->actingAs($manager)->post(route('orders.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'order_date' => Carbon::today()->toDateString(),
@@ -260,23 +291,23 @@ class OrderManagementTest extends TestCase
         $response->assertSessionHasErrors('items');
     }
 
-    public function test_super_admin_can_view_an_order_detail_page(): void
+    public function test_general_manager_can_view_an_order_detail_page(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $product = Product::factory()->create();
         $order = $this->orderWithItem($product);
 
-        $this->actingAs($admin)->get(route('orders.show', $order))->assertOk();
+        $this->actingAs($manager)->get(route('orders.show', $order))->assertOk();
     }
 
-    public function test_super_admin_can_update_an_order_and_replace_its_items(): void
+    public function test_general_manager_can_update_an_order_and_replace_its_items(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $productA = Product::factory()->create();
         $productB = Product::factory()->create();
         $order = $this->orderWithItem($productA, quantity: 5, unitPrice: 100);
 
-        $this->actingAs($admin)->put(route('orders.update', $order), [
+        $this->actingAs($manager)->put(route('orders.update', $order), [
             'user_id' => $order->user_id,
             'dealer_id' => $order->dealer_id,
             'order_date' => $order->order_date->toDateString(),
@@ -288,6 +319,14 @@ class OrderManagementTest extends TestCase
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'total_amount' => 800]);
         $this->assertDatabaseHas('order_items', ['order_id' => $order->id, 'product_id' => $productB->id]);
         $this->assertDatabaseMissing('order_items', ['order_id' => $order->id, 'product_id' => $productA->id]);
+    }
+
+    public function test_general_manager_cannot_delete_an_order(): void
+    {
+        $manager = $this->generalManager();
+        $order = Order::factory()->create();
+
+        $this->actingAs($manager)->delete(route('orders.destroy', $order))->assertForbidden();
     }
 
     public function test_super_admin_can_delete_and_restore_an_order(): void
@@ -304,6 +343,15 @@ class OrderManagementTest extends TestCase
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'deleted_at' => null]);
     }
 
+    public function test_territory_manager_can_view_but_not_create_orders(): void
+    {
+        $manager = User::factory()->create();
+        $manager->assignRole('Territory Manager');
+
+        $this->actingAs($manager)->get(route('orders.index'))->assertOk();
+        $this->actingAs($manager)->get(route('orders.create'))->assertForbidden();
+    }
+
     public function test_order_form_product_options_are_filtered_to_the_viewers_sales_team(): void
     {
         $teamA = SalesTeam::factory()->create();
@@ -313,10 +361,10 @@ class OrderManagementTest extends TestCase
         $otherTeamProduct = Product::factory()->create(['sales_team_id' => $teamB->id, 'name' => 'Other Team Product']);
         $teamLessProduct = Product::factory()->create(['sales_team_id' => null, 'name' => 'Team Less Product']);
 
-        $admin = User::factory()->create(['sales_team_id' => $teamA->id]);
-        $admin->assignRole('Super Admin');
+        $manager = User::factory()->create(['sales_team_id' => $teamA->id]);
+        $manager->assignRole('General Manager');
 
-        $response = $this->actingAs($admin)->get(route('orders.create'));
+        $response = $this->actingAs($manager)->get(route('orders.create'));
 
         $response->assertOk()
             ->assertSee($ownTeamProduct->name)
@@ -332,22 +380,22 @@ class OrderManagementTest extends TestCase
         $otherTeamProduct = Product::factory()->create(['sales_team_id' => $teamB->id, 'name' => 'Other Team Product']);
         $order = $this->orderWithItem($otherTeamProduct);
 
-        $admin = User::factory()->create(['sales_team_id' => $teamA->id]);
-        $admin->assignRole('Super Admin');
+        $manager = User::factory()->create(['sales_team_id' => $teamA->id]);
+        $manager->assignRole('General Manager');
 
-        $this->actingAs($admin)->get(route('orders.edit', $order))
+        $this->actingAs($manager)->get(route('orders.edit', $order))
             ->assertOk()
             ->assertSee($otherTeamProduct->name);
     }
 
     public function test_a_new_order_starts_pending(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         $product = Product::factory()->create(['price' => 100]);
 
-        $this->actingAs($admin)->post(route('orders.store'), [
+        $this->actingAs($manager)->post(route('orders.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'order_date' => Carbon::today()->toDateString(),
@@ -359,32 +407,32 @@ class OrderManagementTest extends TestCase
         $this->assertDatabaseHas('orders', ['dealer_id' => $dealer->id, 'status' => 'pending']);
     }
 
-    public function test_super_admin_can_approve_a_pending_order(): void
+    public function test_general_manager_can_approve_a_pending_order(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $order = Order::factory()->create(['status' => 'pending']);
 
-        $this->actingAs($admin)->patch(route('orders.approve', $order))->assertRedirect();
+        $this->actingAs($manager)->patch(route('orders.approve', $order))->assertRedirect();
 
-        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'approved', 'approved_by' => $admin->id]);
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'approved', 'approved_by' => $manager->id]);
     }
 
-    public function test_super_admin_can_reject_a_pending_order(): void
+    public function test_general_manager_can_reject_a_pending_order(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $order = Order::factory()->create(['status' => 'pending']);
 
-        $this->actingAs($admin)->patch(route('orders.reject', $order))->assertRedirect();
+        $this->actingAs($manager)->patch(route('orders.reject', $order))->assertRedirect();
 
-        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'rejected', 'approved_by' => $admin->id]);
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'rejected', 'approved_by' => $manager->id]);
     }
 
     public function test_an_already_approved_order_cannot_be_approved_again(): void
     {
-        $admin = $this->superAdmin();
-        $order = Order::factory()->create(['status' => 'approved', 'approved_by' => $admin->id, 'approved_at' => now()]);
+        $manager = $this->generalManager();
+        $order = Order::factory()->create(['status' => 'approved', 'approved_by' => $manager->id, 'approved_at' => now()]);
 
-        $this->actingAs($admin)->patch(route('orders.approve', $order))->assertSessionHasErrors('status');
+        $this->actingAs($manager)->patch(route('orders.approve', $order))->assertSessionHasErrors('status');
     }
 
     public function test_a_territory_manager_cannot_approve_an_order(): void
@@ -398,11 +446,11 @@ class OrderManagementTest extends TestCase
 
     public function test_the_approval_filter_only_returns_orders_with_that_status(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $pending = Order::factory()->create(['status' => 'pending']);
         $approved = Order::factory()->create(['status' => 'approved']);
 
-        $response = $this->actingAs($admin)->get(route('orders.index', ['status' => 'approved']));
+        $response = $this->actingAs($manager)->get(route('orders.index', ['status' => 'approved']));
 
         $response->assertOk();
         $response->assertSee($approved->dealer->name);

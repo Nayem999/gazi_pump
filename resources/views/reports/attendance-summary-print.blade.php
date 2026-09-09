@@ -25,6 +25,7 @@
                 <th>Late</th>
                 <th>Half Day</th>
                 <th>Absent</th>
+                <th>On Leave</th>
                 <th>Late Minutes</th>
                 <th>Total Days</th>
                 <th>Attendance Rate</th>
@@ -39,9 +40,10 @@
                     <td>{{ $row->late_count }}</td>
                     <td>{{ $row->half_day_count }}</td>
                     <td>{{ $row->absent_count }}</td>
+                    <td>{{ $row->leave_count }}</td>
                     <td>{{ $row->total_late_minutes }}</td>
                     <td>{{ $row->total_days }}</td>
-                    <td>{{ $row->attendance_rate }}%</td>
+                    <td>{{ $row->judged_days > 0 ? $row->attendance_rate.'%' : '—' }}</td>
                 </tr>
             @endforeach
         </tbody>

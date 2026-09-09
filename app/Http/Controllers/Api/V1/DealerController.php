@@ -12,6 +12,7 @@ use App\Models\Dealer;
 use App\Services\CollectionEntryService;
 use App\Services\DealerService;
 use App\Services\ReportService;
+use App\Services\TallyLedgerSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
@@ -27,6 +28,7 @@ class DealerController extends Controller
         private readonly DealerService $dealers,
         private readonly CollectionEntryService $collectionEntries,
         private readonly ReportService $reports,
+        private readonly TallyLedgerSyncService $ledgerSync,
     ) {}
 
     #[OA\Get(
@@ -121,18 +123,22 @@ class DealerController extends Controller
     #[OA\Get(
         path: '/dealers/{id}/outstanding-balance',
         tags: ['Dealers'],
-        summary: 'Get a dealer\'s outstanding balance (total ordered minus total collected)',
+        summary: 'Get a dealer\'s outstanding balance',
+        description: 'Returns the real Tally-synced balance once this dealer\'s ledger has been pulled (Phase 5); otherwise the SFA-computed estimate (total ordered minus total collected) — `source` says which one this is, so the field app can show that distinction rather than presenting an estimate as if it were authoritative.',
         security: [['sanctum' => []]],
         parameters: [new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))],
-        responses: [new OA\Response(response: 200, description: 'Outstanding balance'), new OA\Response(response: 404, description: 'Not found')],
+        responses: [new OA\Response(response: 200, description: 'Outstanding balance and its source'), new OA\Response(response: 404, description: 'Not found')],
     )]
     public function outstandingBalance(Dealer $dealer): JsonResponse
     {
         $this->authorize('view', $dealer);
 
+        $tallyBalance = $this->ledgerSync->outstandingBalance($dealer);
+
         return ApiResponse::success([
             'dealer_id' => $dealer->id,
-            'outstanding_balance' => $this->collectionEntries->outstandingBalance($dealer->id),
+            'outstanding_balance' => $tallyBalance ?? $this->collectionEntries->outstandingBalance($dealer->id),
+            'source' => $tallyBalance !== null ? 'tally' : 'estimate',
         ]);
     }
 

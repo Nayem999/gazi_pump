@@ -106,9 +106,60 @@
 </div>
 
 <div class="mt-4 d-flex gap-2">
-    <button type="submit" class="btn btn-primary"><i class="ti ti-check me-1"></i>{{ isset($order) ? 'Update Order' : 'Record Order' }}</button>
+    <button type="button" id="previewOrderBtn" class="btn btn-primary"><i class="ti ti-eye me-1"></i>Preview Order</button>
     <a href="{{ route('orders.index') }}" class="btn btn-outline-secondary">Cancel</a>
 </div>
+
+{{--
+    Mandatory Preview step before final submission (spec §11) — built from
+    the form's own current state via JS, no extra server round-trip. EDIT
+    just closes the modal so the rep keeps adjusting the form; SUBMIT ORDER
+    triggers the real submission; CANCEL abandons the order and returns to
+    the list, same as the plain Cancel link above.
+--}}
+<x-modal id="orderPreviewModal" title="Preview Order" size="lg">
+    <dl class="row mb-3">
+        <dt class="col-sm-4">Sales Executive</dt>
+        <dd class="col-sm-8" id="previewExecutive"></dd>
+        <dt class="col-sm-4">Dealer</dt>
+        <dd class="col-sm-8" id="previewDealer"></dd>
+        <dt class="col-sm-4">Retailer</dt>
+        <dd class="col-sm-8" id="previewRetailer"></dd>
+        <dt class="col-sm-4">Order Date</dt>
+        <dd class="col-sm-8" id="previewOrderDate"></dd>
+    </dl>
+
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Unit Price</th>
+                    <th>Discount</th>
+                    <th>Line Total</th>
+                </tr>
+            </thead>
+            <tbody id="previewItemsBody"></tbody>
+        </table>
+    </div>
+
+    <div class="alert alert-info d-flex justify-content-between mb-3">
+        <span>Grand Total</span>
+        <strong id="previewGrandTotal">0.00</strong>
+    </div>
+
+    <div>
+        <dt class="small text-muted">Remarks</dt>
+        <dd id="previewRemarks" class="mb-0"></dd>
+    </div>
+
+    <x-slot:footer>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><i class="ti ti-pencil me-1"></i>Edit</button>
+        <a href="{{ route('orders.index') }}" class="btn btn-outline-danger">Cancel</a>
+        <button type="button" id="confirmSubmitOrderBtn" class="btn btn-primary"><i class="ti ti-check me-1"></i>Submit Order</button>
+    </x-slot:footer>
+</x-modal>
 
 {{-- Product options shared by every line-item row --}}
 <template id="productOptionsTemplate">
@@ -277,6 +328,58 @@
             }
 
             recalculate();
+
+            // --- Mandatory Preview step (spec §11) ---
+            const form = document.getElementById('previewOrderBtn').closest('form');
+            const previewModalEl = document.getElementById('orderPreviewModal');
+            const previewModal = new window.bootstrap.Modal(previewModalEl);
+
+            document.getElementById('previewOrderBtn').addEventListener('click', function () {
+                if (!form.reportValidity()) {
+                    return;
+                }
+
+                const executiveOption = executiveSelect?.selectedOptions[0];
+                document.getElementById('previewExecutive').textContent = executiveOption ? executiveOption.text : '—';
+
+                const dealerOption = dealerSelect.selectedOptions[0];
+                document.getElementById('previewDealer').textContent = dealerOption && dealerOption.value ? dealerOption.text : '—';
+
+                const retailerOption = retailerSelect.selectedOptions[0];
+                document.getElementById('previewRetailer').textContent = retailerOption && retailerOption.value ? retailerOption.text : '— None —';
+
+                document.getElementById('previewOrderDate').textContent = document.querySelector('input[name="order_date"]').value || '—';
+                document.getElementById('previewRemarks').textContent = document.querySelector('textarea[name="remarks"]').value || '—';
+
+                const previewBody = document.getElementById('previewItemsBody');
+                previewBody.innerHTML = '';
+                itemsBody.querySelectorAll('tr').forEach((tr) => {
+                    const productOption = tr.querySelector('.product-select').selectedOptions[0];
+                    const quantity = tr.querySelector('.quantity-input').value;
+                    const unitPrice = parseFloat(tr.querySelector('.unit-price-input').value || 0);
+                    const discount = parseFloat(tr.querySelector('.discount-input').value || 0);
+                    const lineTotal = tr.querySelector('.line-total-preview').textContent;
+
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${productOption ? productOption.text : '—'}</td>
+                        <td>${quantity}</td>
+                        <td>${unitPrice.toFixed(2)}</td>
+                        <td>${discount.toFixed(2)}</td>
+                        <td>${lineTotal}</td>
+                    `;
+                    previewBody.appendChild(row);
+                });
+
+                document.getElementById('previewGrandTotal').textContent = grandTotalPreview.textContent;
+
+                previewModal.show();
+            });
+
+            document.getElementById('confirmSubmitOrderBtn').addEventListener('click', function () {
+                previewModal.hide();
+                form.requestSubmit();
+            });
         });
     </script>
 @endpush

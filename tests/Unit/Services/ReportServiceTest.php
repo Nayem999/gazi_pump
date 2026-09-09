@@ -56,6 +56,49 @@ class ReportServiceTest extends TestCase
         $this->assertSame('2026-01-31', $range['to']->toDateString());
     }
 
+    public function test_approved_leave_is_reported_but_never_counted_against_the_rate(): void
+    {
+        // The whole point of the Leave module's attendance integration:
+        // time off a manager approved must not read as poor attendance.
+        $user = User::factory()->create();
+        $date = Carbon::create(2026, 8, 10);
+
+        Attendance::factory()->create(['user_id' => $user->id, 'date' => $date->toDateString(), 'status' => AttendanceStatus::Present, 'late_minutes' => 0]);
+        Attendance::factory()->create(['user_id' => $user->id, 'date' => $date->copy()->addDay()->toDateString(), 'status' => AttendanceStatus::Leave, 'late_minutes' => 0]);
+        Attendance::factory()->create(['user_id' => $user->id, 'date' => $date->copy()->addDays(2)->toDateString(), 'status' => AttendanceStatus::Leave, 'late_minutes' => 0]);
+
+        $rows = $this->service()->attendanceSummary(['date_from' => '2026-08-01', 'date_to' => '2026-08-31']);
+        $row = $rows->firstWhere('user.id', $user->id);
+
+        $this->assertSame(2, $row->leave_count);
+        $this->assertSame(3, $row->total_days, 'the leave days are still reported');
+        // Leave comes out of BOTH sides: one working day, and they were
+        // present for it, so 100% rather than 33%.
+        $this->assertSame(1, $row->judged_days);
+        $this->assertSame(100.0, $row->attendance_rate);
+    }
+
+    public function test_a_period_that_is_entirely_leave_has_no_rate_rather_than_zero(): void
+    {
+        // There were no working days to judge, so a rate of 0% would be a
+        // statement the data does not support.
+        $user = User::factory()->create();
+
+        Attendance::factory()->create([
+            'user_id' => $user->id,
+            'date' => Carbon::create(2026, 8, 10)->toDateString(),
+            'status' => AttendanceStatus::Leave,
+            'late_minutes' => 0,
+        ]);
+
+        $row = $this->service()
+            ->attendanceSummary(['date_from' => '2026-08-01', 'date_to' => '2026-08-31'])
+            ->firstWhere('user.id', $user->id);
+
+        $this->assertSame(0, $row->judged_days);
+        $this->assertSame(0.0, $row->attendance_rate, 'the view renders a dash when judged_days is 0');
+    }
+
     public function test_attendance_summary_counts_each_status_and_computes_the_rate(): void
     {
         $user = User::factory()->create();
@@ -72,8 +115,11 @@ class ReportServiceTest extends TestCase
         $this->assertSame(1, $row->late_count);
         $this->assertSame(1, $row->absent_count);
         $this->assertSame(20, $row->total_late_minutes);
+        $this->assertSame(0, $row->leave_count);
         $this->assertSame(3, $row->total_days);
-        // 2 of 3 days count toward the rate (present + late, not absent).
+        // No leave here, so every day is judged: 2 of 3 count toward the
+        // rate (present + late, not absent).
+        $this->assertSame(3, $row->judged_days);
         $this->assertSame(66.7, $row->attendance_rate);
     }
 
@@ -163,6 +209,70 @@ class ReportServiceTest extends TestCase
         $this->assertSame(100.0, $row->cash_total);
         $this->assertSame(200.0, $row->cheque_total);
         $this->assertSame(0.0, $row->bank_transfer_total);
+    }
+
+    public function test_sales_return_summary_breaks_down_by_status_and_credits_only_received_amounts(): void
+    {
+        $user = User::factory()->create();
+        $dealer = Dealer::factory()->create();
+
+        $received = \App\Models\SalesReturn::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'status' => 'received', 'created_at' => '2026-08-10']);
+        \App\Models\SalesReturnItem::factory()->create(['sales_return_id' => $received->id, 'requested_qty' => 5, 'received_qty' => 3, 'unit_price' => 100]);
+
+        \App\Models\SalesReturn::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'status' => 'requested', 'created_at' => '2026-08-12']);
+        \App\Models\SalesReturn::factory()->create(['user_id' => $user->id, 'dealer_id' => $dealer->id, 'status' => 'rejected', 'created_at' => '2026-08-13']);
+
+        $rows = $this->service()->salesReturnSummary(['date_from' => '2026-08-01', 'date_to' => '2026-08-31']);
+        $row = $rows->firstWhere('user.id', $user->id);
+
+        $this->assertSame(3, $row->returns_count);
+        $this->assertSame(1, $row->pending_count);
+        $this->assertSame(1, $row->rejected_count);
+        $this->assertSame(1, $row->received_count);
+        // Credited on received_qty (3 * 100 = 300), not requested_qty (5 * 100 = 500).
+        $this->assertSame(300.0, $row->total_credited);
+    }
+
+    public function test_dealer_ledger_falls_back_to_the_order_collection_estimate_when_never_synced(): void
+    {
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'order_date' => '2026-08-01', 'total_amount' => 1000]);
+        CollectionEntry::factory()->create(['dealer_id' => $dealer->id, 'collection_date' => '2026-08-05', 'amount' => 400]);
+
+        $rows = $this->service()->dealerLedger($dealer);
+
+        $this->assertCount(2, $rows);
+        $this->assertSame(600.0, $rows->last()->balance);
+    }
+
+    public function test_dealer_ledger_prefers_real_tally_ledger_entries_once_any_exist(): void
+    {
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'order_date' => '2026-08-01', 'total_amount' => 1000]);
+
+        \App\Models\LedgerEntry::factory()->create([
+            'dealer_id' => $dealer->id,
+            'voucher_date' => '2026-08-02',
+            'voucher_type' => 'Sales',
+            'voucher_number' => 'SV-1',
+            'debit_amount' => 1500,
+            'credit_amount' => 0,
+        ]);
+        \App\Models\LedgerEntry::factory()->create([
+            'dealer_id' => $dealer->id,
+            'voucher_date' => '2026-08-03',
+            'voucher_type' => 'Receipt',
+            'voucher_number' => 'RC-1',
+            'debit_amount' => 0,
+            'credit_amount' => 500,
+        ]);
+
+        $rows = $this->service()->dealerLedger($dealer);
+
+        // Only the real ledger rows — the Order factory row above is
+        // ignored once any real Tally ledger entry exists for this dealer.
+        $this->assertCount(2, $rows);
+        $this->assertSame(1000.0, $rows->last()->balance);
     }
 
     public function test_territory_performance_aggregates_orders_collections_and_visits_per_territory(): void

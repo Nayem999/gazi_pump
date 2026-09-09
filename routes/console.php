@@ -32,3 +32,13 @@ Schedule::command('notifications:check-birthdays')->dailyAt('08:00')->withoutOve
 | already has a row (manual, auto, or otherwise), so reruns are safe.
 */
 Schedule::command('attendance:mark-absent')->dailyAt('00:30')->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
+| Tally Sync Retries
+|--------------------------------------------------------------------------
+| Idempotent — only ever flips rows whose next_attempt_at has actually
+| arrived back to Pending, never touches anything else, so a missed tick
+| just means the next one catches up.
+*/
+Schedule::command('tally:process-retries')->everyMinute()->withoutOverlapping();

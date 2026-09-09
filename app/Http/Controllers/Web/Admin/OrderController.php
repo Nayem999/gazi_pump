@@ -6,16 +6,21 @@ namespace App\Http\Controllers\Web\Admin;
 
 use App\Exports\OrdersExport;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\AllocateDepotRequest;
 use App\Http\Requests\Admin\StoreOrderRequest;
 use App\Http\Requests\Admin\UpdateOrderRequest;
 use App\Imports\OrdersImport;
 use App\Models\Dealer;
+use App\Models\Driver;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Retailer;
 use App\Models\Setting;
 use App\Models\Territory;
 use App\Models\User;
+use App\Models\Vehicle;
+use App\Services\DepotAllocationService;
 use App\Services\OrderService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
@@ -23,10 +28,14 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class OrderController extends Controller
 {
-    public function __construct(private readonly OrderService $orders) {}
+    public function __construct(
+        private readonly OrderService $orders,
+        private readonly DepotAllocationService $depotAllocations,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -66,9 +75,42 @@ class OrderController extends Controller
     {
         $this->authorize('view', $order);
 
+        $order->load(['user', 'dealer', 'retailer', 'items.product', 'items.depotAllocations.depot', 'approvedBy', 'delivery.vehicle', 'delivery.driver', 'salesReturns']);
+
         return view('orders.show', [
-            'order' => $order->load(['user', 'dealer', 'retailer', 'items.product', 'approvedBy']),
+            'order' => $order,
+            'availableDepotsByProduct' => $order->items->mapWithKeys(
+                fn (OrderItem $item) => [$item->id => $this->depotAllocations->findAvailableDepots($item->product)]
+            ),
+            'vehicles' => Vehicle::where('status', true)->orderBy('registration_number')->get(),
+            'drivers' => Driver::where('status', true)->orderBy('name')->get(),
+            'returnableQtyByItem' => $order->items->mapWithKeys(
+                fn (OrderItem $item) => [$item->id => (float) $item->quantity - $item->returnedQuantity()]
+            ),
         ]);
+    }
+
+    /**
+     * A manager explicitly picking a depot for one order line (spec §12's
+     * "Select Alternative Depot" step) — findAvailableDepots() already
+     * shows which depots actually have sellable stock, so this action just
+     * commits whichever one the admin chose.
+     */
+    public function allocateDepot(AllocateDepotRequest $request, Order $order, OrderItem $orderItem): RedirectResponse
+    {
+        if ($orderItem->order_id !== $order->id) {
+            throw new NotFoundHttpException;
+        }
+
+        $this->depotAllocations->allocateManually(
+            $orderItem,
+            (int) $request->input('depot_id'),
+            (float) $request->input('quantity'),
+            $request->user()->id,
+            $request->boolean('is_alternative_depot'),
+        );
+
+        return back()->with('success', 'Depot allocation recorded.');
     }
 
     public function downloadPdf(Order $order): mixed

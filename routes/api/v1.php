@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Api\V1\AchievementController;
 use App\Http\Controllers\Api\V1\AttendanceController;
+use App\Http\Controllers\Api\V1\LeaveController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CollectionEntryController;
 use App\Http\Controllers\Api\V1\DealerController;
@@ -15,6 +16,8 @@ use App\Http\Controllers\Api\V1\OrgStructureController;
 use App\Http\Controllers\Api\V1\ProductCategoryController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\RetailerController;
+use App\Http\Controllers\Api\V1\SalesReturnController;
+use App\Http\Controllers\Api\V1\TallyIntegrationController;
 use App\Http\Controllers\Api\V1\TargetController;
 use App\Http\Controllers\Api\V1\VisitController;
 use App\Http\Controllers\Api\V1\VisitPlanController;
@@ -48,8 +51,11 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
     Route::get('/dealers', [DealerController::class, 'index']);
     Route::post('/dealers', [DealerController::class, 'store']);
     Route::get('/dealers/{dealer}', [DealerController::class, 'show']);
+    Route::get('/dealers/{dealer}/outstanding-balance', [DealerController::class, 'outstandingBalance']);
+    Route::get('/dealers/{dealer}/ledger', [DealerController::class, 'ledger']);
 
     Route::get('/retailers', [RetailerController::class, 'index']);
+    Route::post('/retailers', [RetailerController::class, 'store']);
     Route::get('/retailers/{retailer}', [RetailerController::class, 'show']);
 
     Route::get('/product-categories', [ProductCategoryController::class, 'index']);
@@ -60,6 +66,18 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
     Route::post('/attendance/check-out', [AttendanceController::class, 'checkOut']);
     Route::get('/attendance/today', [AttendanceController::class, 'today']);
     Route::get('/attendance/history', [AttendanceController::class, 'history']);
+
+    /*
+     * Leave: self-service only. Approving someone else's leave is a
+     * manager's action on the admin web UI and is deliberately not
+     * exposed here (see LeaveController's class note).
+     */
+    Route::get('/leave/types', [LeaveController::class, 'types']);
+    Route::get('/leave/balance', [LeaveController::class, 'balance']);
+    Route::get('/leave/requests', [LeaveController::class, 'index']);
+    Route::post('/leave/requests', [LeaveController::class, 'store']);
+    Route::get('/leave/requests/{leaveRequest}', [LeaveController::class, 'show']);
+    Route::delete('/leave/requests/{leaveRequest}', [LeaveController::class, 'cancel']);
 
     Route::post('/gps-logs', [GpsLogController::class, 'store']);
     Route::get('/gps-logs/history', [GpsLogController::class, 'history']);
@@ -72,12 +90,16 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
     Route::get('/visits/current', [VisitController::class, 'current']);
     Route::get('/visits/history', [VisitController::class, 'history']);
 
+    Route::post('/orders/preview', [OrderController::class, 'preview']);
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders', [OrderController::class, 'index']);
 
     Route::post('/collection-entries/send-otp', [CollectionEntryController::class, 'sendOtp']);
     Route::post('/collection-entries', [CollectionEntryController::class, 'store']);
     Route::get('/collection-entries', [CollectionEntryController::class, 'index']);
+
+    Route::post('/sales-returns', [SalesReturnController::class, 'store']);
+    Route::get('/sales-returns', [SalesReturnController::class, 'index']);
 
     Route::get('/targets/current', [TargetController::class, 'current']);
     Route::get('/targets', [TargetController::class, 'index']);
@@ -90,4 +112,22 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Tally Sync Agent
+|--------------------------------------------------------------------------
+| A separate machine credential (tally.agent middleware), never a human
+| Sanctum token — the customer's Sync Agent runs unattended on their own
+| PC/server and must never be reachable with a Sales Executive's own login.
+*/
+Route::middleware(['tally.agent', 'throttle:api'])->prefix('integration/tally/agent')->group(function (): void {
+    Route::post('/heartbeat', [TallyIntegrationController::class, 'heartbeat']);
+    Route::get('/jobs', [TallyIntegrationController::class, 'jobs']);
+    Route::post('/jobs/{syncQueue}/result', [TallyIntegrationController::class, 'jobResult']);
+});
+
+Route::middleware(['tally.agent', 'throttle:api'])->prefix('integration/tally')->group(function (): void {
+    Route::post('/stock-sync', [TallyIntegrationController::class, 'stockSync']);
 });

@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\ApprovalStatus;
 use App\Enums\ChequeStatus;
 use App\Enums\PaymentMethod;
+use App\Enums\TallyRecordSyncStatus;
 use Database\Factories\CollectionEntryFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -31,6 +32,12 @@ class CollectionEntry extends BaseModel
         'status',
         'approved_by',
         'approved_at',
+        'external_reference',
+        'tally_guid',
+        'tally_voucher_number',
+        'sync_status',
+        'sync_error',
+        'synced_at',
     ];
 
     protected function casts(): array
@@ -43,6 +50,8 @@ class CollectionEntry extends BaseModel
             'otp_verified_at' => 'datetime',
             'status' => ApprovalStatus::class,
             'approved_at' => 'datetime',
+            'sync_status' => TallyRecordSyncStatus::class,
+            'synced_at' => 'datetime',
         ];
     }
 

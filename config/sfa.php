@@ -87,4 +87,72 @@ return [
         // (km/h) counts as idle (stationary/GPS drift), otherwise active.
         'idle_speed_threshold_kmh' => (float) env('SFA_MOVEMENT_IDLE_SPEED_KMH', 1.0),
     ],
+
+    'tally' => [
+        // A Sync Agent is expected to heartbeat every minute or so; a
+        // connection whose last heartbeat is older than this is shown as
+        // offline on the Integration Dashboard rather than connected.
+        'heartbeat_stale_after_minutes' => (int) env('SFA_TALLY_HEARTBEAT_STALE_MINUTES', 5),
+
+        // The month a Tally financial year opens on (1 = January).
+        // Tally only serves data inside the company's *active* period, so a
+        // ledger pull asking for dates before this year's opening returns
+        // nothing useful — see TallyLedgerSyncService::financialYearStart().
+        // This customer's "GDN Tally" company runs 1-Sep to 31-Aug (verified
+        // from its own Company Info screen), hence September rather than the
+        // Indian-default April or a calendar year.
+        'financial_year_start_month' => (int) env('SFA_TALLY_FY_START_MONTH', 9),
+
+        // Single-depot stock mode: the `depots.code` that receives the whole
+        // company's Tally stock.
+        //
+        // The live customer's TallyPrime 7.1 cannot serve item x godown
+        // quantities — godown is absent from voucher/collection exports, and
+        // its Godown Summary / Stock Summary reports give per-godown and
+        // per-item totals separately, which don't determine the per-cell
+        // values product_stocks is keyed on (see
+        // docs/tally-sfa-integration.md). Until a Tally consultant exposes
+        // an item x godown report, stock is attributed here.
+        //
+        // Leave blank to disable: godown-less rows are then skipped and
+        // counted rather than landing against an arbitrary depot. Setting
+        // this does NOT affect rows that do carry a godown — those still
+        // match their depot by tally_guid.
+        'default_depot_code' => env('SFA_TALLY_DEFAULT_DEPOT_CODE'),
+
+        // SFA -> Tally master push: creating Ledgers, Stock Items and
+        // Godowns *inside* the customer's accounting system for records
+        // that exist only here.
+        //
+        // Off by default, deliberately. Every other sync in this system
+        // either reads from Tally or writes a voucher an operator already
+        // approved; this one creates permanent chart-of-accounts and
+        // inventory masters, which an accountant may consider theirs to
+        // own. A deployment must opt in knowingly.
+        'master_push_enabled' => (bool) env('SFA_TALLY_MASTER_PUSH_ENABLED', false),
+
+        // The Tally groups a pushed master is filed under. These must match
+        // the customer's own chart of accounts, and they mirror the agent's
+        // TALLY_DEALER_LEDGER_GROUP / TALLY_RETAILER_LEDGER_GROUP — a
+        // dealer pushed into a group the pull doesn't read would sync out
+        // and never come back.
+        'dealer_ledger_group' => env('SFA_TALLY_DEALER_LEDGER_GROUP', 'Sundry Debtors'),
+        'retailer_ledger_group' => env('SFA_TALLY_RETAILER_LEDGER_GROUP'),
+
+        // The Tally stock group new Stock Items are filed under. Blank by
+        // default on purpose: Tally stores its reserved roots with a
+        // leading space (" Primary"), which XML will not carry, and it
+        // rejects the space-less spelling — the first live godown push
+        // failed with "Godown 'Primary' does not exist!". Left blank, the
+        // element is omitted and Tally files the item under its own root.
+        // Set it to a real group the customer already uses (this company
+        // has "Pump" and "TV") to file pushed products there instead.
+        'stock_item_group' => env('SFA_TALLY_STOCK_ITEM_GROUP'),
+
+        // Tally requires a unit on a stock item that will hold quantities,
+        // and rejects one it does not already know — so this must name a
+        // unit that exists in the company. "PCS" is what this customer's
+        // existing stock items use (read live).
+        'stock_item_unit' => env('SFA_TALLY_STOCK_ITEM_UNIT', 'PCS'),
+    ],
 ];

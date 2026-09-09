@@ -76,6 +76,7 @@
                         <th>Late</th>
                         <th>Half Day</th>
                         <th>Absent</th>
+                        <th>On Leave</th>
                         <th>Late Minutes</th>
                         <th>Total Days</th>
                         <th>Attendance Rate</th>
@@ -93,9 +94,13 @@
                             <td><span class="badge text-bg-warning">{{ $row->late_count }}</span></td>
                             <td><span class="badge text-bg-info">{{ $row->half_day_count }}</span></td>
                             <td><span class="badge text-bg-danger">{{ $row->absent_count }}</span></td>
+                            <td><span class="badge text-bg-primary">{{ $row->leave_count }}</span></td>
                             <td>{{ $row->total_late_minutes }}</td>
                             <td>{{ $row->total_days }}</td>
-                            <td class="fw-semibold">{{ $row->attendance_rate }}%</td>
+                            <td class="fw-semibold"
+                                title="{{ $row->attendance_rate }}% of {{ $row->judged_days }} working day(s). Approved leave is excluded rather than counted against the rate.">
+                                {{ $row->judged_days > 0 ? $row->attendance_rate.'%' : '—' }}
+                            </td>
                         </tr>
                     @empty
                         <tr>

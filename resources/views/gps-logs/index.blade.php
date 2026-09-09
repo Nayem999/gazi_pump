@@ -58,8 +58,16 @@
         </div>
     </div>
 
+    {{-- Deliberately empty and self-closed, NOT wrapping the table. HTML
+         forbids nested forms: while this form wrapped the rows, the parser
+         discarded each row's own <form> start tag and then let the FIRST
+         row's </form> close this one - so row 1's delete button submitted
+         the bulk-destroy form (404) while every later row worked. The
+         checkboxes and the button below join it by id via the HTML5 form
+         attribute, which needs no nesting. --}}
     <form id="bulkForm" method="POST" action="{{ route('gps-logs.bulk-destroy') }}" data-confirm data-confirm-title="Delete selected GPS logs?">
         @csrf
+    </form>
         <x-data-table
             title="Ping Log"
             :export-url="auth()->user()->can('export', \App\Models\GpsLog::class) ? route('gps-logs.export', request()->query()) : null"
@@ -82,7 +90,7 @@
                 <tr>
                     <td>
                         @if (! $log->trashed())
-                            <input type="checkbox" name="ids[]" value="{{ $log->id }}" class="form-check-input row-checkbox">
+                            <input type="checkbox" name="ids[]" form="bulkForm" value="{{ $log->id }}" class="form-check-input row-checkbox">
                         @endif
                     </td>
                     <td>{{ $log->recorded_at->format('h:i A') }}</td>
@@ -149,7 +157,7 @@
                             </x-slot:meta>
                             <x-slot:checkbox>
                                 @if (! $log->trashed())
-                                    <input type="checkbox" name="ids[]" value="{{ $log->id }}" class="form-check-input row-checkbox">
+                                    <input type="checkbox" name="ids[]" form="bulkForm" value="{{ $log->id }}" class="form-check-input row-checkbox">
                                 @endif
                             </x-slot:checkbox>
                             <x-slot:actions>
@@ -193,10 +201,9 @@
 
         @can('gps-logs.delete')
             <div class="mt-2">
-                <button type="submit" class="btn btn-outline-danger btn-sm"><i class="ti ti-trash me-1"></i>Delete Selected</button>
+                <button type="submit" form="bulkForm" class="btn btn-outline-danger btn-sm"><i class="ti ti-trash me-1"></i>Delete Selected</button>
             </div>
         @endcan
-    </form>
 
     <x-modal id="gpsLocationModal" title="Ping Location" size="lg">
         <div class="mb-2 small text-muted" id="gpsLocationMeta"></div>

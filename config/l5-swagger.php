@@ -281,11 +281,21 @@ return [
         'additional_config_url' => null,
 
         /*
-         * Apply a sort to the operation list of each API. It can be 'alpha' (sort by paths alphanumerically),
-         * 'method' (sort by HTTP method).
-         * Default is the order returned by the server unchanged.
+         * Apply a sort to the operation list of each API:
+         *
+         *   'reads-first' - safe reads (GET/HEAD/OPTIONS) first, then
+         *                   create, update, and destructive last, each
+         *                   group ordered by path. Not a Swagger UI
+         *                   built-in: it is a comparator function in
+         *                   resources/views/vendor/l5-swagger/index.blade.php,
+         *                   which intercepts this value.
+         *   'alpha'       - by path. Interleaves a GET and a POST on the
+         *                   same path.
+         *   'method'      - Swagger UI's own verb grouping, which sorts
+         *                   the verb NAMES, so DELETE leads every tag.
+         *   null          - the order the annotations were scanned in.
          */
-        'operations_sort' => env('L5_SWAGGER_OPERATIONS_SORT', null),
+        'operations_sort' => env('L5_SWAGGER_OPERATIONS_SORT', 'reads-first'),
 
         /*
          * Pass the validatorUrl parameter to SwaggerUi init on the JS side.
@@ -316,6 +326,26 @@ return [
                  * the tag.
                  */
                 'filter' => env('L5_SWAGGER_UI_FILTERS', true), // true | false
+
+                /*
+                 * How the tag sections are ordered in the UI. 'alpha' sorts
+                 * them A-Z; null leaves them in the order swagger-php
+                 * discovered them, which is effectively the order the
+                 * controllers happen to be scanned in - so a newly added
+                 * module lands at the top rather than where a reader would
+                 * look for it.
+                 *
+                 * Sorted here in the UI rather than in the generated
+                 * api-docs.json on purpose: that file is rebuilt by
+                 * `php artisan l5-swagger:generate`, so any ordering
+                 * applied to it would be undone by the next run.
+                 *
+                 * Only the tag sections are alphabetical. The
+                 * operations inside each one are ordered by what they do -
+                 * see `operations_sort` above - so the reads sit together
+                 * ahead of the writes.
+                 */
+                'tags_sorter' => env('L5_SWAGGER_UI_TAGS_SORTER', 'alpha'), // 'alpha' | null
             ],
 
             'authorization' => [

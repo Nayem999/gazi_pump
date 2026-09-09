@@ -21,7 +21,9 @@ use OpenApi\Attributes as OA;
  * Self-service field collection entry for the mobile app: a Sales Executive
  * records a payment received from a dealer and pulls back their own
  * collection history. Cross-rep collection reporting is an Admin Dashboard
- * concern (Module 9 web CRUD).
+ * concern (Module 9 web CRUD). Checking a dealer's outstanding balance
+ * before collecting is `GET /dealers/{id}/outstanding-balance`
+ * (Api\V1\DealerController) — not duplicated here.
  */
 class CollectionEntryController extends Controller
 {

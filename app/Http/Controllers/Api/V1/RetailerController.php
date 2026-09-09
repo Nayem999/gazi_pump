@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\StoreRetailerRequest;
 use App\Http\Resources\RetailerResource;
 use App\Models\Retailer;
 use App\Services\RetailerService;
@@ -16,11 +17,42 @@ use OpenApi\Attributes as OA;
 /**
  * Retailer lookups for the field mobile app: a Sales Executive filters a
  * dealer's own retailers (its downstream shops) when placing an order for
- * one of them.
+ * one of them — and, since Phase 7, registers a new one on the spot when
+ * it doesn't exist yet.
  */
 class RetailerController extends Controller
 {
     public function __construct(private readonly RetailerService $retailers) {}
+
+    #[OA\Post(
+        path: '/retailers',
+        tags: ['Retailers'],
+        summary: 'Register a new retailer under one of the authenticated user\'s own dealers',
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['dealer_id', 'name', 'phone'],
+                properties: [
+                    new OA\Property(property: 'dealer_id', type: 'integer'),
+                    new OA\Property(property: 'name', type: 'string'),
+                    new OA\Property(property: 'phone', type: 'string'),
+                    new OA\Property(property: 'email', type: 'string', nullable: true),
+                    new OA\Property(property: 'shipping_address', type: 'string', nullable: true),
+                ],
+            ),
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Retailer created'),
+            new OA\Response(response: 422, description: 'Validation error, or the dealer is outside the executive\'s assigned territories'),
+        ],
+    )]
+    public function store(StoreRetailerRequest $request): JsonResponse
+    {
+        $retailer = $this->retailers->create($request->validated());
+
+        return ApiResponse::success(new RetailerResource($retailer->load('dealer')), 'Retailer created.', 201);
+    }
 
     #[OA\Get(
         path: '/retailers',

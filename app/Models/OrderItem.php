@@ -8,6 +8,7 @@ use Database\Factories\OrderItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A single product line within an Order. Wholly owned by its parent —
@@ -46,5 +47,28 @@ class OrderItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function depotAllocations(): HasMany
+    {
+        return $this->hasMany(DepotAllocation::class);
+    }
+
+    public function salesReturnItems(): HasMany
+    {
+        return $this->hasMany(SalesReturnItem::class);
+    }
+
+    /**
+     * How much of this line has already been requested for return
+     * (excluding a Rejected request, which never actually happened) —
+     * SalesReturnService uses this to cap a new request at what's
+     * actually left to return.
+     */
+    public function returnedQuantity(): float
+    {
+        return (float) $this->salesReturnItems()
+            ->whereHas('salesReturn', fn ($q) => $q->where('status', '!=', 'rejected'))
+            ->sum('requested_qty');
     }
 }

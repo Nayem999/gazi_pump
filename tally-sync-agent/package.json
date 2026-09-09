@@ -1,0 +1,22 @@
+{
+  "name": "gazi-pump-tally-sync-agent",
+  "version": "0.1.0",
+  "description": "Runs on the customer's own PC/server next to TallyPrime. Talks to Tally locally over its HTTP-XML gateway, and to the Gazi Pump SFA cloud API over HTTPS. Never merged into the Laravel app's own dependency tree.",
+  "private": true,
+  "type": "commonjs",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "run-once": "node run-once.js",
+    "test": "node --test \"test/**/*.test.js\"",
+    "doctor": "node src/doctor.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "fast-xml-parser": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

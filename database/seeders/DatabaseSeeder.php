@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             TerritoryGeoBackfillSeeder::class,
             DealerSeeder::class,
             ProductSeeder::class,
+            LeaveTypeSeeder::class,
             AttendanceSeeder::class,
             GpsLogSeeder::class,
             VisitSeeder::class,

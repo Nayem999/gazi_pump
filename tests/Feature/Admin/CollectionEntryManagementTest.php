@@ -16,17 +16,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
-/**
- * Collection Entries are retired for every role but Super Admin (see the
- * "version 1" Achievement pivot) — `collection-entries.*`/
- * `menu.collection-entries`/`api.collection-entries.*` are no longer
- * assigned to General Manager, Sales/Area/Territory Manager, or Sales
- * Executive. The underlying CollectionEntryService/Policy business logic
- * (territory scoping, OTP verification, cheque lifecycle, overpayment
- * tolerance, approve/reject forward-only) is still real code, still worth
- * covering — those cases now run as Super Admin, the only role left with
- * access, rather than being deleted.
- */
 class CollectionEntryManagementTest extends TestCase
 {
     use RefreshDatabase;
@@ -69,9 +58,9 @@ class CollectionEntryManagementTest extends TestCase
      *
      * @return array{otp_id: int, otp_code: string}
      */
-    private function sendOtp(User $actor, int $dealerId, float $amount, string $paymentMethod = 'cash'): array
+    private function sendOtp(User $manager, int $dealerId, float $amount, string $paymentMethod = 'cash'): array
     {
-        $response = $this->actingAs($actor)->postJson(route('collection-entries.send-otp'), [
+        $response = $this->actingAs($manager)->postJson(route('collection-entries.send-otp'), [
             'dealer_id' => $dealerId,
             'amount' => $amount,
             'payment_method' => $paymentMethod,
@@ -85,25 +74,56 @@ class CollectionEntryManagementTest extends TestCase
         $this->get(route('collection-entries.index'))->assertRedirect(route('login'));
     }
 
-    public function test_sales_executive_no_longer_has_any_web_access(): void
+    public function test_sales_executive_can_view_only_their_own_collections(): void
     {
         $executive = $this->executive();
-        $entry = CollectionEntry::factory()->create(['user_id' => $executive->id]);
+        $otherExecutive = $this->executive();
+        $ownEntry = CollectionEntry::factory()->create(['user_id' => $executive->id]);
+        $otherEntry = CollectionEntry::factory()->create(['user_id' => $otherExecutive->id]);
 
-        $this->actingAs($executive)->get(route('collection-entries.index'))->assertForbidden();
-        $this->actingAs($executive)->get(route('collection-entries.create'))->assertForbidden();
-        $this->actingAs($executive)->get(route('collection-entries.show', $entry))->assertForbidden();
+        $this->actingAs($executive)->get(route('collection-entries.create'))->assertOk();
+
+        $response = $this->actingAs($executive)->get(route('collection-entries.index'));
+        $response->assertOk()->assertSee($ownEntry->dealer->name)->assertDontSee($otherEntry->dealer->name);
+
+        $this->actingAs($executive)->get(route('collection-entries.show', $otherEntry))->assertForbidden();
     }
 
-    public function test_general_manager_and_territory_manager_no_longer_have_any_web_access(): void
+    public function test_the_create_form_locks_a_plain_sales_executive_to_themself(): void
     {
-        foreach (['General Manager', 'Territory Manager', 'Sales Manager', 'Area Manager'] as $role) {
-            $manager = User::factory()->create();
-            $manager->assignRole($role);
+        $executive = $this->executive();
+        $otherExecutive = $this->executive();
 
-            $this->actingAs($manager)->get(route('collection-entries.index'))->assertForbidden();
-            $this->actingAs($manager)->get(route('collection-entries.create'))->assertForbidden();
-        }
+        $response = $this->actingAs($executive)->get(route('collection-entries.create'));
+
+        $response->assertOk();
+        $html = $response->getContent();
+        $this->assertMatchesRegularExpression('/<select[^>]*name="user_id"[^>]*disabled[^>]*>/', $html);
+
+        // Only the executive themself is offered as an option — not every
+        // Sales Executive in the company.
+        $response->assertSee($executive->name)->assertDontSee($otherExecutive->name);
+    }
+
+    public function test_a_plain_sales_executive_cannot_record_a_collection_for_someone_else_even_by_tampering_the_request(): void
+    {
+        $executive = $this->executive();
+        $otherExecutive = $this->executive();
+        $dealer = Dealer::factory()->create();
+        Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
+
+        $response = $this->actingAs($executive)->post(route('collection-entries.store'), [
+            'user_id' => $otherExecutive->id,
+            'dealer_id' => $dealer->id,
+            'collection_date' => Carbon::today()->toDateString(),
+            'amount' => 600,
+            'payment_method' => 'cash',
+            ...$this->sendOtp($executive, $dealer->id, 600),
+        ]);
+
+        $response->assertRedirect(route('collection-entries.index'));
+        $this->assertDatabaseHas('collection_entries', ['dealer_id' => $dealer->id, 'user_id' => $executive->id]);
+        $this->assertDatabaseMissing('collection_entries', ['dealer_id' => $dealer->id, 'user_id' => $otherExecutive->id]);
     }
 
     public function test_a_territory_scoped_viewer_can_only_pick_a_dealer_in_their_own_territory_on_the_collection_form(): void
@@ -113,13 +133,13 @@ class CollectionEntryManagementTest extends TestCase
         $dealerA = Dealer::factory()->create(['territory_id' => $territoryA->id]);
         $dealerB = Dealer::factory()->create(['territory_id' => $territoryB->id]);
 
-        // collection-entries.add is now Super Admin only — territories can
-        // still be assigned to any role via the Users form, so this
-        // exercises a regionally-scoped Super Admin.
-        $admin = $this->superAdmin();
-        $admin->territories()->attach($territoryA);
+        // collection-entries.add is a General/Super Admin ability —
+        // territories can be assigned to any role via the Users form, so
+        // this exercises a regionally-scoped General Manager.
+        $manager = $this->generalManager();
+        $manager->territories()->attach($territoryA);
 
-        $response = $this->actingAs($admin)->get(route('collection-entries.create'));
+        $response = $this->actingAs($manager)->get(route('collection-entries.create'));
 
         $response->assertOk()->assertSee($dealerA->name)->assertDontSee($dealerB->name);
     }
@@ -130,17 +150,17 @@ class CollectionEntryManagementTest extends TestCase
         $territoryB = Territory::factory()->create();
         $dealerB = Dealer::factory()->create(['territory_id' => $territoryB->id]);
 
-        $admin = $this->superAdmin();
-        $admin->territories()->attach($territoryA);
+        $manager = $this->generalManager();
+        $manager->territories()->attach($territoryA);
         $executive = $this->executive();
 
-        $this->actingAs($admin)->postJson(route('collection-entries.send-otp'), [
+        $this->actingAs($manager)->postJson(route('collection-entries.send-otp'), [
             'dealer_id' => $dealerB->id,
             'amount' => 500,
             'payment_method' => 'cash',
         ])->assertJsonValidationErrors('dealer_id');
 
-        $response = $this->actingAs($admin)->post(route('collection-entries.store'), [
+        $response = $this->actingAs($manager)->post(route('collection-entries.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealerB->id,
             'collection_date' => Carbon::today()->toDateString(),
@@ -154,22 +174,22 @@ class CollectionEntryManagementTest extends TestCase
         $this->assertDatabaseCount('collection_entries', 0);
     }
 
-    public function test_super_admin_can_view_and_record_a_collection(): void
+    public function test_general_manager_can_view_and_record_a_collection(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $this->actingAs($admin)->get(route('collection-entries.index'))->assertOk();
+        $this->actingAs($manager)->get(route('collection-entries.index'))->assertOk();
 
-        $response = $this->actingAs($admin)->post(route('collection-entries.store'), [
+        $response = $this->actingAs($manager)->post(route('collection-entries.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'collection_date' => Carbon::today()->toDateString(),
             'amount' => 600,
             'payment_method' => 'cash',
-            ...$this->sendOtp($admin, $dealer->id, 600),
+            ...$this->sendOtp($manager, $dealer->id, 600),
         ]);
 
         $response->assertRedirect(route('collection-entries.index'));
@@ -182,12 +202,12 @@ class CollectionEntryManagementTest extends TestCase
 
     public function test_recording_a_cheque_collection_without_an_image_is_rejected(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $this->actingAs($admin)->post(route('collection-entries.store'), [
+        $this->actingAs($manager)->post(route('collection-entries.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'collection_date' => Carbon::today()->toDateString(),
@@ -202,12 +222,12 @@ class CollectionEntryManagementTest extends TestCase
     {
         Storage::fake('public');
 
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $response = $this->actingAs($admin)->post(route('collection-entries.store'), [
+        $response = $this->actingAs($manager)->post(route('collection-entries.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'collection_date' => Carbon::today()->toDateString(),
@@ -215,7 +235,7 @@ class CollectionEntryManagementTest extends TestCase
             'payment_method' => 'cheque',
             'reference_no' => 'CHQ-001',
             'cheque_image' => UploadedFile::fake()->image('cheque.jpg'),
-            ...$this->sendOtp($admin, $dealer->id, 600, 'cheque'),
+            ...$this->sendOtp($manager, $dealer->id, 600, 'cheque'),
         ]);
 
         $response->assertRedirect(route('collection-entries.index'));
@@ -227,12 +247,12 @@ class CollectionEntryManagementTest extends TestCase
 
     public function test_a_bank_transfer_collection_requires_a_transaction_id(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $this->actingAs($admin)->post(route('collection-entries.store'), [
+        $this->actingAs($manager)->post(route('collection-entries.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'collection_date' => Carbon::today()->toDateString(),
@@ -245,7 +265,7 @@ class CollectionEntryManagementTest extends TestCase
 
     public function test_a_duplicate_bank_transaction_id_is_rejected(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 10000]);
@@ -256,7 +276,7 @@ class CollectionEntryManagementTest extends TestCase
             'reference_no' => 'TXN-DUP-001',
         ]);
 
-        $this->actingAs($admin)->post(route('collection-entries.store'), [
+        $this->actingAs($manager)->post(route('collection-entries.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'collection_date' => Carbon::today()->toDateString(),
@@ -270,7 +290,7 @@ class CollectionEntryManagementTest extends TestCase
 
     public function test_the_same_reference_no_is_allowed_across_cheque_and_bank_entries(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 10000]);
@@ -284,14 +304,14 @@ class CollectionEntryManagementTest extends TestCase
         // A cheque number and a bank/MFS transaction ID are different
         // identifier spaces — the duplicate check only applies within
         // bank_transfer/mobile_banking entries, so this must succeed.
-        $this->actingAs($admin)->post(route('collection-entries.store'), [
+        $this->actingAs($manager)->post(route('collection-entries.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'collection_date' => Carbon::today()->toDateString(),
             'amount' => 600,
             'payment_method' => 'mobile_banking',
             'reference_no' => 'SHARED-001',
-            ...$this->sendOtp($admin, $dealer->id, 600, 'mobile_banking'),
+            ...$this->sendOtp($manager, $dealer->id, 600, 'mobile_banking'),
         ])->assertRedirect(route('collection-entries.index'));
 
         $this->assertDatabaseCount('collection_entries', 2);
@@ -301,19 +321,19 @@ class CollectionEntryManagementTest extends TestCase
     {
         Storage::fake('public');
 
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $this->actingAs($admin)->post(route('collection-entries.store'), [
+        $this->actingAs($manager)->post(route('collection-entries.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'collection_date' => Carbon::today()->toDateString(),
             'amount' => 600,
             'payment_method' => 'cheque',
             'cheque_image' => UploadedFile::fake()->image('cheque.jpg'),
-            ...$this->sendOtp($admin, $dealer->id, 600, 'cheque'),
+            ...$this->sendOtp($manager, $dealer->id, 600, 'cheque'),
         ]);
 
         $this->assertDatabaseHas('collection_entries', ['dealer_id' => $dealer->id, 'cheque_status' => 'collected']);
@@ -321,28 +341,28 @@ class CollectionEntryManagementTest extends TestCase
 
     public function test_a_cheque_status_can_advance_through_its_lifecycle(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $entry = CollectionEntry::factory()->create(['payment_method' => 'cheque', 'cheque_status' => 'collected']);
 
-        $this->actingAs($admin)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'submitted'])
+        $this->actingAs($manager)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'submitted'])
             ->assertRedirect();
         $this->assertDatabaseHas('collection_entries', ['id' => $entry->id, 'cheque_status' => 'submitted']);
 
-        $this->actingAs($admin)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'deposited'])
+        $this->actingAs($manager)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'deposited'])
             ->assertRedirect();
         $this->assertDatabaseHas('collection_entries', ['id' => $entry->id, 'cheque_status' => 'deposited']);
 
-        $this->actingAs($admin)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'cleared'])
+        $this->actingAs($manager)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'cleared'])
             ->assertRedirect();
         $this->assertDatabaseHas('collection_entries', ['id' => $entry->id, 'cheque_status' => 'cleared']);
     }
 
     public function test_a_cheque_status_cannot_skip_ahead(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $entry = CollectionEntry::factory()->create(['payment_method' => 'cheque', 'cheque_status' => 'collected']);
 
-        $this->actingAs($admin)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'cleared'])
+        $this->actingAs($manager)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'cleared'])
             ->assertSessionHasErrors('cheque_status');
 
         $this->assertDatabaseHas('collection_entries', ['id' => $entry->id, 'cheque_status' => 'collected']);
@@ -350,19 +370,19 @@ class CollectionEntryManagementTest extends TestCase
 
     public function test_a_cleared_cheque_has_no_further_transitions(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $entry = CollectionEntry::factory()->create(['payment_method' => 'cheque', 'cheque_status' => 'cleared']);
 
-        $this->actingAs($admin)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'bounced'])
+        $this->actingAs($manager)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'bounced'])
             ->assertSessionHasErrors('cheque_status');
     }
 
     public function test_cheque_status_cannot_be_changed_on_a_non_cheque_entry(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $entry = CollectionEntry::factory()->create(['payment_method' => 'cash', 'cheque_status' => null]);
 
-        $this->actingAs($admin)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'submitted'])
+        $this->actingAs($manager)->patch(route('collection-entries.cheque-status', $entry), ['cheque_status' => 'submitted'])
             ->assertSessionHasErrors('cheque_status');
     }
 
@@ -370,7 +390,7 @@ class CollectionEntryManagementTest extends TestCase
     {
         Storage::fake('public');
 
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
         $entry = CollectionEntry::factory()->create([
@@ -381,7 +401,7 @@ class CollectionEntryManagementTest extends TestCase
         ]);
         $oldPath = $entry->cheque_image;
 
-        $this->actingAs($admin)->put(route('collection-entries.update', $entry), [
+        $this->actingAs($manager)->put(route('collection-entries.update', $entry), [
             'user_id' => $entry->user_id,
             'dealer_id' => $dealer->id,
             'collection_date' => $entry->collection_date->toDateString(),
@@ -396,7 +416,7 @@ class CollectionEntryManagementTest extends TestCase
 
     public function test_the_territory_filter_only_returns_collections_for_dealers_in_that_territory(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $territoryA = Territory::factory()->create();
         $territoryB = Territory::factory()->create();
         $dealerA = Dealer::factory()->create(['territory_id' => $territoryA->id]);
@@ -405,7 +425,7 @@ class CollectionEntryManagementTest extends TestCase
         CollectionEntry::factory()->create(['dealer_id' => $dealerA->id]);
         CollectionEntry::factory()->create(['dealer_id' => $dealerB->id]);
 
-        $response = $this->actingAs($admin)->get(route('collection-entries.index', ['territory_id' => $territoryA->id]));
+        $response = $this->actingAs($manager)->get(route('collection-entries.index', ['territory_id' => $territoryA->id]));
 
         $response->assertOk();
         $response->assertSee($dealerA->name);
@@ -415,34 +435,34 @@ class CollectionEntryManagementTest extends TestCase
     public function test_a_collection_beyond_the_overpayment_tolerance_is_rejected(): void
     {
         config(['sfa.collections.overpayment_tolerance_percent' => 10]);
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $response = $this->actingAs($admin)->post(route('collection-entries.store'), [
+        $response = $this->actingAs($manager)->post(route('collection-entries.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'collection_date' => Carbon::today()->toDateString(),
             'amount' => 2000,
             'payment_method' => 'cash',
-            ...$this->sendOtp($admin, $dealer->id, 2000),
+            ...$this->sendOtp($manager, $dealer->id, 2000),
         ]);
 
         $response->assertSessionHasErrors('amount');
         $this->assertDatabaseCount('collection_entries', 0);
     }
 
-    public function test_super_admin_can_update_a_collection_entry(): void
+    public function test_general_manager_can_update_a_collection_entry(): void
     {
         Storage::fake('public');
 
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
         $collectionEntry = CollectionEntry::factory()->create(['dealer_id' => $dealer->id, 'amount' => 300]);
 
-        $this->actingAs($admin)->put(route('collection-entries.update', $collectionEntry), [
+        $this->actingAs($manager)->put(route('collection-entries.update', $collectionEntry), [
             'user_id' => $collectionEntry->user_id,
             'dealer_id' => $dealer->id,
             'collection_date' => $collectionEntry->collection_date->toDateString(),
@@ -457,12 +477,12 @@ class CollectionEntryManagementTest extends TestCase
 
     public function test_switching_an_existing_entry_to_cheque_requires_an_image(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
         $collectionEntry = CollectionEntry::factory()->create(['dealer_id' => $dealer->id, 'amount' => 300, 'payment_method' => 'cash']);
 
-        $this->actingAs($admin)->put(route('collection-entries.update', $collectionEntry), [
+        $this->actingAs($manager)->put(route('collection-entries.update', $collectionEntry), [
             'user_id' => $collectionEntry->user_id,
             'dealer_id' => $dealer->id,
             'collection_date' => $collectionEntry->collection_date->toDateString(),
@@ -475,7 +495,7 @@ class CollectionEntryManagementTest extends TestCase
     {
         Storage::fake('public');
 
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
         $collectionEntry = CollectionEntry::factory()->create([
@@ -486,7 +506,7 @@ class CollectionEntryManagementTest extends TestCase
         ]);
         $existingPath = $collectionEntry->cheque_image;
 
-        $this->actingAs($admin)->put(route('collection-entries.update', $collectionEntry), [
+        $this->actingAs($manager)->put(route('collection-entries.update', $collectionEntry), [
             'user_id' => $collectionEntry->user_id,
             'dealer_id' => $dealer->id,
             'collection_date' => $collectionEntry->collection_date->toDateString(),
@@ -521,6 +541,15 @@ class CollectionEntryManagementTest extends TestCase
         $this->assertDatabaseHas('collection_entries', ['id' => $collectionEntry->id, 'deleted_at' => null]);
     }
 
+    public function test_territory_manager_can_view_but_not_create_collection_entries(): void
+    {
+        $manager = User::factory()->create();
+        $manager->assignRole('Territory Manager');
+
+        $this->actingAs($manager)->get(route('collection-entries.index'))->assertOk();
+        $this->actingAs($manager)->get(route('collection-entries.create'))->assertForbidden();
+    }
+
     public function test_the_detail_pdf_renders_with_a_cheque_image_present(): void
     {
         Storage::fake('public');
@@ -536,12 +565,12 @@ class CollectionEntryManagementTest extends TestCase
             ->assertHeader('content-type', 'application/pdf');
     }
 
-    public function test_super_admin_can_send_an_otp_and_gets_a_demo_code_back(): void
+    public function test_manager_can_send_an_otp_and_gets_a_demo_code_back(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $dealer = Dealer::factory()->create();
 
-        $response = $this->actingAs($admin)->postJson(route('collection-entries.send-otp'), [
+        $response = $this->actingAs($manager)->postJson(route('collection-entries.send-otp'), [
             'dealer_id' => $dealer->id,
             'amount' => 600,
             'payment_method' => 'cash',
@@ -550,23 +579,23 @@ class CollectionEntryManagementTest extends TestCase
         $response->assertOk();
         $this->assertFalse($response->json('sent'));
         $this->assertSame('123456', $response->json('demo_code'));
-        $this->assertDatabaseHas('collection_otps', ['dealer_id' => $dealer->id, 'user_id' => $admin->id]);
+        $this->assertDatabaseHas('collection_otps', ['dealer_id' => $dealer->id, 'user_id' => $manager->id]);
     }
 
     public function test_a_collection_can_be_recorded_with_a_valid_otp(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $otpResponse = $this->actingAs($admin)->postJson(route('collection-entries.send-otp'), [
+        $otpResponse = $this->actingAs($manager)->postJson(route('collection-entries.send-otp'), [
             'dealer_id' => $dealer->id,
             'amount' => 600,
             'payment_method' => 'cash',
         ]);
 
-        $this->actingAs($admin)->post(route('collection-entries.store'), [
+        $this->actingAs($manager)->post(route('collection-entries.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'collection_date' => Carbon::today()->toDateString(),
@@ -582,18 +611,18 @@ class CollectionEntryManagementTest extends TestCase
 
     public function test_a_collection_is_rejected_when_the_otp_code_is_wrong(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $otpResponse = $this->actingAs($admin)->postJson(route('collection-entries.send-otp'), [
+        $otpResponse = $this->actingAs($manager)->postJson(route('collection-entries.send-otp'), [
             'dealer_id' => $dealer->id,
             'amount' => 600,
             'payment_method' => 'cash',
         ]);
 
-        $this->actingAs($admin)->post(route('collection-entries.store'), [
+        $this->actingAs($manager)->post(route('collection-entries.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'collection_date' => Carbon::today()->toDateString(),
@@ -606,21 +635,21 @@ class CollectionEntryManagementTest extends TestCase
         $this->assertDatabaseCount('collection_entries', 0);
     }
 
-    public function test_an_otp_sent_by_one_admin_cannot_be_used_by_another(): void
+    public function test_an_otp_sent_by_one_manager_cannot_be_used_by_another(): void
     {
-        $adminA = $this->superAdmin();
-        $adminB = $this->superAdmin();
+        $managerA = $this->generalManager();
+        $managerB = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $otpResponse = $this->actingAs($adminA)->postJson(route('collection-entries.send-otp'), [
+        $otpResponse = $this->actingAs($managerA)->postJson(route('collection-entries.send-otp'), [
             'dealer_id' => $dealer->id,
             'amount' => 600,
             'payment_method' => 'cash',
         ]);
 
-        $this->actingAs($adminB)->post(route('collection-entries.store'), [
+        $this->actingAs($managerB)->post(route('collection-entries.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'collection_date' => Carbon::today()->toDateString(),
@@ -650,49 +679,49 @@ class CollectionEntryManagementTest extends TestCase
 
     public function test_a_new_collection_starts_pending(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $executive = $this->executive();
         $dealer = Dealer::factory()->create();
         Order::factory()->create(['dealer_id' => $dealer->id, 'total_amount' => 1000]);
 
-        $this->actingAs($admin)->post(route('collection-entries.store'), [
+        $this->actingAs($manager)->post(route('collection-entries.store'), [
             'user_id' => $executive->id,
             'dealer_id' => $dealer->id,
             'collection_date' => Carbon::today()->toDateString(),
             'amount' => 600,
             'payment_method' => 'cash',
-            ...$this->sendOtp($admin, $dealer->id, 600),
+            ...$this->sendOtp($manager, $dealer->id, 600),
         ]);
 
         $this->assertDatabaseHas('collection_entries', ['dealer_id' => $dealer->id, 'status' => 'pending']);
     }
 
-    public function test_super_admin_can_approve_a_pending_collection(): void
+    public function test_general_manager_can_approve_a_pending_collection(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $entry = CollectionEntry::factory()->create(['status' => 'pending']);
 
-        $this->actingAs($admin)->patch(route('collection-entries.approve', $entry))->assertRedirect();
+        $this->actingAs($manager)->patch(route('collection-entries.approve', $entry))->assertRedirect();
 
-        $this->assertDatabaseHas('collection_entries', ['id' => $entry->id, 'status' => 'approved', 'approved_by' => $admin->id]);
+        $this->assertDatabaseHas('collection_entries', ['id' => $entry->id, 'status' => 'approved', 'approved_by' => $manager->id]);
     }
 
-    public function test_super_admin_can_reject_a_pending_collection(): void
+    public function test_general_manager_can_reject_a_pending_collection(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $entry = CollectionEntry::factory()->create(['status' => 'pending']);
 
-        $this->actingAs($admin)->patch(route('collection-entries.reject', $entry))->assertRedirect();
+        $this->actingAs($manager)->patch(route('collection-entries.reject', $entry))->assertRedirect();
 
-        $this->assertDatabaseHas('collection_entries', ['id' => $entry->id, 'status' => 'rejected', 'approved_by' => $admin->id]);
+        $this->assertDatabaseHas('collection_entries', ['id' => $entry->id, 'status' => 'rejected', 'approved_by' => $manager->id]);
     }
 
     public function test_an_already_rejected_collection_cannot_be_approved(): void
     {
-        $admin = $this->superAdmin();
-        $entry = CollectionEntry::factory()->create(['status' => 'rejected', 'approved_by' => $admin->id, 'approved_at' => now()]);
+        $manager = $this->generalManager();
+        $entry = CollectionEntry::factory()->create(['status' => 'rejected', 'approved_by' => $manager->id, 'approved_at' => now()]);
 
-        $this->actingAs($admin)->patch(route('collection-entries.approve', $entry))->assertSessionHasErrors('status');
+        $this->actingAs($manager)->patch(route('collection-entries.approve', $entry))->assertSessionHasErrors('status');
     }
 
     public function test_a_territory_manager_cannot_approve_a_collection(): void
@@ -706,11 +735,11 @@ class CollectionEntryManagementTest extends TestCase
 
     public function test_the_approval_filter_only_returns_collections_with_that_status(): void
     {
-        $admin = $this->superAdmin();
+        $manager = $this->generalManager();
         $pending = CollectionEntry::factory()->create(['status' => 'pending']);
         $approved = CollectionEntry::factory()->create(['status' => 'approved']);
 
-        $response = $this->actingAs($admin)->get(route('collection-entries.index', ['status' => 'approved']));
+        $response = $this->actingAs($manager)->get(route('collection-entries.index', ['status' => 'approved']));
 
         $response->assertOk();
         $response->assertSee($approved->dealer->name);

@@ -26,7 +26,7 @@ class AttendanceSummaryExport implements FromCollection, WithHeadings, WithMappi
      */
     public function headings(): array
     {
-        return ['Executive', 'Territory', 'Present', 'Late', 'Half Day', 'Absent', 'Late Minutes', 'Total Days', 'Attendance Rate %'];
+        return ['Executive', 'Territory', 'Present', 'Late', 'Half Day', 'Absent', 'On Leave', 'Late Minutes', 'Total Days', 'Working Days Judged', 'Attendance Rate %'];
     }
 
     /**
@@ -41,8 +41,12 @@ class AttendanceSummaryExport implements FromCollection, WithHeadings, WithMappi
             $row->late_count,
             $row->half_day_count,
             $row->absent_count,
+            $row->leave_count,
             $row->total_late_minutes,
             $row->total_days,
+            // Named so the rate is checkable: it divides by working days,
+            // with approved leave excluded rather than counted against it.
+            $row->judged_days,
             (string) $row->attendance_rate,
         ];
     }

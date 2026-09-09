@@ -27,6 +27,13 @@ use OpenApi\Attributes as OA;
     scheme: 'bearer',
     bearerFormat: 'Sanctum token'
 )]
+#[OA\SecurityScheme(
+    securityScheme: 'tallyAgent',
+    type: 'http',
+    scheme: 'bearer',
+    bearerFormat: 'Sync Agent token',
+    description: "The Tally Sync Agent's own machine credential (see Tally Connections), distinct from a human user's Sanctum token."
+)]
 class AuthController extends Controller
 {
     public function __construct(private readonly AuthService $auth) {}

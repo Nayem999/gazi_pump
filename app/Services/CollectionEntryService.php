@@ -7,6 +7,9 @@ namespace App\Services;
 use App\Enums\ApprovalStatus;
 use App\Enums\ChequeStatus;
 use App\Enums\PaymentMethod;
+use App\Enums\SyncDirection;
+use App\Enums\TallyEntityType;
+use App\Enums\TallyRecordSyncStatus;
 use App\Models\CollectionEntry;
 use App\Models\Order;
 use App\Models\User;
@@ -23,6 +26,7 @@ class CollectionEntryService extends BaseCrudService
     public function __construct(
         private readonly CollectionEntryRepositoryInterface $collectionEntries,
         private readonly CollectionOtpService $otps,
+        private readonly TallySyncQueueService $syncQueue,
     ) {
         parent::__construct($collectionEntries);
     }
@@ -86,7 +90,11 @@ class CollectionEntryService extends BaseCrudService
 
         $data['status'] ??= ApprovalStatus::Pending->value;
 
-        return parent::create($data);
+        /** @var CollectionEntry $entry */
+        $entry = parent::create($data);
+        $entry->update(['external_reference' => $this->generateExternalReference($entry->id)]);
+
+        return $entry->fresh();
     }
 
     /**
@@ -179,13 +187,16 @@ class CollectionEntryService extends BaseCrudService
      * Forward-only, mirroring updateChequeStatus()/CashHandoverService: only
      * a Pending collection can be approved or rejected, and both are
      * terminal — a rejected collection is corrected and resubmitted, not
-     * reopened here.
+     * reopened here. Only an Approved collection is ever pushed toward
+     * Tally, tracked via its own sync_status (spec §46).
      */
     public function approve(CollectionEntry $entry, int $approverId): CollectionEntry
     {
         $this->assertPendingApproval($entry);
 
         $entry->update(['status' => ApprovalStatus::Approved->value, 'approved_by' => $approverId, 'approved_at' => now()]);
+
+        $this->enqueueTallySync($entry->fresh('dealer'));
 
         return $entry->fresh();
     }
@@ -206,6 +217,42 @@ class CollectionEntryService extends BaseCrudService
                 'status' => 'This collection has already been '.$entry->status->label().' and cannot be changed.',
             ]);
         }
+    }
+
+    private function generateExternalReference(int $collectionId): string
+    {
+        return sprintf('SFA-COL-%s-%06d', now()->format('Ymd'), $collectionId);
+    }
+
+    /**
+     * Pushes an approved collection toward Tally as a Receipt Voucher —
+     * same missing-mapping guard as OrderService::enqueueTallySync().
+     */
+    private function enqueueTallySync(CollectionEntry $entry): void
+    {
+        if (! $entry->dealer?->tally_guid) {
+            $entry->update(['sync_status' => TallyRecordSyncStatus::Failed, 'sync_error' => "Dealer \"{$entry->dealer?->name}\" has no Tally mapping yet."]);
+
+            return;
+        }
+
+        $this->syncQueue->enqueue(
+            TallyEntityType::Collection,
+            $entry->id,
+            SyncDirection::PushToTally,
+            $entry->external_reference,
+            [
+                'collection_date' => $entry->collection_date->toDateString(),
+                'dealer_tally_guid' => $entry->dealer->tally_guid,
+                'dealer_tally_name' => $entry->dealer->tally_ledger_name ?: $entry->dealer->name,
+                'amount' => (float) $entry->amount,
+                'payment_method' => $entry->payment_method->value,
+                'reference_no' => $entry->reference_no,
+                'remarks' => $entry->remarks,
+            ],
+        );
+
+        $entry->update(['sync_status' => TallyRecordSyncStatus::Pending]);
     }
 
     /**

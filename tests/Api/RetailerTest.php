@@ -6,6 +6,7 @@ namespace Tests\Api;
 
 use App\Models\Dealer;
 use App\Models\Retailer;
+use App\Models\Territory;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -89,5 +90,38 @@ class RetailerTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.id', $retailer->id)
             ->assertJsonPath('data.dealer.id', $retailer->dealer_id);
+    }
+
+    public function test_sales_executive_can_register_a_new_retailer_under_a_dealer(): void
+    {
+        $executive = $this->executive();
+        $dealer = Dealer::factory()->create();
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/retailers', [
+                'dealer_id' => $dealer->id,
+                'name' => 'Corner Shop',
+                'phone' => '01700000000',
+            ]);
+
+        $response->assertStatus(201)->assertJsonPath('data.name', 'Corner Shop');
+        $this->assertDatabaseHas('retailers', ['name' => 'Corner Shop', 'dealer_id' => $dealer->id]);
+    }
+
+    public function test_registering_a_retailer_for_a_dealer_outside_the_executives_territory_is_rejected(): void
+    {
+        $territory = Territory::factory()->create();
+        $executive = User::factory()->inTerritory($territory)->create();
+        $executive->assignRole('Sales Executive');
+        $outsideDealer = Dealer::factory()->create(['territory_id' => Territory::factory()->create()->id]);
+
+        $this->withHeader('Authorization', 'Bearer '.$this->tokenFor($executive))
+            ->postJson('/api/v1/retailers', [
+                'dealer_id' => $outsideDealer->id,
+                'name' => 'Corner Shop',
+                'phone' => '01700000000',
+            ])->assertJsonValidationErrors('dealer_id');
+
+        $this->assertDatabaseMissing('retailers', ['name' => 'Corner Shop']);
     }
 }

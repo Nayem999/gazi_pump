@@ -9,6 +9,16 @@
 @endsection
 
 @section('content')
+    @if ($isFromTally)
+        <div class="alert alert-success d-print-none">
+            <i class="ti ti-circle-check me-1"></i>Synced from Tally — this is the dealer's real ledger, not an SFA estimate.
+        </div>
+    @else
+        <div class="alert alert-warning d-print-none">
+            <i class="ti ti-alert-triangle me-1"></i>Estimated from Orders/Collections — this dealer's Tally ledger hasn't been synced yet, so this is not the authoritative balance.
+        </div>
+    @endif
+
     <div class="card mb-3">
         <div class="card-body d-flex justify-content-between align-items-start flex-wrap gap-3">
             <div>

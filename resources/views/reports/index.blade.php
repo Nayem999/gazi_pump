@@ -133,9 +133,23 @@
                 </a>
             </div>
         @endcan
+
+        @can('report.sales-return-summary')
+            <div class="col-md-6 col-lg-4">
+                <a href="{{ route('reports.sales-return-summary') }}" class="card h-100 hover-lift text-decoration-none">
+                    <div class="card-body">
+                        <div class="stat-card-icon bg-danger-subtle text-danger mb-3" style="width:48px;height:48px;font-size:1.25rem">
+                            <i class="ti ti-rotate-2"></i>
+                        </div>
+                        <h6 class="mb-1 text-body">Sales Return Summary</h6>
+                        <p class="text-muted small mb-0">Return counts by status and total credited amount per executive.</p>
+                    </div>
+                </a>
+            </div>
+        @endcan
     </div>
 
-    @canany(['report.attendance', 'report.visits', 'report.achievement-summary', 'report.territories', 'report.target-achievement', 'report.executive-performance', 'report.dealer-coverage', 'report.gps', 'report.movement-summary'])
+    @canany(['report.attendance', 'report.visits', 'report.achievement-summary', 'report.territories', 'report.target-achievement', 'report.executive-performance', 'report.dealer-coverage', 'report.gps', 'report.movement-summary', 'report.sales-return-summary'])
     @else
         <div class="text-center text-muted py-5">
             <i class="ti ti-lock display-4 d-block mb-2"></i>

@@ -11,15 +11,22 @@ use App\Http\Controllers\Web\Admin\CashHandoverController;
 use App\Http\Controllers\Web\Admin\CollectionEntryController;
 use App\Http\Controllers\Web\Admin\DashboardController;
 use App\Http\Controllers\Web\Admin\DealerController;
+use App\Http\Controllers\Web\Admin\DepotController;
+use App\Http\Controllers\Web\Admin\DepotStockController;
 use App\Http\Controllers\Web\Admin\DistrictController;
 use App\Http\Controllers\Web\Admin\DivisionController;
+use App\Http\Controllers\Web\Admin\DriverController;
 use App\Http\Controllers\Web\Admin\FaqController;
 use App\Http\Controllers\Web\Admin\GpsLogController;
 use App\Http\Controllers\Web\Admin\HolidayController;
+use App\Http\Controllers\Web\Admin\LeaveBalanceController;
+use App\Http\Controllers\Web\Admin\LeaveRequestController;
+use App\Http\Controllers\Web\Admin\LeaveTypeController;
 use App\Http\Controllers\Web\Admin\InquiryController;
 use App\Http\Controllers\Web\Admin\LiveGpsController;
 use App\Http\Controllers\Web\Admin\NewsController;
 use App\Http\Controllers\Web\Admin\NotificationController;
+use App\Http\Controllers\Web\Admin\DeliveryController;
 use App\Http\Controllers\Web\Admin\OrderController;
 use App\Http\Controllers\Web\Admin\PermissionController;
 use App\Http\Controllers\Web\Admin\ProductCategoryController;
@@ -29,14 +36,18 @@ use App\Http\Controllers\Web\Admin\PromotionController;
 use App\Http\Controllers\Web\Admin\ReportController;
 use App\Http\Controllers\Web\Admin\RetailerController;
 use App\Http\Controllers\Web\Admin\RoleController;
+use App\Http\Controllers\Web\Admin\SalesReturnController;
 use App\Http\Controllers\Web\Admin\SalesTeamController;
 use App\Http\Controllers\Web\Admin\ServiceCenterController;
 use App\Http\Controllers\Web\Admin\SettingsController;
+use App\Http\Controllers\Web\Admin\TallyConnectionController;
+use App\Http\Controllers\Web\Admin\TallyIntegrationController;
 use App\Http\Controllers\Web\Admin\TargetController;
 use App\Http\Controllers\Web\Admin\TerritoryController;
 use App\Http\Controllers\Web\Admin\TerritoryMapController;
 use App\Http\Controllers\Web\Admin\ThanaController;
 use App\Http\Controllers\Web\Admin\UserController;
+use App\Http\Controllers\Web\Admin\VehicleController;
 use App\Http\Controllers\Web\Admin\VisitController;
 use App\Http\Controllers\Web\Admin\VisitPlanController;
 use App\Http\Controllers\Web\Admin\VisitRequestController;
@@ -151,6 +162,11 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
     $registerManagementRoutes('divisions', DivisionController::class);
     $registerManagementRoutes('districts', DistrictController::class);
     $registerManagementRoutes('thanas', ThanaController::class);
+    $registerManagementRoutes('depots', DepotController::class);
+    $registerManagementRoutes('leave-types', LeaveTypeController::class);
+    $registerManagementRoutes('vehicles', VehicleController::class);
+    $registerManagementRoutes('drivers', DriverController::class);
+    Route::get('/depot-stock', [DepotStockController::class, 'index'])->name('depot-stock.index');
     Route::get('/districts-options', [DistrictController::class, 'options'])->name('districts.options');
     Route::get('/thanas-options', [ThanaController::class, 'options'])->name('thanas.options');
     Route::get('/territories-options', [TerritoryController::class, 'options'])->name('territories.options');
@@ -276,7 +292,88 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
         Route::put('/{order}', [OrderController::class, 'update'])->name('update');
         Route::patch('/{order}/approve', [OrderController::class, 'approve'])->name('approve');
         Route::patch('/{order}/reject', [OrderController::class, 'reject'])->name('reject');
+        Route::post('/{order}/items/{orderItem}/allocate', [OrderController::class, 'allocateDepot'])->name('items.allocate');
+        Route::post('/{order}/dispatch', [DeliveryController::class, 'dispatchOrder'])->name('dispatch');
+        Route::post('/{order}/returns', [SalesReturnController::class, 'store'])->name('returns.store');
         Route::delete('/{order}', [OrderController::class, 'destroy'])->name('destroy');
+    });
+
+    /**
+     * Delivery/Challan: created only via Order's own "Dispatch" action
+     * (DeliveryController::dispatchOrder, registered above under orders.*)
+     * — no standalone create form, so this gets a lean read+status-
+     * transition block instead of $registerManagementRoutes.
+     */
+    Route::prefix('deliveries')->name('deliveries.')->group(function (): void {
+        Route::get('/', [DeliveryController::class, 'index'])->name('index');
+        Route::get('/{delivery}', [DeliveryController::class, 'show'])->name('show');
+        Route::patch('/{delivery}/deliver', [DeliveryController::class, 'markDelivered'])->name('deliver');
+    });
+
+    /**
+     * Leave Balance: the entitlement setup screen. Bespoke rather than
+     * $registerManagementRoutes because there is no boolean status to
+     * toggle and no import, and because `set-up` - the bulk seed that
+     * makes the module usable at the start of a year - has no equivalent
+     * in the generic factory.
+     */
+    Route::prefix('leave-balances')->name('leave-balances.')->group(function (): void {
+        Route::get('/', [LeaveBalanceController::class, 'index'])->name('index');
+        Route::get('/create', [LeaveBalanceController::class, 'create'])->name('create');
+        Route::post('/', [LeaveBalanceController::class, 'store'])->name('store');
+        Route::post('/set-up', [LeaveBalanceController::class, 'setUp'])->name('set-up');
+        Route::get('/export', [LeaveBalanceController::class, 'export'])->name('export');
+        Route::get('/print', [LeaveBalanceController::class, 'print'])->name('print');
+        Route::post('/bulk-destroy', [LeaveBalanceController::class, 'bulkDestroy'])->name('bulk-destroy');
+        Route::post('/bulk-restore', [LeaveBalanceController::class, 'bulkRestore'])->name('bulk-restore');
+        Route::post('/{id}/restore', [LeaveBalanceController::class, 'restore'])->whereNumber('id')->name('restore');
+        Route::delete('/{id}/force', [LeaveBalanceController::class, 'forceDestroy'])->whereNumber('id')->name('force-destroy');
+        Route::get('/{leave_balance}/edit', [LeaveBalanceController::class, 'edit'])->name('edit');
+        Route::put('/{leave_balance}', [LeaveBalanceController::class, 'update'])->name('update');
+        Route::delete('/{leave_balance}', [LeaveBalanceController::class, 'destroy'])->name('destroy');
+    });
+
+    /**
+     * Leave Request: a workflow (submit -> approve/reject, or withdraw),
+     * not plain CRUD, so it gets a bespoke block rather than
+     * $registerManagementRoutes. `balances` sits here rather than under a
+     * module of its own because a balance is only ever read - entitlement
+     * is edited through the LeaveBalance records themselves.
+     */
+    Route::prefix('leave-requests')->name('leave-requests.')->group(function (): void {
+        Route::get('/', [LeaveRequestController::class, 'index'])->name('index');
+        Route::get('/create', [LeaveRequestController::class, 'create'])->name('create');
+        Route::post('/', [LeaveRequestController::class, 'store'])->name('store');
+        Route::get('/balances', [LeaveRequestController::class, 'balances'])->name('balances');
+        Route::get('/export', [LeaveRequestController::class, 'export'])->name('export');
+        Route::get('/print', [LeaveRequestController::class, 'print'])->name('print');
+        Route::post('/bulk-destroy', [LeaveRequestController::class, 'bulkDestroy'])->name('bulk-destroy');
+        Route::post('/bulk-restore', [LeaveRequestController::class, 'bulkRestore'])->name('bulk-restore');
+        Route::post('/{id}/restore', [LeaveRequestController::class, 'restore'])->whereNumber('id')->name('restore');
+        Route::delete('/{id}/force', [LeaveRequestController::class, 'forceDestroy'])->whereNumber('id')->name('force-destroy');
+        Route::get('/{leave_request}', [LeaveRequestController::class, 'show'])->name('show');
+        Route::get('/{leave_request}/edit', [LeaveRequestController::class, 'edit'])->name('edit');
+        Route::put('/{leave_request}', [LeaveRequestController::class, 'update'])->name('update');
+        Route::patch('/{leave_request}/approve', [LeaveRequestController::class, 'approve'])->name('approve');
+        Route::patch('/{leave_request}/reject', [LeaveRequestController::class, 'reject'])->name('reject');
+        Route::patch('/{leave_request}/cancel', [LeaveRequestController::class, 'cancel'])->name('cancel');
+        Route::delete('/{leave_request}', [LeaveRequestController::class, 'destroy'])->name('destroy');
+    });
+
+    /**
+     * Sales Return: requested only via Order's own detail page
+     * (SalesReturnController::store, registered above under orders.*) —
+     * no standalone create form, so this gets a bespoke workflow block
+     * (request/approve/reject/dispatch/receive) instead of
+     * $registerManagementRoutes.
+     */
+    Route::prefix('sales-returns')->name('sales-returns.')->group(function (): void {
+        Route::get('/', [SalesReturnController::class, 'index'])->name('index');
+        Route::get('/{salesReturn}', [SalesReturnController::class, 'show'])->name('show');
+        Route::patch('/{salesReturn}/approve', [SalesReturnController::class, 'approve'])->name('approve');
+        Route::patch('/{salesReturn}/reject', [SalesReturnController::class, 'reject'])->name('reject');
+        Route::post('/{salesReturn}/dispatch', [SalesReturnController::class, 'dispatch'])->name('dispatch');
+        Route::post('/{salesReturn}/receive', [SalesReturnController::class, 'receive'])->name('receive');
     });
 
     /**
@@ -398,6 +495,10 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
         Route::get('/collection-summary/export', [ReportController::class, 'collectionSummaryExport'])->name('collection-summary.export');
         Route::get('/collection-summary/print', [ReportController::class, 'collectionSummaryPrint'])->name('collection-summary.print');
 
+        Route::get('/sales-return-summary', [ReportController::class, 'salesReturnSummary'])->name('sales-return-summary');
+        Route::get('/sales-return-summary/export', [ReportController::class, 'salesReturnSummaryExport'])->name('sales-return-summary.export');
+        Route::get('/sales-return-summary/print', [ReportController::class, 'salesReturnSummaryPrint'])->name('sales-return-summary.print');
+
         Route::get('/achievement-summary', [ReportController::class, 'achievementSummary'])->name('achievement-summary');
         Route::get('/achievement-summary/export', [ReportController::class, 'achievementSummaryExport'])->name('achievement-summary.export');
         Route::get('/achievement-summary/print', [ReportController::class, 'achievementSummaryPrint'])->name('achievement-summary.print');
@@ -476,6 +577,39 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
     });
 
     /**
+     * Tally Integration (Phase 1): connection configs get their own CRUD
+     * block (no export/import/print — see TallyConnectionController's doc
+     * comment), everything else is read-mostly dashboard/queue/log/mapping
+     * screens plus a retry action, same shape as Reports/Activity Log.
+     */
+    Route::prefix('tally-connections')->name('tally-connections.')->group(function (): void {
+        Route::get('/', [TallyConnectionController::class, 'index'])->name('index');
+        Route::get('/create', [TallyConnectionController::class, 'create'])->name('create');
+        Route::post('/', [TallyConnectionController::class, 'store'])->name('store');
+        Route::post('/bulk-destroy', [TallyConnectionController::class, 'bulkDestroy'])->name('bulk-destroy');
+        Route::post('/bulk-restore', [TallyConnectionController::class, 'bulkRestore'])->name('bulk-restore');
+        Route::post('/{id}/restore', [TallyConnectionController::class, 'restore'])->whereNumber('id')->name('restore');
+        Route::delete('/{id}/force', [TallyConnectionController::class, 'forceDestroy'])->whereNumber('id')->name('force-destroy');
+        Route::patch('/{tally_connection}/toggle-status', [TallyConnectionController::class, 'toggleStatus'])->name('toggle-status');
+        Route::post('/{tally_connection}/test-connection', [TallyConnectionController::class, 'testConnection'])->name('test-connection');
+        Route::post('/{tally_connection}/regenerate-token', [TallyConnectionController::class, 'regenerateToken'])->name('regenerate-token');
+        Route::get('/{tally_connection}/edit', [TallyConnectionController::class, 'edit'])->name('edit');
+        Route::put('/{tally_connection}', [TallyConnectionController::class, 'update'])->name('update');
+        Route::delete('/{tally_connection}', [TallyConnectionController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('tally-integration')->name('tally-integration.')->group(function (): void {
+        Route::get('/', [TallyIntegrationController::class, 'dashboard'])->name('dashboard');
+        Route::get('/sync-queue', [TallyIntegrationController::class, 'syncQueue'])->name('sync-queue');
+        Route::post('/sync-queue/{sync_queue}/retry', [TallyIntegrationController::class, 'retrySyncQueueItem'])->name('sync-queue.retry');
+        Route::get('/sync-logs', [TallyIntegrationController::class, 'syncLogs'])->name('sync-logs');
+        Route::get('/mapping', [TallyIntegrationController::class, 'mapping'])->name('mapping');
+        Route::get('/reconciliation', [TallyIntegrationController::class, 'reconciliation'])->name('reconciliation');
+        Route::post('/sync-all', [TallyIntegrationController::class, 'syncAll'])->name('sync-all');
+        Route::post('/dealers/{dealer}/sync-ledger', [TallyIntegrationController::class, 'syncDealerLedger'])->name('sync-ledger');
+    });
+
+    /**
      * A single read-only GIS dashboard page — no CRUD of its own, so just
      * one route, gated the same way Reports/Activity Log are.
      */
@@ -519,7 +653,7 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
 Route::get('/clear', function () {
     Artisan::call('cache:clear');
     Artisan::call('route:clear');
-    // Artisan::call('optimize');
+    Artisan::call('optimize');
     // Artisan::call('route:cache');
     Artisan::call('view:clear');
 

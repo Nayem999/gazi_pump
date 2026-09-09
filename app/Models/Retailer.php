@@ -22,6 +22,7 @@ class Retailer extends BaseModel
         'image',
         'shipping_address',
         'status',
+        'tally_guid',
     ];
 
     protected function casts(): array

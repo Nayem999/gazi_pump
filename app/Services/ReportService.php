@@ -12,6 +12,8 @@ use App\Models\Attendance;
 use App\Models\CollectionEntry;
 use App\Models\Dealer;
 use App\Models\GpsLog;
+use App\Models\LedgerEntry;
+use App\Models\SalesReturn;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Target;
@@ -62,6 +64,7 @@ class ReportService
                 SUM(CASE WHEN status = "late" THEN 1 ELSE 0 END) as late_count,
                 SUM(CASE WHEN status = "half_day" THEN 1 ELSE 0 END) as half_day_count,
                 SUM(CASE WHEN status = "absent" THEN 1 ELSE 0 END) as absent_count,
+                SUM(CASE WHEN status = "leave" THEN 1 ELSE 0 END) as leave_count,
                 SUM(late_minutes) as total_late_minutes,
                 COUNT(*) as total_days'
             )
@@ -72,7 +75,16 @@ class ReportService
 
         return $rows->map(function ($row) use ($users) {
             $totalDays = (int) $row->total_days;
+            $leaveDays = (int) $row->leave_count;
             $presentLikeDays = (int) $row->present_count + (int) $row->late_count + (int) $row->half_day_count;
+
+            // Approved leave is removed from BOTH sides of the fraction,
+            // not counted as a day missed: it was authorised, and marking
+            // it against someone's attendance rate would penalise them for
+            // leave their own manager granted. Someone on leave all month
+            // therefore has no rate rather than a rate of zero, which is
+            // the honest answer - there were no working days to judge.
+            $judgedDays = $totalDays - $leaveDays;
 
             return (object) [
                 'user' => $users->get($row->user_id),
@@ -80,9 +92,11 @@ class ReportService
                 'late_count' => (int) $row->late_count,
                 'half_day_count' => (int) $row->half_day_count,
                 'absent_count' => (int) $row->absent_count,
+                'leave_count' => $leaveDays,
                 'total_late_minutes' => (int) $row->total_late_minutes,
                 'total_days' => $totalDays,
-                'attendance_rate' => $totalDays > 0 ? round(($presentLikeDays / $totalDays) * 100, 1) : 0.0,
+                'judged_days' => $judgedDays,
+                'attendance_rate' => $judgedDays > 0 ? round(($presentLikeDays / $judgedDays) * 100, 1) : 0.0,
             ];
         })->sortByDesc('attendance_rate')->values();
     }
@@ -230,6 +244,57 @@ class ReportService
             'bank_transfer_total' => (float) $row->bank_transfer_total,
             'mobile_banking_total' => (float) $row->mobile_banking_total,
         ])->sortByDesc('total_amount')->values();
+    }
+
+    /**
+     * Phase 7: per-executive Sales Return activity — how many were
+     * requested, how many are still awaiting a decision, and the total
+     * credited amount for the ones actually Received (based on
+     * received_qty, matching the real Credit Note push — never the
+     * original requested amount, which can overstate what was actually
+     * credited).
+     *
+     * @param  array{date_from?: string, date_to?: string, user_id?: string, territory_id?: string}  $filters
+     */
+    public function salesReturnSummary(array $filters): Collection
+    {
+        ['from' => $from, 'to' => $to] = $this->dateRange($filters);
+
+        $rows = SalesReturn::query()
+            ->whereBetween('created_at', [$from, $to])
+            ->when($filters['user_id'] ?? null, fn (Builder $q, $userId) => $q->where('user_id', $userId))
+            ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereHas(
+                'user.territories', fn (Builder $t) => $t->whereIn('territories.id', (array) $territoryId)
+            ))
+            ->selectRaw(
+                'user_id,
+                COUNT(*) as returns_count,
+                SUM(CASE WHEN status = "requested" THEN 1 ELSE 0 END) as pending_count,
+                SUM(CASE WHEN status = "rejected" THEN 1 ELSE 0 END) as rejected_count,
+                SUM(CASE WHEN status = "received" THEN 1 ELSE 0 END) as received_count'
+            )
+            ->groupBy('user_id')
+            ->get();
+
+        $creditedByUser = SalesReturn::query()
+            ->join('sales_return_items', 'sales_return_items.sales_return_id', '=', 'sales_returns.id')
+            ->whereBetween('sales_returns.created_at', [$from, $to])
+            ->where('sales_returns.status', 'received')
+            ->when($filters['user_id'] ?? null, fn (Builder $q, $userId) => $q->where('sales_returns.user_id', $userId))
+            ->selectRaw('sales_returns.user_id as user_id, SUM(sales_return_items.received_qty * sales_return_items.unit_price) as total_credited')
+            ->groupBy('sales_returns.user_id')
+            ->pluck('total_credited', 'user_id');
+
+        $users = $this->usersFor($rows->pluck('user_id'));
+
+        return $rows->map(fn ($row) => (object) [
+            'user' => $users->get($row->user_id),
+            'returns_count' => (int) $row->returns_count,
+            'pending_count' => (int) $row->pending_count,
+            'rejected_count' => (int) $row->rejected_count,
+            'received_count' => (int) $row->received_count,
+            'total_credited' => (float) ($creditedByUser->get($row->user_id) ?? 0),
+        ])->sortByDesc('total_credited')->values();
     }
 
     /**
@@ -518,10 +583,14 @@ class ReportService
     }
 
     /**
-     * Every dealer's due amount — total ordered minus total collected, the
-     * same formula as CollectionEntryService::outstandingBalance() — via two
-     * aggregated queries rather than one call per dealer, so it scales with
-     * the real dealer list.
+     * Every dealer's due amount. A dealer with a real Tally ledger pull
+     * (Phase 5) gets its actual debit/credit totals from `ledger_entries`
+     * — the authoritative figure, including anything Tally-side SFA never
+     * originated; a dealer never synced yet falls back to the original
+     * estimate (total ordered minus total collected, the same formula as
+     * CollectionEntryService::outstandingBalance()). All via aggregated
+     * queries rather than one call per dealer, so it scales with the real
+     * dealer list.
      *
      * @param  array{territory_id?: string, search?: string}  $filters
      */
@@ -537,6 +606,12 @@ class ReportService
             ->groupBy('dealer_id')
             ->pluck('total_collected', 'dealer_id');
 
+        $ledgerTotals = LedgerEntry::query()
+            ->selectRaw('dealer_id, SUM(debit_amount) as total_debit, SUM(credit_amount) as total_credit')
+            ->groupBy('dealer_id')
+            ->get()
+            ->keyBy('dealer_id');
+
         $dealers = Dealer::query()
             ->with('territory')
             ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereIn('territory_id', (array) $territoryId))
@@ -546,7 +621,19 @@ class ReportService
             ->orderBy('name')
             ->get();
 
-        return $dealers->map(function (Dealer $dealer) use ($orderTotals, $collectionTotals) {
+        return $dealers->map(function (Dealer $dealer) use ($orderTotals, $collectionTotals, $ledgerTotals) {
+            if ($ledgerRow = $ledgerTotals->get($dealer->id)) {
+                $debit = (float) $ledgerRow->total_debit;
+                $credit = (float) $ledgerRow->total_credit;
+
+                return (object) [
+                    'dealer' => $dealer,
+                    'total_ordered' => $debit,
+                    'total_collected' => $credit,
+                    'due_amount' => $debit - $credit,
+                ];
+            }
+
             $ordered = (float) ($orderTotals->get($dealer->id) ?? 0);
             $collected = (float) ($collectionTotals->get($dealer->id) ?? 0);
 
@@ -560,13 +647,43 @@ class ReportService
     }
 
     /**
-     * One dealer's full statement: every Order (debit) and Collection
-     * (credit) merged chronologically with a running balance, using the
-     * same debit/credit formula as dealerLedgerSummary().
+     * One dealer's full statement. Tally is the real source of truth once
+     * it's synced (Phase 5) — every voucher Tally has ever posted against
+     * this dealer's ledger, including Credit/Debit Notes and anything
+     * entered directly in Tally that SFA never originated — so this uses
+     * `ledger_entries` whenever any exist for the dealer. A dealer that
+     * has never had a ledger pull yet falls back to the original
+     * SFA-computed estimate (Order=debit, Collection=credit) rather than
+     * showing an empty statement.
      *
      * @return Collection<int, object>
      */
     public function dealerLedger(Dealer $dealer): Collection
+    {
+        return $dealer->ledgerEntries()->exists()
+            ? $this->dealerLedgerFromTally($dealer)
+            : $this->dealerLedgerEstimate($dealer);
+    }
+
+    private function dealerLedgerFromTally(Dealer $dealer): Collection
+    {
+        $balance = 0.0;
+
+        return $dealer->ledgerEntries()->orderBy('voucher_date')->orderBy('id')->get()
+            ->map(function (LedgerEntry $entry) use (&$balance) {
+                $balance += (float) $entry->debit_amount - (float) $entry->credit_amount;
+
+                return (object) [
+                    'date' => $entry->voucher_date,
+                    'description' => $entry->voucher_type.($entry->voucher_number ? ' #'.$entry->voucher_number : '').($entry->narration ? ' — '.$entry->narration : ''),
+                    'debit' => (float) $entry->debit_amount,
+                    'credit' => (float) $entry->credit_amount,
+                    'balance' => $balance,
+                ];
+            });
+    }
+
+    private function dealerLedgerEstimate(Dealer $dealer): Collection
     {
         $orders = $dealer->orders()->orderBy('order_date')->get()->map(fn (Order $order) => (object) [
             'date' => $order->order_date,

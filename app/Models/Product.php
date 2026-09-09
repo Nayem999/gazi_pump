@@ -23,6 +23,7 @@ class Product extends BaseModel
         'description',
         'image',
         'status',
+        'tally_guid',
     ];
 
     protected function casts(): array

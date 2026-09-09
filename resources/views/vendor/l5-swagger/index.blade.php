@@ -134,7 +134,61 @@
             dom_id: '#swagger-ui',
             urls: urls,
             "urls.primaryName": "{{ $documentationTitle }}",
+            @if (($operationsSorter ?? null) === 'reads-first')
+            /*
+             * Custom comparator, because Swagger UI ships no sorter for
+             * this shape: its built-in "method" groups by verb but orders
+             * the names alphabetically, which puts DELETE at the top of
+             * every tag, and "alpha" interleaves a GET and a POST on the
+             * same path.
+             *
+             * This ranks by what an operation DOES - safe reads first,
+             * then create, update, and destroy last - and falls back to
+             * the path so operations sharing a verb stay in a predictable
+             * order rather than the order they happened to be declared in.
+             *
+             * Selected by config('l5-swagger.defaults.operations_sort')
+             * === 'reads-first'. The package passes that value straight
+             * through as a string, so intercepting it here is what turns
+             * it into a function; 'alpha', 'method' and null still reach
+             * Swagger UI untouched below.
+             */
+            operationsSorter: function (a, b) {
+                // Swagger UI hands these over as Immutable Maps, but be
+                // tolerant of plain objects so a package upgrade that
+                // changes the shape degrades to "unsorted" rather than
+                // throwing and leaving the whole page blank.
+                const read = (op, key) => {
+                    if (op && typeof op.get === 'function') {
+                        return op.get(key) || '';
+                    }
+
+                    return (op && op[key]) || '';
+                };
+
+                const RANK = {
+                    get: 0, head: 1, options: 2,   // reads
+                    post: 3, put: 4, patch: 5,     // writes
+                    delete: 6,                     // destructive
+                };
+
+                const rankOf = (op) => {
+                    const method = String(read(op, 'method')).toLowerCase();
+
+                    return method in RANK ? RANK[method] : 99;
+                };
+
+                const byRank = rankOf(a) - rankOf(b);
+
+                if (byRank !== 0) {
+                    return byRank;
+                }
+
+                return String(read(a, 'path')).localeCompare(String(read(b, 'path')));
+            },
+            @else
             operationsSorter: {!! isset($operationsSorter) ? '"' . $operationsSorter . '"' : 'null' !!},
+            @endif
             configUrl: {!! isset($configUrl) ? '"' . $configUrl . '"' : 'null' !!},
             validatorUrl: {!! isset($validatorUrl) ? '"' . $validatorUrl . '"' : 'null' !!},
             oauth2RedirectUrl: "{{ route('l5-swagger.'.$documentation.'.oauth2_callback', [], $useAbsolutePath) }}",
@@ -157,6 +211,7 @@
             docExpansion : "{!! config('l5-swagger.defaults.ui.display.doc_expansion', 'none') !!}",
             deepLinking: true,
             filter: {!! config('l5-swagger.defaults.ui.display.filter') ? 'true' : 'false' !!},
+            tagsSorter: {!! config('l5-swagger.defaults.ui.display.tags_sorter') ? '"'.config('l5-swagger.defaults.ui.display.tags_sorter').'"' : 'null' !!},
             persistAuthorization: "{!! config('l5-swagger.defaults.ui.authorization.persist_authorization') ? 'true' : 'false' !!}",
 
         })

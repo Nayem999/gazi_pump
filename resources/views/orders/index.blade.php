@@ -50,8 +50,16 @@
         @include('partials.trashed-filter', ['filters' => $filters, 'colClass' => 'col-md-3'])
     </x-filter-bar>
 
+    {{-- Deliberately empty and self-closed, NOT wrapping the table. HTML
+         forbids nested forms: while this form wrapped the rows, the parser
+         discarded each row's own <form> start tag and then let the FIRST
+         row's </form> close this one - so row 1's delete button submitted
+         the bulk-destroy form (404) while every later row worked. The
+         checkboxes and the button below join it by id via the HTML5 form
+         attribute, which needs no nesting. --}}
     <form id="bulkForm" method="POST" action="{{ route('orders.bulk-destroy') }}" data-confirm data-confirm-title="Delete selected orders?">
         @csrf
+    </form>
         <x-data-table
             title="Orders"
             :create-url="auth()->user()->can('create', \App\Models\Order::class) ? route('orders.create') : null"
@@ -80,7 +88,7 @@
                 <tr>
                     <td>
                         @if (! $order->trashed())
-                            <input type="checkbox" name="ids[]" value="{{ $order->id }}" class="form-check-input row-checkbox">
+                            <input type="checkbox" name="ids[]" form="bulkForm" value="{{ $order->id }}" class="form-check-input row-checkbox">
                         @endif
                     </td>
                     <td>
@@ -181,7 +189,7 @@
                             </x-slot:meta>
                             <x-slot:checkbox>
                                 @if (! $order->trashed())
-                                    <input type="checkbox" name="ids[]" value="{{ $order->id }}" class="form-check-input row-checkbox">
+                                    <input type="checkbox" name="ids[]" form="bulkForm" value="{{ $order->id }}" class="form-check-input row-checkbox">
                                 @endif
                             </x-slot:checkbox>
                             <x-slot:actions>
@@ -239,10 +247,9 @@
 
         @can('orders.delete')
             <div class="mt-2">
-                <button type="submit" class="btn btn-outline-danger btn-sm"><i class="ti ti-trash me-1"></i>Delete Selected</button>
+                <button type="submit" form="bulkForm" class="btn btn-outline-danger btn-sm"><i class="ti ti-trash me-1"></i>Delete Selected</button>
             </div>
         @endcan
-    </form>
 
     @can('import', \App\Models\Order::class)
         <x-modal id="importModal" title="Import Orders">

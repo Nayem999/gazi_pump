@@ -13,6 +13,7 @@ use App\Exports\DealerLedgerSummaryExport;
 use App\Exports\ExecutivePerformanceExport;
 use App\Exports\GpsReportExport;
 use App\Exports\OrderPerformanceExport;
+use App\Exports\SalesReturnSummaryExport;
 use App\Exports\TargetAchievementExport;
 use App\Exports\TerritoryPerformanceExport;
 use App\Exports\VisitComplianceExport;
@@ -140,6 +141,50 @@ class ReportController extends Controller
             'statuses' => ApprovalStatus::cases(),
             'filters' => $filters,
         ]);
+    }
+
+    public function salesReturnSummary(Request $request): View
+    {
+        abort_unless($request->user()?->can(PermissionName::report('sales-return-summary')), 403);
+
+        $filters = $request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]);
+        $rows = $this->reports->salesReturnSummary($this->scopedFilters($filters, $request->user()));
+
+        return view('reports.sales-return-summary', [
+            'rows' => $this->paginate($rows, $request),
+            'totals' => [
+                'returns_count' => $rows->sum('returns_count'),
+                'pending_count' => $rows->sum('pending_count'),
+                'rejected_count' => $rows->sum('rejected_count'),
+                'received_count' => $rows->sum('received_count'),
+                'total_credited' => $rows->sum('total_credited'),
+            ],
+            'executives' => $this->executives($request->user()),
+            'divisions' => $this->divisions(),
+            'territories' => $this->territories($request->user()),
+            'filters' => $filters,
+        ]);
+    }
+
+    public function salesReturnSummaryExport(Request $request): mixed
+    {
+        abort_unless($request->user()?->can(PermissionName::report('sales-return-summary')), 403);
+
+        $filters = $this->scopedFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]), $request->user());
+        $rows = $this->reports->salesReturnSummary($filters);
+
+        return Excel::download(new SalesReturnSummaryExport($rows), 'sales-return-summary-'.now()->format('Y-m-d-His').'.xlsx');
+    }
+
+    public function salesReturnSummaryPrint(Request $request): mixed
+    {
+        abort_unless($request->user()?->can(PermissionName::report('sales-return-summary')), 403);
+
+        $filters = $this->scopedFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]), $request->user());
+        $rows = $this->reports->salesReturnSummary($filters);
+
+        return Pdf::loadView('reports.sales-return-summary-print', ['rows' => $rows])
+            ->stream('sales-return-summary-'.now()->format('Y-m-d-His').'.pdf');
     }
 
     public function orderPerformanceExport(Request $request): mixed
@@ -478,6 +523,7 @@ class ReportController extends Controller
             'dealer' => $dealer->load('territory'),
             'rows' => $rows,
             'balance' => $rows->last()->balance ?? 0.0,
+            'isFromTally' => $dealer->ledgerEntries()->exists(),
         ]);
     }
 
