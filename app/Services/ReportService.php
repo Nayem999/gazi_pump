@@ -134,6 +134,7 @@ class ReportService
             ->selectRaw(
                 'user_id,
                 COUNT(*) as total_visits,
+                COUNT(DISTINCT dealer_id) as visited_dealers,
                 SUM(CASE WHEN is_gps_verified = 1 THEN 1 ELSE 0 END) as gps_verified_count,
                 SUM(CASE WHEN is_gps_verified = 0 THEN 1 ELSE 0 END) as gps_unverified_count'
             )
@@ -141,18 +142,79 @@ class ReportService
             ->get()
             ->keyBy('user_id');
 
-        $userIds = $planRows->keys()->merge($visitRows->keys())->unique();
+        // What the visits turned into. Rejected orders are excluded: a
+        // manager threw them out, so counting them as order value - or
+        // their dealer as productive - would credit a rep for sales that
+        // did not happen. Pending orders DO count; they are real field
+        // work awaiting a decision, and leaving them out would make the
+        // current week read as idle. Note this differs from the Order
+        // Performance report, which counts every status unless filtered.
+        $orderRows = Order::query()
+            ->whereBetween('order_date', [$from->toDateString(), $to->toDateString()])
+            ->where('status', '!=', ApprovalStatus::Rejected)
+            ->when($filters['user_id'] ?? null, fn (Builder $q, $userId) => $q->where('user_id', $userId))
+            ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereHas(
+                'user.territories', fn (Builder $t) => $t->whereIn('territories.id', (array) $territoryId)
+            ))
+            ->selectRaw(
+                'user_id,
+                COUNT(*) as order_count,
+                SUM(total_amount) as order_value,
+                COUNT(DISTINCT dealer_id) as productive_dealers'
+            )
+            ->groupBy('user_id')
+            ->get()
+            ->keyBy('user_id');
+
+        // The strike rate: of the dealers this rep VISITED, how many also
+        // ordered from this rep in the period. Orders carry no visit_id, so
+        // "this visit produced that order" is not recorded anywhere - the
+        // honest measure available is dealer-level. Matched on user_id as
+        // well as dealer_id, so a dealer visited by one rep but ordering
+        // through another does not make the first rep's visit look
+        // productive. Bounded by visited_dealers, so it cannot exceed 100%.
+        $convertedRows = Visit::query()
+            ->whereBetween('check_in_at', [$from, $to])
+            ->when($filters['user_id'] ?? null, fn (Builder $q, $userId) => $q->where('user_id', $userId))
+            ->when($filters['territory_id'] ?? null, fn (Builder $q, $territoryId) => $q->whereHas(
+                'user.territories', fn (Builder $t) => $t->whereIn('territories.id', (array) $territoryId)
+            ))
+            ->whereExists(fn ($orders) => $orders
+                ->selectRaw('1')
+                ->from('orders')
+                ->whereColumn('orders.user_id', 'visits.user_id')
+                ->whereColumn('orders.dealer_id', 'visits.dealer_id')
+                ->whereBetween('orders.order_date', [$from->toDateString(), $to->toDateString()])
+                ->where('orders.status', '!=', ApprovalStatus::Rejected->value)
+                // A raw subquery gets no soft-delete scope of its own, so a
+                // trashed order would otherwise still count as a conversion.
+                ->whereNull('orders.deleted_at'))
+            ->selectRaw('user_id, COUNT(DISTINCT dealer_id) as converted_dealers')
+            ->groupBy('user_id')
+            ->get()
+            ->keyBy('user_id');
+
+        // Someone who took orders without a plan or a visit on record still
+        // belongs in the report - leaving them out would hide exactly the
+        // order value this report now shows.
+        $userIds = $planRows->keys()->merge($visitRows->keys())->merge($orderRows->keys())->unique();
         $users = $this->usersFor($userIds);
 
-        return $userIds->map(function ($userId) use ($planRows, $visitRows, $users) {
+        return $userIds->map(function ($userId) use ($planRows, $visitRows, $orderRows, $convertedRows, $users) {
             $plan = $planRows->get($userId);
             $visit = $visitRows->get($userId);
+            $orders = $orderRows->get($userId);
 
             $plannedCount = (int) ($plan->planned_count ?? 0);
             $completedCount = (int) ($plan->completed_count ?? 0);
             $gpsVerified = (int) ($visit->gps_verified_count ?? 0);
             $gpsUnverified = (int) ($visit->gps_unverified_count ?? 0);
             $gpsJudged = $gpsVerified + $gpsUnverified;
+
+            $orderCount = (int) ($orders->order_count ?? 0);
+            $orderValue = round((float) ($orders->order_value ?? 0), 2);
+            $visitedDealers = (int) ($visit->visited_dealers ?? 0);
+            $convertedDealers = (int) ($convertedRows->get($userId)->converted_dealers ?? 0);
 
             return (object) [
                 'user' => $users->get($userId),
@@ -163,6 +225,16 @@ class ReportService
                 'total_visits' => (int) ($visit->total_visits ?? 0),
                 'gps_verified_count' => $gpsVerified,
                 'gps_verified_rate' => $gpsJudged > 0 ? round(($gpsVerified / $gpsJudged) * 100, 1) : 0.0,
+                'order_count' => $orderCount,
+                'order_value' => $orderValue,
+                // Zero rather than a division error when nothing was ordered.
+                'avg_order_value' => $orderCount > 0 ? round($orderValue / $orderCount, 2) : 0.0,
+                // Every dealer an order came from, visited or not - phone
+                // orders included. The literal "how many dealers ordered".
+                'productive_dealers' => (int) ($orders->productive_dealers ?? 0),
+                'visited_dealers' => $visitedDealers,
+                'converted_dealers' => $convertedDealers,
+                'strike_rate' => $visitedDealers > 0 ? round(($convertedDealers / $visitedDealers) * 100, 1) : 0.0,
             ];
         })->sortByDesc('completion_rate')->values();
     }

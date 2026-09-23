@@ -27,9 +27,40 @@ body.admin-body {
     width: var(--sidebar-width);
     background: var(--gradient-sidebar);
     color: #cbd5e1;
-    overflow-y: auto;
+    // A flex column rather than one scrolling box: the brand and the
+    // footer are fixed bands, and only .sidebar-scroll between them moves.
+    // Scrolling the whole sidebar (the old behaviour) pushed Settings and
+    // Guide off the bottom exactly when a long menu made them hardest to
+    // find.
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     z-index: 1030;
     transition: transform .2s ease-in-out;
+
+    .sidebar-scroll {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        // Momentum scrolling on touch, and no horizontal bounce.
+        overscroll-behavior: contain;
+
+        // Bootstrap's .nav sets flex-wrap: wrap. Harmless while the
+        // sidebar scrolled as a whole, but once this became a
+        // height-constrained flex item the column wrapped into a SECOND
+        // column of half-cut labels instead of scrolling. Must stay.
+        flex-wrap: nowrap;
+
+        // A flex item's min-height defaults to auto, which refuses to
+        // shrink below its content and so defeats overflow-y entirely.
+        min-height: 0;
+    }
+
+    .sidebar-footer {
+        flex: 0 0 auto;
+        border-top: 1px solid rgba(255, 255, 255, .12);
+        padding: .5rem 0;
+        background: rgba(0, 0, 0, .15);
+    }
 
     .sidebar-brand {
         height: var(--topbar-height);
@@ -417,4 +448,106 @@ body.admin-body {
 @keyframes skeleton-loading {
     0% { background-position: 100% 50%; }
     100% { background-position: 0 50%; }
+}
+
+// Settings hub tiles. The whole card is the link, so the hit target is the
+// card rather than the few words inside it.
+.settings-tile {
+    transition: border-color .15s ease-in-out, transform .15s ease-in-out;
+
+    &:hover {
+        border-color: var(--bs-primary);
+        transform: translateY(-2px);
+    }
+
+    .settings-tile-icon {
+        width: 2.25rem;
+        height: 2.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: .5rem;
+        background: rgba(var(--bs-primary-rgb), .12);
+        color: var(--bs-primary);
+        font-size: 1.1rem;
+    }
+}
+
+// The Guide page. Markdown-rendered prose needs its own rhythm - the
+// generated HTML carries no classes to hang spacing on.
+.guide-toc {
+    position: sticky;
+    top: calc(var(--topbar-height) + 1rem);
+    max-height: calc(100vh - var(--topbar-height) - 2rem);
+    overflow-y: auto;
+}
+
+.guide-content {
+    // Anchor links from the contents rail land under the fixed topbar
+    // otherwise, putting the heading you clicked just off screen.
+    section {
+        scroll-margin-top: calc(var(--topbar-height) + 1rem);
+    }
+}
+
+.guide-prose {
+    h2 {
+        font-size: 1.15rem;
+        font-weight: 600;
+        margin-top: 2rem;
+        scroll-margin-top: calc(var(--topbar-height) + 1rem);
+
+        &:first-child {
+            margin-top: 0;
+        }
+    }
+
+    h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-top: 1.5rem;
+        scroll-margin-top: calc(var(--topbar-height) + 1rem);
+    }
+
+    p,
+    ul,
+    ol {
+        margin-bottom: 1rem;
+        line-height: 1.7;
+    }
+
+    li + li {
+        margin-top: .35rem;
+    }
+
+    code {
+        padding: .1rem .3rem;
+        border-radius: .25rem;
+        background: rgba(var(--bs-body-color-rgb), .08);
+    }
+
+    pre {
+        padding: .75rem 1rem;
+        border-radius: .5rem;
+        background: rgba(var(--bs-body-color-rgb), .08);
+        overflow-x: auto;
+
+        code {
+            padding: 0;
+            background: none;
+        }
+    }
+}
+
+// Markdown tables are the first thing to push a phone sideways, so each
+// one scrolls inside its own box rather than widening the page.
+.guide-table-scroll {
+    overflow-x: auto;
+    margin-bottom: 1rem;
+}
+
+.guide-diagram svg {
+    max-width: 100%;
+    height: auto;
+    color: var(--bs-body-color);
 }

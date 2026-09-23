@@ -18,6 +18,7 @@ use App\Http\Controllers\Web\Admin\DivisionController;
 use App\Http\Controllers\Web\Admin\DriverController;
 use App\Http\Controllers\Web\Admin\FaqController;
 use App\Http\Controllers\Web\Admin\GpsLogController;
+use App\Http\Controllers\Web\Admin\GuideController;
 use App\Http\Controllers\Web\Admin\HolidayController;
 use App\Http\Controllers\Web\Admin\LeaveBalanceController;
 use App\Http\Controllers\Web\Admin\LeaveRequestController;
@@ -622,9 +623,22 @@ Route::middleware(['auth', 'active'])->group(function () use ($registerManagemen
      * A singleton record (one row, no index/create/delete) — edit-only.
      */
     Route::prefix('settings')->name('settings.')->group(function (): void {
-        Route::get('/', [SettingsController::class, 'edit'])->name('edit');
-        Route::put('/', [SettingsController::class, 'update'])->name('update');
+        // The hub takes /settings, since that is where the pinned sidebar
+        // link points. The company-profile form keeps its `settings.edit`
+        // route NAME and only changes URL, so every existing link and test
+        // that routes by name is unaffected.
+        Route::get('/', [SettingsController::class, 'index'])->name('index');
+        Route::get('/company', [SettingsController::class, 'edit'])->name('edit');
+        Route::put('/company', [SettingsController::class, 'update'])->name('update');
     });
+
+    /**
+     * The manual. Deliberately open to any signed-in user and gated by no
+     * permission: it is the one page that explains why somebody sees what
+     * they see, so withholding it from a user with few permissions would
+     * withhold exactly the explanation they need.
+     */
+    Route::get('guide', [GuideController::class, 'index'])->name('guide.index');
 
     /**
      * Inquiries and Visit Requests arrive from the Customer Web Portal

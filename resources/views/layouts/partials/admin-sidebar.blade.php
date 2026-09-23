@@ -122,62 +122,6 @@
     </a>
 @endcanany
 
-@canany(['users.view', 'roles.view', 'permissions.view'])
-    <div class="nav-section-title">Access Control</div>
-@endcanany
-
-@can('menu.users')
-    <a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
-        <i class="ti ti-users icon-indigo"></i> Users
-    </a>
-@endcan
-
-@can('menu.roles')
-    <a href="{{ route('roles.index') }}" class="nav-link {{ request()->routeIs('roles.*') ? 'active' : '' }}">
-        <i class="ti ti-shield-lock icon-purple"></i> Roles
-    </a>
-@endcan
-
-@can('menu.permissions')
-    <a href="{{ route('permissions.index') }}" class="nav-link {{ request()->routeIs('permissions.*') ? 'active' : '' }}">
-        <i class="ti ti-key icon-amber"></i> Permissions
-    </a>
-@endcan
-
-@canany(['sales-teams.view', 'territories.view'])
-    <div class="nav-section-title">Organization</div>
-@endcanany
-
-@can('menu.sales-teams')
-    <a href="{{ route('sales-teams.index') }}" class="nav-link {{ request()->routeIs('sales-teams.*') ? 'active' : '' }}">
-        <i class="ti ti-users-group icon-teal"></i> Sales Teams
-    </a>
-@endcan
-
-@can('menu.territories')
-    <a href="{{ route('territories.index') }}" class="nav-link {{ request()->routeIs('territories.*') ? 'active' : '' }}">
-        <i class="ti ti-map-pin-2 icon-orange"></i> Territories
-    </a>
-@endcan
-
-@can('menu.depots')
-    <a href="{{ route('depots.index') }}" class="nav-link {{ request()->routeIs('depots.*') ? 'active' : '' }}">
-        <i class="ti ti-building-warehouse icon-cyan"></i> Depots
-    </a>
-@endcan
-
-@can('menu.vehicles')
-    <a href="{{ route('vehicles.index') }}" class="nav-link {{ request()->routeIs('vehicles.*') ? 'active' : '' }}">
-        <i class="ti ti-truck icon-green"></i> Vehicles
-    </a>
-@endcan
-
-@can('menu.drivers')
-    <a href="{{ route('drivers.index') }}" class="nav-link {{ request()->routeIs('drivers.*') ? 'active' : '' }}">
-        <i class="ti ti-id-badge-2 icon-amber"></i> Drivers
-    </a>
-@endcan
-
 @canany(['dealers.view', 'retailers.view'])
     <div class="nav-section-title">Dealer Management</div>
 @endcanany
@@ -210,53 +154,27 @@
     </a>
 @endcan
 
-@canany(['menu.inquiries', 'menu.visit-requests', 'menu.news', 'menu.promotions', 'menu.faqs', 'menu.service-centers', 'menu.brochures'])
-    <div class="nav-section-title">Customer Portal</div>
+{{-- Inquiries and Visit Requests are incoming customer work, not setup,
+     so they stay in the operational menu. The portal CONTENT they relate
+     to - news, promotions, FAQs, service centres, brochures - moved to
+     Settings > Content, since that is written once and left alone. --}}
+@canany(['menu.inquiries', 'menu.visit-requests'])
+    <div class="nav-section-title">Customer Requests</div>
 @endcanany
 
 @can('menu.inquiries')
     <a href="{{ route('inquiries.index') }}" class="nav-link {{ request()->routeIs('inquiries.*') ? 'active' : '' }}">
-        <i class="ti ti-message-2 icon-cyan"></i> Inquiries
+        <i class="ti ti-message-question icon-orange"></i> Inquiries
     </a>
 @endcan
 
 @can('menu.visit-requests')
     <a href="{{ route('visit-requests.index') }}" class="nav-link {{ request()->routeIs('visit-requests.*') ? 'active' : '' }}">
-        <i class="ti ti-calendar-event icon-purple"></i> Visit Requests
+        <i class="ti ti-calendar-plus icon-teal"></i> Visit Requests
     </a>
 @endcan
 
-@can('menu.news')
-    <a href="{{ route('news.index') }}" class="nav-link {{ request()->routeIs('news.*') ? 'active' : '' }}">
-        <i class="ti ti-news icon-blue"></i> News
-    </a>
-@endcan
-
-@can('menu.promotions')
-    <a href="{{ route('promotions.index') }}" class="nav-link {{ request()->routeIs('promotions.*') ? 'active' : '' }}">
-        <i class="ti ti-discount-2 icon-pink"></i> Promotions
-    </a>
-@endcan
-
-@can('menu.faqs')
-    <a href="{{ route('faqs.index') }}" class="nav-link {{ request()->routeIs('faqs.*') ? 'active' : '' }}">
-        <i class="ti ti-help-circle icon-teal"></i> FAQs
-    </a>
-@endcan
-
-@can('menu.service-centers')
-    <a href="{{ route('service-centers.index') }}" class="nav-link {{ request()->routeIs('service-centers.*') ? 'active' : '' }}">
-        <i class="ti ti-building-store icon-orange"></i> Service Centers
-    </a>
-@endcan
-
-@can('menu.brochures')
-    <a href="{{ route('brochures.index') }}" class="nav-link {{ request()->routeIs('brochures.*') ? 'active' : '' }}">
-        <i class="ti ti-file-type-pdf icon-red"></i> Brochures
-    </a>
-@endcan
-
-@canany(['menu.notifications', 'menu.announcements'])
+@canany(['menu.notifications'])
     <div class="nav-section-title">Communication</div>
 @endcanany
 
@@ -266,48 +184,3 @@
     </a>
 @endcan
 
-@can('menu.announcements')
-    <a href="{{ route('announcements.index') }}" class="nav-link {{ request()->routeIs('announcements.*') ? 'active' : '' }}">
-        <i class="ti ti-speakerphone icon-pink"></i> Announcements
-    </a>
-@endcan
-
-@canany(['menu.activity-log', 'menu.tally-integration', 'menu.holidays', 'menu.leave-types', 'menu.leave-balances', 'menu.settings'])
-    <div class="nav-section-title">System</div>
-@endcanany
-
-@can('menu.activity-log')
-    <a href="{{ route('activity-log.index') }}" class="nav-link {{ request()->routeIs('activity-log.*') ? 'active' : '' }}">
-        <i class="ti ti-history icon-indigo"></i> Activity Log
-    </a>
-@endcan
-
-@can('menu.tally-integration')
-    <a href="{{ route('tally-integration.dashboard') }}" class="nav-link {{ request()->routeIs('tally-integration.*') || request()->routeIs('tally-connections.*') ? 'active' : '' }}">
-        <i class="ti ti-refresh icon-green"></i> Tally Integration
-    </a>
-@endcan
-
-@can('menu.holidays')
-    <a href="{{ route('holidays.index') }}" class="nav-link {{ request()->routeIs('holidays.*') ? 'active' : '' }}">
-        <i class="ti ti-calendar-event icon-red"></i> Holidays
-    </a>
-@endcan
-
-@can('menu.leave-types')
-    <a href="{{ route('leave-types.index') }}" class="nav-link {{ request()->routeIs('leave-types.*') ? 'active' : '' }}">
-        <i class="ti ti-beach icon-blue"></i> Leave Types
-    </a>
-@endcan
-
-@can('menu.leave-balances')
-    <a href="{{ route('leave-balances.index') }}" class="nav-link {{ request()->routeIs('leave-balances.*') ? 'active' : '' }}">
-        <i class="ti ti-scale icon-blue"></i> Leave Entitlements
-    </a>
-@endcan
-
-@can('menu.settings')
-    <a href="{{ route('settings.edit') }}" class="nav-link {{ request()->routeIs('settings.*') ? 'active' : '' }}">
-        <i class="ti ti-settings icon-cyan"></i> Settings
-    </a>
-@endcan

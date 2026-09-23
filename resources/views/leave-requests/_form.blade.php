@@ -69,7 +69,7 @@
 
 <div class="mt-4 d-flex gap-2">
     <button type="submit" class="btn btn-primary">
-        <i class="ti ti-check me-1"></i>{{ isset($leaveRequest) ? 'Update Request' : 'Submit Request' }}
+        <i class="ti ti-check me-1"></i>{{ isset($leaveRequest) ? 'Update Request' : 'Submit Leave Application' }}
     </button>
     <a href="{{ route('leave-requests.index') }}" class="btn btn-outline-secondary">Cancel</a>
 </div>

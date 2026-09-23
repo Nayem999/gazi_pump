@@ -1,10 +1,10 @@
 @extends('layouts.admin')
 
-@section('title', 'Request Leave')
+@section('title', 'Apply for Leave')
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('leave-requests.index') }}">Leave Requests</a></li>
-    <li class="breadcrumb-item active">New Request</li>
+    <li class="breadcrumb-item active">Apply for Leave</li>
 @endsection
 
 @section('content')

@@ -51,6 +51,12 @@
 
     <x-data-table
         title="Leave Requests"
+        {{-- "Add New" is the component default and says nothing about what
+             it adds. An employee looking for how to book time off scans for
+             the word "leave", so the button says what the action is.
+             Managers filing on someone's behalf use the same screen, hence
+             the neutral wording rather than "Apply for My Leave". --}}
+        create-label="Apply for Leave"
         :create-url="auth()->user()->can('create', \App\Models\LeaveRequest::class) ? route('leave-requests.create') : null"
         :export-url="auth()->user()->can('export', \App\Models\LeaveRequest::class) ? route('leave-requests.export', request()->query()) : null"
         :print-url="auth()->user()->can('print', \App\Models\LeaveRequest::class) ? route('leave-requests.print', request()->query()) : null"

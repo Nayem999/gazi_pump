@@ -90,9 +90,28 @@ class ReportController extends Controller
         abort_unless($request->user()?->can(PermissionName::report('visits')), 403);
 
         $filters = $request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]);
+        $rows = $this->reports->visitCompliance($this->scopedFilters($filters, $request->user()));
+
+        $orderCount = $rows->sum('order_count');
+        $orderValue = round((float) $rows->sum('order_value'), 2);
 
         return view('reports.visit-compliance', [
-            'rows' => $this->paginate($this->reports->visitCompliance($this->scopedFilters($filters, $request->user())), $request),
+            'rows' => $this->paginate($rows, $request),
+            // Totalled from the full result, not the current page, so the
+            // footer does not change as you page through.
+            //
+            // Deliberately no total for productive dealers or strike rate:
+            // those are DISTINCT dealer counts per rep, and summing them
+            // would count a dealer served by two reps twice. A footer
+            // figure that is quietly wrong is worse than none.
+            'totals' => [
+                'order_count' => $orderCount,
+                'order_value' => $orderValue,
+                // The overall average, recomputed from the totals - an
+                // average of each rep's average would weight a rep with one
+                // order the same as a rep with fifty.
+                'avg_order_value' => $orderCount > 0 ? round($orderValue / $orderCount, 2) : 0.0,
+            ],
             'executives' => $this->executives($request->user()),
             'divisions' => $this->divisions(),
             'territories' => $this->territories($request->user()),
@@ -117,7 +136,10 @@ class ReportController extends Controller
         $filters = $this->scopedFilters($request->only(['date_from', 'date_to', 'user_id', ...self::GEO_FILTER_KEYS]), $request->user());
         $rows = $this->reports->visitCompliance($filters);
 
+        // Landscape: the order and productivity columns take it to fourteen,
+        // which does not fit a portrait page without wrapping every figure.
         return Pdf::loadView('reports.visit-compliance-print', ['rows' => $rows])
+            ->setPaper('a4', 'landscape')
             ->stream('visit-compliance-'.now()->format('Y-m-d-His').'.pdf');
     }
 

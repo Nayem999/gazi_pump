@@ -79,6 +79,17 @@
                         <th>Total Visits</th>
                         <th>GPS Verified</th>
                         <th>GPS Verified Rate</th>
+                        <th class="text-end">Orders</th>
+                        <th class="text-end">Order Value</th>
+                        <th class="text-end">Avg Order Value</th>
+                        <th class="text-end"
+                            title="Dealers an order came from in this period, whether or not they were visited. Rejected orders are not counted.">
+                            Productive Dealers
+                        </th>
+                        <th class="text-end"
+                            title="Of the dealers this executive visited, the share who also placed an order with them in this period.">
+                            Strike Rate
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -96,13 +107,45 @@
                             <td>{{ $row->total_visits }}</td>
                             <td>{{ $row->gps_verified_count }}</td>
                             <td class="fw-semibold">{{ $row->gps_verified_rate }}%</td>
+                            <td class="text-end">{{ $row->order_count }}</td>
+                            <td class="text-end fw-semibold">{{ number_format($row->order_value, 2) }}</td>
+                            <td class="text-end">{{ number_format($row->avg_order_value, 2) }}</td>
+                            <td class="text-end">
+                                <span class="badge text-bg-primary">{{ $row->productive_dealers }}</span>
+                            </td>
+                            <td class="text-end">
+                                @if ($row->visited_dealers > 0)
+                                    <span class="fw-semibold">{{ $row->strike_rate }}%</span>
+                                    {{-- The fraction is shown so the rate cannot be
+                                         misread against Productive Dealers, which
+                                         also counts dealers ordering without a visit. --}}
+                                    <div class="text-muted small">{{ $row->converted_dealers }} of {{ $row->visited_dealers }} visited</div>
+                                @else
+                                    <span class="text-muted" title="No dealers visited, so there is nothing to judge a strike rate against.">&mdash;</span>
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-4">No visit data for this period.</td>
+                            <td colspan="14" class="text-center text-muted py-4">No visit data for this period.</td>
                         </tr>
                     @endforelse
                 </tbody>
+                @if ($rows->total() > 0)
+                    <tfoot class="table-light fw-semibold">
+                        <tr>
+                            <td colspan="9" class="text-end">Total, all executives</td>
+                            <td class="text-end">{{ $totals['order_count'] }}</td>
+                            <td class="text-end">{{ number_format($totals['order_value'], 2) }}</td>
+                            <td class="text-end">{{ number_format($totals['avg_order_value'], 2) }}</td>
+                            {{-- Not summed: these are distinct-dealer counts per
+                                 executive, so a total would count a dealer
+                                 served by two executives twice. --}}
+                            <td class="text-end text-muted" title="Not totalled: a dealer served by two executives would be counted twice.">&mdash;</td>
+                            <td class="text-end text-muted" title="Not totalled: a dealer served by two executives would be counted twice.">&mdash;</td>
+                        </tr>
+                    </tfoot>
+                @endif
             </table>
         </div>
         @if ($rows->hasPages())

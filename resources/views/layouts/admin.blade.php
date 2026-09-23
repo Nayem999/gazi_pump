@@ -30,9 +30,14 @@
             @endif
             <span>{{ config('app.name') }}</span>
         </a>
-        <nav class="nav flex-column py-2">
+        {{-- The scrolling region. The brand above and the footer below stay
+             put; only this list moves, so Settings and Guide are always
+             reachable however long the menu grows. --}}
+        <nav class="nav flex-column py-2 sidebar-scroll">
             @include('layouts.partials.admin-sidebar')
         </nav>
+
+        @include('layouts.partials.admin-sidebar-footer')
     </div>
 
     <div class="app-content">

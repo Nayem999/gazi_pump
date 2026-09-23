@@ -26,7 +26,12 @@ class VisitComplianceExport implements FromCollection, WithHeadings, WithMapping
      */
     public function headings(): array
     {
-        return ['Executive', 'Territory', 'Planned', 'Completed', 'Missed', 'Completion Rate %', 'Total Visits', 'GPS Verified', 'GPS Verified Rate %'];
+        return [
+            'Executive', 'Territory', 'Planned', 'Completed', 'Missed', 'Completion Rate %',
+            'Total Visits', 'GPS Verified', 'GPS Verified Rate %',
+            'Orders', 'Order Value', 'Avg Order Value',
+            'Productive Dealers', 'Visited Dealers', 'Visited Dealers Who Ordered', 'Strike Rate %',
+        ];
     }
 
     /**
@@ -44,6 +49,17 @@ class VisitComplianceExport implements FromCollection, WithHeadings, WithMapping
             $row->total_visits,
             $row->gps_verified_count,
             (string) $row->gps_verified_rate,
+            $row->order_count,
+            // Raw numbers rather than number_format() strings, so the
+            // spreadsheet can still sum and average these columns.
+            $row->order_value,
+            $row->avg_order_value,
+            $row->productive_dealers,
+            // Both halves of the strike rate exported explicitly, so a
+            // reader can check the percentage rather than trust it.
+            $row->visited_dealers,
+            $row->converted_dealers,
+            (string) $row->strike_rate,
         ];
     }
 }
